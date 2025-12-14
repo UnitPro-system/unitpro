@@ -3,23 +3,20 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { ShieldCheck, Plus, LogOut, Users, Smartphone, Loader2, Palette, ExternalLink } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import WebEditor from "./WebEditor"; // Asegúrate de que WebEditor.tsx esté en esta misma carpeta
+import WebEditor from "./WebEditor"; 
 
 export default function DashboardAgencia() {
   const supabase = createClient();
   const router = useRouter();
-  const params = useParams(); // Usamos el slug de la URL
+  const params = useParams();
 
   const [agency, setAgency] = useState<any>(null);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Estado para el Modal de Crear Cliente
   const [showModal, setShowModal] = useState(false);
   const [newClientData, setNewClientData] = useState({ email: "", password: "", nombre: "", whatsapp: "" });
   const [creating, setCreating] = useState(false);
-
-  // Estado para el Editor Web
   const [editingClient, setEditingClient] = useState<any>(null);
 
   useEffect(() => {
@@ -27,19 +24,18 @@ export default function DashboardAgencia() {
   }, []);
 
   async function checkAgencySession() {
-    // 1. Verificar sesión activa
-    const { data: { user } } = await supabase.auth.getSession();
+    // --- CORRECCIÓN AQUÍ ---
+    // Usamos getUser() en lugar de getSession() para obtener el usuario directamente
+    const { data: { user } } = await supabase.auth.getUser();
+    
     if (!user) { router.push("/login"); return; }
 
-    // 2. Buscar la agencia que coincida con el SLUG de la URL y el USUARIO logueado
-    // Esto es más seguro que buscar solo por user_id, porque respeta la navegación actual.
     const { data: agencyData, error } = await supabase
         .from("agencies")
         .select("*")
-        .eq("slug", params.slug) // El slug viene de la URL
+        .eq("slug", params.slug)
         .single();
     
-    // Si no encuentra agencia o la agencia no pertenece al usuario logueado (doble check)
     if (error || !agencyData || agencyData.user_id !== user.id) {
         console.error("Acceso denegado o agencia no encontrada");
         router.push("/login"); 
@@ -61,22 +57,14 @@ export default function DashboardAgencia() {
     setLoading(false);
   }
 
-  // --- FUNCIÓN: CREAR CLIENTE ---
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
 
-    // 1. Crear Auth User para el cliente (La agencia le asigna email y pass)
-    // NOTA: Esto loguea automáticamente al nuevo usuario en algunos casos, 
-    // pero como estamos en dashboard de agencia, queremos mantener la sesión de la agencia.
-    // Supabase permite crear usuarios sin desloguear usando la API de admin, 
-    // pero desde el cliente (aquí) es limitado. Para MVP usamos signUp estándar.
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newClientData.email,
         password: newClientData.password,
-        options: {
-            data: { role: 'cliente' } // Metadata opcional
-        }
+        options: { data: { role: 'cliente' } }
     });
 
     if (authError) { 
@@ -86,24 +74,21 @@ export default function DashboardAgencia() {
     }
 
     if (authData.user) {
-        // 2. Generar Slug único
         const slug = newClientData.nombre
           .toLowerCase()
           .trim()
           .replace(/[^\w\s-]/g, '')
           .replace(/[\s_-]+/g, '-') + "-" + Math.floor(Math.random() * 1000);
 
-        // 3. Crear el Negocio vinculado a ESTA AGENCIA
         const { error: dbError } = await supabase.from("negocios").insert([{
             user_id: authData.user.id,
-            agency_id: agency.id, // <--- CLAVE: VINCULACIÓN
+            agency_id: agency.id,
             nombre: newClientData.nombre,
             slug: slug,
             whatsapp: newClientData.whatsapp,
             mensaje_bienvenida: `Bienvenidos a ${newClientData.nombre}`,
             color_principal: '#000000',
             estado_plan: 'activo', 
-            // Configuración web por defecto
             config_web: {
               template: "modern",
               hero: { 
@@ -127,8 +112,6 @@ export default function DashboardAgencia() {
         if (!dbError) {
             setShowModal(false);
             setNewClientData({ email: "", password: "", nombre: "", whatsapp: "" });
-            // Es posible que al hacer signUp se haya cambiado la sesión al nuevo usuario.
-            // Por seguridad, recargamos la página para asegurar que seguimos como agencia o pedir login.
             window.location.reload(); 
         } else {
             alert("Error guardando datos del negocio: " + dbError.message);
@@ -211,7 +194,6 @@ export default function DashboardAgencia() {
                     </div>
                     
                     <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
-                        {/* BOTÓN DISEÑAR */}
                         <button 
                             onClick={() => setEditingClient(cliente)}
                             className="flex-1 text-center py-2.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold text-indigo-700 flex items-center justify-center gap-2 transition-colors border border-indigo-100"
@@ -219,7 +201,6 @@ export default function DashboardAgencia() {
                             <Palette size={14}/> Diseñar
                         </button>
                         
-                        {/* BOTÓN VER WEB */}
                         <a 
                             href={`/${cliente.slug}`} 
                             target="_blank" 
@@ -244,12 +225,11 @@ export default function DashboardAgencia() {
         </div>
       </main>
 
-      {/* MODAL CREAR CLIENTE */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md animate-in zoom-in-95 duration-300 relative">
                 <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                    <LogOut size={20} className="rotate-45" /> {/* Icono de X improvisado */}
+                    <LogOut size={20} className="rotate-45" /> 
                 </button>
                 
                 <h3 className="text-2xl font-bold mb-2 text-slate-900">Nuevo Cliente</h3>
@@ -258,8 +238,8 @@ export default function DashboardAgencia() {
                 <form onSubmit={handleCreateClient} className="space-y-4">
                     <div>
                       <label className="text-xs font-bold text-slate-700 uppercase mb-1 block">Datos del Negocio</label>
-                      <input required placeholder="Nombre Comercial (ej. Pizzería Don Luis)" className="w-full p-3 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all mb-3" onChange={e => setNewClientData({...newClientData, nombre: e.target.value})}/>
-                      <input required placeholder="WhatsApp (ej. 3415550000)" className="w-full p-3 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" onChange={e => setNewClientData({...newClientData, whatsapp: e.target.value})}/>
+                      <input required placeholder="Nombre Comercial" className="w-full p-3 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all mb-3" onChange={e => setNewClientData({...newClientData, nombre: e.target.value})}/>
+                      <input required placeholder="WhatsApp" className="w-full p-3 border border-slate-200 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" onChange={e => setNewClientData({...newClientData, whatsapp: e.target.value})}/>
                     </div>
 
                     <div className="pt-4 border-t border-slate-100">
@@ -279,7 +259,6 @@ export default function DashboardAgencia() {
         </div>
       )}
 
-      {/* EDITOR WEB */}
       {editingClient && (
         <WebEditor 
             negocio={editingClient} 
