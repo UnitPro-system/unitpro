@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation"; // 1. Agregado useSearchParams
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { 
   Users, 
@@ -17,9 +17,9 @@ import {
   MoreHorizontal,
   Calendar,
   Smartphone,
-  Settings, // 2. Nuevo icono
-  Link as LinkIcon, // 2. Nuevo icono
-  Check // 2. Nuevo icono
+  Settings,
+  Link as LinkIcon,
+  Check
 } from "lucide-react";
 
 // --- CONFIGURACIÓN ---
@@ -27,7 +27,7 @@ const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?pre
 
 export default function ClientDashboard() {
   const params = useParams();
-  const searchParams = useSearchParams(); // 3. Hook para leer la URL al volver de Google
+  const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
 
@@ -36,10 +36,9 @@ export default function ClientDashboard() {
   const [negocio, setNegocio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // 4. Agregada la opción "configuracion" al estado
   const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion" | "configuracion">("resumen");
 
-  // Cálculos
+  // Cálculos estadísticos
   const promedio = resenas.length > 0
     ? (resenas.reduce((acc, curr) => acc + curr.puntuacion, 0) / resenas.length).toFixed(1)
     : "0.0";
@@ -57,31 +56,60 @@ export default function ClientDashboard() {
     router.refresh();
   };
 
-  // 5. Nueva función para conectar con Google
+  // --- CORRECCIÓN 1: Botón seguro ---
+  // Usamos 'negocio.slug' del estado cargado, NO 'params.slug' de la URL (que puede fallar)
   const handleConnectGoogle = () => {
-    window.location.href = `/api/google/auth?slug=${params.slug}`;
+    if (!negocio?.slug) {
+        console.error("No hay slug de negocio cargado");
+        return;
+    }
+    window.location.href = `/api/google/auth?slug=${negocio.slug}`;
   };
 
   useEffect(() => {
     async function cargarDatos() {
-      // 6. Modificado para pedir datos de Google
-      const { data: datosNegocio, error } = await supabase
+      setLoading(true);
+
+      // 1. Verificar sesión de usuario primero
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // 2. Construir la consulta base incluyendo user_id
+      let query = supabase
         .from("negocios")
-        .select("id, nombre, slug, estado_plan, google_calendar_connected, google_email") 
-        .eq("slug", params.slug)
-        .single();
+        .select("id, nombre, slug, estado_plan, google_calendar_connected, google_email, user_id");
+
+      // --- CORRECCIÓN 2: Lógica Híbrida ---
+      // Si hay slug en la URL, filtramos por slug.
+      // Si NO hay slug (ej: volviendo de Google), filtramos por el dueño (user.id).
+      if (params.slug) {
+        query = query.eq("slug", params.slug);
+      } else {
+        query = query.eq("user_id", user.id); 
+      }
+
+      const { data: datosNegocio, error } = await query.single();
 
       if (error || !datosNegocio) {
+        console.error("Error cargando negocio:", error);
         setLoading(false);
         return;
       }
+
       setNegocio(datosNegocio);
 
-      // 7. Auto-detectar si volvemos de conectar Google con éxito
+      // 3. Auto-detectar conexión exitosa de Google
       if (searchParams.get('google_connected') === 'true') {
         setActiveTab("configuracion");
+        // Limpiamos la URL visualmente (opcional)
+        router.replace(window.location.pathname, { scroll: false });
       }
 
+      // 4. Cargar Leads usando el ID seguro de la DB
       const { data: datosLeads } = await supabase
         .from("leads")
         .select("*")
@@ -89,6 +117,7 @@ export default function ClientDashboard() {
         .order('created_at', { ascending: false });
       if (datosLeads) setLeads(datosLeads);
 
+      // 5. Cargar Reseñas usando el ID seguro de la DB
       const { data: datosResenas } = await supabase
         .from("resenas")
         .select("*")
@@ -98,8 +127,9 @@ export default function ClientDashboard() {
       
       setLoading(false);
     }
-    if (params.slug) cargarDatos();
-  }, [params.slug, searchParams]); // 8. Agregado searchParams a dependencias
+
+    cargarDatos();
+  }, [params.slug, searchParams, router]); 
 
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-white">
@@ -110,7 +140,7 @@ export default function ClientDashboard() {
     </div>
   );
   
-  if (!negocio) return <div className="h-screen flex items-center justify-center font-bold">Acceso Denegado</div>;
+  if (!negocio) return <div className="h-screen flex items-center justify-center font-bold">Acceso Denegado / Negocio no encontrado</div>;
 
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
@@ -145,7 +175,6 @@ export default function ClientDashboard() {
                 active={activeTab === "suscripcion"} 
                 onClick={() => setActiveTab("suscripcion")}
             />
-            {/* 9. Botón nuevo en Sidebar */}
             <SidebarItem 
                 icon={<Settings size={18} />} 
                 label="Configuración" 
@@ -210,7 +239,7 @@ export default function ClientDashboard() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         
-                        {/* TABLA LEADS (Ocupa 2 columnas) */}
+                        {/* TABLA LEADS */}
                         <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
                             <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
                                 <h3 className="font-bold text-zinc-800 text-sm">Últimos Contactos</h3>
@@ -258,7 +287,7 @@ export default function ClientDashboard() {
                             </div>
                         </div>
 
-                        {/* DESGLOSE RESEÑAS (Ocupa 1 columna) */}
+                        {/* DESGLOSE RESEÑAS */}
                         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 h-fit">
                             <h3 className="font-bold text-zinc-800 text-sm mb-6">Desglose de Opiniones</h3>
                             <div className="space-y-4">
@@ -424,7 +453,7 @@ export default function ClientDashboard() {
                 </div>
             )}
 
-            {/* 10. --- NUEVA TAB: CONFIGURACIÓN (INTEGRACIONES) --- */}
+            {/* --- TAB: CONFIGURACIÓN (INTEGRACIONES) --- */}
             {activeTab === "configuracion" && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
                     <header className="mb-8">
@@ -480,7 +509,6 @@ export default function ClientDashboard() {
                             </button>
                         </div>
                         
-                        {/* Footer informativo de la card */}
                         <div className="bg-zinc-50/50 px-6 py-3 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-400">
                             <ShieldCheck size={12} />
                             <span>Solo solicitamos acceso para crear eventos. No leemos tus correos.</span>
