@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, ArrowRight, Loader2, Building } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,41 +29,40 @@ export default function LoginPage() {
       return;
     }
 
-    // --- CORRECCIÓN CLAVE 1: Refrescar contexto ---
-    // Esto es obligatorio en Next.js App Router para que el Middleware
-    // se entere de que la cookie de sesión ha cambiado antes de redirigir.
+    // Refrescar para actualizar cookies de sesión
     router.refresh(); 
 
-    // 2. ENRUTAMIENTO INTELIGENTE
+    // 2. ENRUTAMIENTO INTELIGENTE (Corrección aquí)
     
     // A) Chequear si es AGENCIA (SuperAdmin)
     const { data: agencia } = await supabase
       .from("agencies")
-      .select("id")
+      .select("slug") // IMPORTANTE: Pedir el slug
       .eq("user_id", data.user.id)
       .single();
 
-    if (agencia) {
-      // --- CORRECCIÓN CLAVE 2: Ruta actualizada ---
-      // Redirige a la nueva ubicación que vimos en tu git status
-      router.push("/agencia/dashboard"); 
+    if (agencia && agencia.slug) {
+      // Redirige a SU propio dashboard dinámico
+      router.push(`/${agencia.slug}/dashboard`); 
       return; 
     }
 
     // B) Chequear si es CLIENTE FINAL (Negocio)
     const { data: negocio } = await supabase
       .from("negocios")
-      .select("slug")
+      .select("slug") // IMPORTANTE: Pedir el slug
       .eq("user_id", data.user.id)
       .single();
 
-    if (negocio) {
-      router.push(`/dashboard/${negocio.slug}`); // Va a su dashboard de cliente
+    if (negocio && negocio.slug) {
+      // Redirige a SU propio dashboard dinámico
+      router.push(`/${negocio.slug}/dashboard`);
       return;
     }
 
-    // C) Si no es nada (Usuario sin rol definido)
-    setError("Usuario sin perfil asociado.");
+    // C) Si no tiene perfil asociado (Caso raro, tal vez usuario nuevo sin datos)
+    // Lo mandamos a registrar o mostramos error
+    setError("Usuario sin perfil de Agencia o Negocio asociado.");
     setLoading(false);
   };
 
@@ -83,7 +82,7 @@ export default function LoginPage() {
               required 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
             />
           </div>
           <div>
@@ -93,16 +92,16 @@ export default function LoginPage() {
               required 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
             />
           </div>
           
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
 
           <button 
             type="submit" 
             disabled={loading} 
-            className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-all hover:shadow-lg flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Ingresar"}
           </button>
