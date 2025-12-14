@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // 1. Autenticar usuario
+    // 1. Autenticar usuario con Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -29,7 +29,12 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. ENRUTAMIENTO INTELIGENTE (LA MAGIA)
+    // --- CORRECCIÓN CLAVE 1: Refrescar contexto ---
+    // Esto es obligatorio en Next.js App Router para que el Middleware
+    // se entere de que la cookie de sesión ha cambiado antes de redirigir.
+    router.refresh(); 
+
+    // 2. ENRUTAMIENTO INTELIGENTE
     
     // A) Chequear si es AGENCIA (SuperAdmin)
     const { data: agencia } = await supabase
@@ -39,7 +44,9 @@ export default function LoginPage() {
       .single();
 
     if (agencia) {
-      router.push("/admin"); // Va a su panel de control de agencia
+      // --- CORRECCIÓN CLAVE 2: Ruta actualizada ---
+      // Redirige a la nueva ubicación que vimos en tu git status
+      router.push("/agencia/dashboard"); 
       return; 
     }
 
@@ -55,7 +62,7 @@ export default function LoginPage() {
       return;
     }
 
-    // C) Si no es nada (Raro, pero posible si se registró y falló la creación)
+    // C) Si no es nada (Usuario sin rol definido)
     setError("Usuario sin perfil asociado.");
     setLoading(false);
   };
@@ -71,23 +78,44 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"/>
+            <input 
+              type="email" 
+              required 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"/>
+            <input 
+              type="password" 
+              required 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900"
+            />
           </div>
           
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+          >
             {loading ? <Loader2 className="animate-spin" /> : "Ingresar"}
           </button>
         </form>
         
         <div className="mt-6 text-center pt-6 border-t border-slate-100">
             <p className="text-sm text-slate-500 mb-2">¿Quieres crear tu propia Agencia de Software?</p>
-            <button onClick={() => router.push("/register")} className="text-blue-600 font-bold text-sm hover:underline">Registrar Agencia Nueva</button>
+            <button 
+              onClick={() => router.push("/register")} 
+              className="text-blue-600 font-bold text-sm hover:underline"
+            >
+              Registrar Agencia Nueva
+            </button>
         </div>
       </div>
     </div>
