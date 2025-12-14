@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation"; // 1. Agregado useSearchParams
 import { createClient } from "@/lib/supabase";
 import { 
   Users, 
@@ -16,7 +16,10 @@ import {
   ArrowUpRight,
   MoreHorizontal,
   Calendar,
-  Smartphone
+  Smartphone,
+  Settings, // 2. Nuevo icono
+  Link as LinkIcon, // 2. Nuevo icono
+  Check // 2. Nuevo icono
 } from "lucide-react";
 
 // --- CONFIGURACIÓN ---
@@ -24,6 +27,7 @@ const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?pre
 
 export default function ClientDashboard() {
   const params = useParams();
+  const searchParams = useSearchParams(); // 3. Hook para leer la URL al volver de Google
   const router = useRouter();
   const supabase = createClient();
 
@@ -31,7 +35,9 @@ export default function ClientDashboard() {
   const [resenas, setResenas] = useState<any[]>([]);
   const [negocio, setNegocio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion">("resumen");
+  
+  // 4. Agregada la opción "configuracion" al estado
+  const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion" | "configuracion">("resumen");
 
   // Cálculos
   const promedio = resenas.length > 0
@@ -51,11 +57,17 @@ export default function ClientDashboard() {
     router.refresh();
   };
 
+  // 5. Nueva función para conectar con Google
+  const handleConnectGoogle = () => {
+    window.location.href = `/api/google/auth?slug=${params.slug}`;
+  };
+
   useEffect(() => {
     async function cargarDatos() {
+      // 6. Modificado para pedir datos de Google
       const { data: datosNegocio, error } = await supabase
         .from("negocios")
-        .select("id, nombre, slug, estado_plan")
+        .select("id, nombre, slug, estado_plan, google_calendar_connected, google_email") 
         .eq("slug", params.slug)
         .single();
 
@@ -64,6 +76,11 @@ export default function ClientDashboard() {
         return;
       }
       setNegocio(datosNegocio);
+
+      // 7. Auto-detectar si volvemos de conectar Google con éxito
+      if (searchParams.get('google_connected') === 'true') {
+        setActiveTab("configuracion");
+      }
 
       const { data: datosLeads } = await supabase
         .from("leads")
@@ -82,7 +99,7 @@ export default function ClientDashboard() {
       setLoading(false);
     }
     if (params.slug) cargarDatos();
-  }, [params.slug]);
+  }, [params.slug, searchParams]); // 8. Agregado searchParams a dependencias
 
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-white">
@@ -127,6 +144,13 @@ export default function ClientDashboard() {
                 label="Suscripción" 
                 active={activeTab === "suscripcion"} 
                 onClick={() => setActiveTab("suscripcion")}
+            />
+            {/* 9. Botón nuevo en Sidebar */}
+            <SidebarItem 
+                icon={<Settings size={18} />} 
+                label="Configuración" 
+                active={activeTab === "configuracion"} 
+                onClick={() => setActiveTab("configuracion")}
             />
           </nav>
         </div>
@@ -395,6 +419,71 @@ export default function ClientDashboard() {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 10. --- NUEVA TAB: CONFIGURACIÓN (INTEGRACIONES) --- */}
+            {activeTab === "configuracion" && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
+                    <header className="mb-8">
+                        <h1 className="text-2xl font-bold tracking-tight mb-1">Integraciones</h1>
+                        <p className="text-zinc-500 text-sm">Conecta herramientas externas para potenciar tu negocio.</p>
+                    </header>
+
+                    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+                        <div className="p-6 flex items-start justify-between gap-6">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                    <Calendar size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-zinc-900">Google Calendar</h3>
+                                    <p className="text-sm text-zinc-500 mt-1 leading-relaxed max-w-md">
+                                        Sincroniza automáticamente los leads generados como eventos en tu calendario para no perder ninguna cita.
+                                    </p>
+                                    
+                                    {negocio.google_calendar_connected ? (
+                                        <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full w-fit font-medium">
+                                            <Check size={14} /> 
+                                            Conectado como {negocio.google_email}
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 flex items-center gap-2 text-sm text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-full w-fit">
+                                            <div className="w-2 h-2 rounded-full bg-zinc-300" />
+                                            Sin conectar
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleConnectGoogle}
+                                disabled={negocio.google_calendar_connected}
+                                className={`
+                                    shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${negocio.google_calendar_connected 
+                                        ? "bg-zinc-100 text-zinc-400 cursor-default border border-zinc-200" 
+                                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+                                    }
+                                `}
+                            >
+                                {negocio.google_calendar_connected ? (
+                                    "Configurado"
+                                ) : (
+                                    <>
+                                        <LinkIcon size={16} />
+                                        Conectar
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        
+                        {/* Footer informativo de la card */}
+                        <div className="bg-zinc-50/50 px-6 py-3 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-400">
+                            <ShieldCheck size={12} />
+                            <span>Solo solicitamos acceso para crear eventos. No leemos tus correos.</span>
                         </div>
                     </div>
                 </div>
