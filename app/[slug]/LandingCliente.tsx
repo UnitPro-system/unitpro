@@ -27,7 +27,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const [mostrarGracias, setMostrarGracias] = useState(false);
 
   // ---------------------------------------------------------
-  // ⚡ OPCIÓN B: ESCUCHA DE CAMBIOS EN TIEMPO REAL (postMessage)
+  // ⚡ ESCUCHA DE CAMBIOS EN TIEMPO REAL (PostMessage)
   // ---------------------------------------------------------
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -35,7 +35,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       if (event.data?.type === "UPDATE_CONFIG" && event.data?.payload) {
         console.log("⚡ Configuración recibida en tiempo real:", event.data.payload);
         
-        // Actualizamos solo la configuración visual, manteniendo el resto de datos (id, slug, etc)
+        // Actualizamos solo la configuración visual, manteniendo el resto de datos
         setNegocio((prev: any) => ({
           ...prev,
           config_web: event.data.payload
@@ -50,7 +50,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   // --- 1. CONFIGURACIÓN ROBUSTA (Mapeo de JSON a TypeScript) ---
   const rawConfig = negocio?.config_web || {};
   
+  // Helper para mezclar arrays por defecto si están vacíos
+  const defaultBeneficios = rawConfig.beneficios?.items?.length > 0 
+    ? rawConfig.beneficios.items 
+    : [
+        { titulo: "Servicio Garantizado", desc: "Calidad asegurada en cada trabajo." },
+        { titulo: "Atención Rápida", desc: "Respondemos tus consultas al instante." },
+        { titulo: "Experiencia", desc: "Años de trayectoria en el sector." }
+      ];
+
   const config: WebConfig = {
+    // Mapeo directo de propiedades de la raíz (como el logo)
+    logoUrl: rawConfig.logoUrl || negocio.logo_url, // Prioridad al config, luego a la DB
+
     template: rawConfig.template || "modern",
     colors: {
         primary: negocio?.color_principal || "#000000",
@@ -61,23 +73,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         titulo: negocio?.nombre,
         subtitulo: negocio?.mensaje_bienvenida,
         ctaTexto: "Solicitar Presupuesto",
+        imagenUrl: rawConfig.hero?.imagenUrl, // Importante mapearlo aquí
         ...rawConfig.hero
     },
     beneficios: {
         mostrar: true,
         titulo: "Nuestros Servicios",
-        items: rawConfig.beneficios?.items || [],
+        items: defaultBeneficios,
         ...rawConfig.beneficios
     },
-    // Nuevos bloques (Opción A)
     testimonios: {
         mostrar: rawConfig.testimonios?.mostrar ?? false,
         titulo: rawConfig.testimonios?.titulo || "Opiniones de Clientes",
-        items: rawConfig.testimonios?.items || [
-            { nombre: "María G.", comentario: "Excelente servicio y muy profesionales." },
-            { nombre: "Carlos R.", comentario: "Resolvieron mi problema rapidísimo." },
-            { nombre: "Empresa S.A.", comentario: "Nuestro proveedor de confianza." }
-        ]
+        items: rawConfig.testimonios?.items || []
     },
     footer: {
         mostrar: true,
@@ -86,13 +94,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     }
   };
 
-  // --- 2. HANDLERS (Lógica de Negocio) ---
+  // --- 2. VARIABLES VISUALES CORREGIDAS ---
+  const brandColor = config.colors.primary;
+  
+  // CORRECCIÓN CLAVE: Priorizamos la URL que viene del editor (config.hero.imagenUrl)
+  // Si no hay en el editor, usamos la de la DB (negocio.imagen_url), y si no, un placeholder.
+  const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
+
+  // --- 3. HANDLERS (Lógica de Negocio) ---
   
   const handleRating = (stars: number) => {
     setRatingSeleccionado(stars);
     
     if (stars >= 4) {
-      // Calificación positiva: Guardar y redirigir a Google Maps si existe
       supabase.from("resenas").insert([{
         negocio_id: negocio.id,
         puntuacion: stars,
@@ -106,9 +120,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         setMostrarGracias(true);
         setTimeout(() => setMostrarGracias(false), 5000);
       }
-      
     } else {
-      // Calificación baja: Abrir modal de feedback privado
       setIsFeedbackModalOpen(true);
     }
   };
@@ -141,15 +153,13 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       return;
     }
 
-    // 1. Guardar Lead en CRM
     await supabase.from("leads").insert([{
         negocio_id: negocio.id,
         nombre_cliente: nombreCliente,
         telefono_cliente: "No especificado",
         estado: "nuevo"
-      }]);
+    }]);
 
-    // 2. Redirigir a WhatsApp
     const mensaje = `Hola, soy ${nombreCliente}. Vi su web y quiero consultar.`;
     const url = `https://wa.me/${negocio.whatsapp}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
@@ -159,17 +169,25 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     setNombreCliente("");
   };
 
-  const brandColor = config.colors.primary;
-  const heroImage = negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
-
-  // --- 3. RENDERIZADO VISUAL ---
+  // --- 4. RENDERIZADO VISUAL ---
   return (
     <div className="min-h-screen font-sans bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white pb-0 overflow-x-hidden">
       
+      {/* --- NUEVO: NAVBAR PARA MOSTRAR LOGO --- */}
+      <nav className="absolute top-0 left-0 w-full z-30 p-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+            {config.logoUrl ? (
+                <img src={config.logoUrl} alt="Logo Negocio" className="h-12 object-contain" />
+            ) : (
+                <span className="text-xl font-bold tracking-tight">{config.hero.titulo}</span>
+            )}
+        </div>
+      </nav>
+
       {/* --- HERO SECTION --- */}
       {config.hero.mostrar && (
-      <header className="relative w-full overflow-hidden pt-12 pb-24 lg:pt-24 lg:pb-32 px-6">
-        {/* Decoración de fondo con el color de la marca */}
+      <header className="relative w-full overflow-hidden pt-24 pb-24 lg:pt-32 lg:pb-32 px-6">
+        {/* Decoración de fondo */}
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full opacity-10 blur-3xl pointer-events-none" style={{ backgroundColor: brandColor }}></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-zinc-100 blur-3xl pointer-events-none"></div>
 
@@ -183,14 +201,14 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     Disponible ahora
                 </div>
                 
-                {/* Título Seguro */}
+                {/* Título */}
                 <SafeHTML 
                   as="h1"
                   html={config.hero.titulo} 
                   className="text-5xl lg:text-7xl font-bold tracking-tight text-zinc-900 leading-[1.1]"
                 />
                 
-                {/* Subtítulo Seguro (Permite HTML) */}
+                {/* Subtítulo */}
                 <SafeHTML 
                   as="p"
                   html={config.hero.subtitulo} 
@@ -213,18 +231,22 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                   </div>
                 </div>
             </div>
-            {/* Imagen Hero */}
+            {/* Imagen Hero Dinámica */}
             <div className="relative animate-in fade-in slide-in-from-right-4 duration-1000 delay-200 lg:h-[500px] hidden lg:block">
                 <div className="absolute inset-0 bg-zinc-900/5 rounded-[2.5rem] transform rotate-3 scale-95 translate-x-4"></div>
                 <div className="relative h-full w-full rounded-[2rem] overflow-hidden shadow-2xl border border-zinc-100 group">
-                    <img src={heroImage} alt={config.hero.titulo} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"/>
+                    <img 
+                      src={heroImage} 
+                      alt={config.hero.titulo} 
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
                 </div>
             </div>
         </div>
       </header>
       )}
 
-      {/* --- RATING SECTION (Separador visual) --- */}
+      {/* --- RATING SECTION --- */}
       <div className="w-full bg-zinc-900 text-white py-12 transform -skew-y-2 origin-left relative z-20 mt-[-50px] lg:mt-0 mb-12 overflow-hidden">
           <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(45deg, ${brandColor} 0%, transparent 100%)` }}></div>
           <div className="max-w-6xl mx-auto px-6 transform skew-y-2 flex flex-col md:flex-row items-center justify-between gap-6 min-h-[80px]">
@@ -236,22 +258,15 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                   </div>
                   <div className="flex gap-2 bg-white/10 p-4 rounded-2xl backdrop-blur-sm animate-in fade-in slide-in-from-right-4">
                     {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                        key={star}
-                        onClick={() => handleRating(star)}
-                        className="group/star transition-transform hover:scale-110 focus:outline-none"
-                        >
-                        <Star 
-                            size={32} 
-                            className={`transition-colors duration-200 ${ratingSeleccionado >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-500 group-hover/star:text-yellow-200'}`} 
-                        />
+                        <button key={star} onClick={() => handleRating(star)} className="group/star transition-transform hover:scale-110 focus:outline-none">
+                        <Star size={32} className={`transition-colors duration-200 ${ratingSeleccionado >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-500 group-hover/star:text-yellow-200'}`} />
                         </button>
                     ))}
                   </div>
                 </>
               ) : (
                 <div className="w-full flex items-center justify-center gap-4 animate-in zoom-in-95 duration-300">
-                    <div className="bg-emerald-500 text-white p-3 rounded-full shadow-lg shadow-emerald-500/50">
+                    <div className="bg-emerald-500 text-white p-3 rounded-full shadow-lg">
                         <Heart size={32} fill="currentColor" />
                     </div>
                     <div>
@@ -279,29 +294,21 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     color={brandColor}
                 />
             ))}
-            {/* Fallback si el array está vacío */}
-            {config.beneficios.items.length === 0 && (
-                <>
-                    <BenefitCard icon={<CheckCircle size={28} />} title="Garantía Total" desc="Trabajos asegurados." color={brandColor}/>
-                    <BenefitCard icon={<Clock size={28} />} title="Atención Rápida" desc="Priorizamos la puntualidad." color={brandColor}/>
-                    <BenefitCard icon={<MapPin size={28} />} title="Zona Local" desc="Somos de la zona." color={brandColor}/>
-                </>
-            )}
         </div>
       </section>
       )}
 
-      {/* --- NUEVO: TESTIMONIOS (Renderizado desde el componente bloque) --- */}
+      {/* --- TESTIMONIOS --- */}
       {config.testimonios && config.testimonios.mostrar && (
         <Testimonials data={config.testimonios} primaryColor={brandColor} />
       )}
 
-      {/* --- NUEVO: FOOTER (Renderizado desde el componente bloque) --- */}
+      {/* --- FOOTER --- */}
       {config.footer && config.footer.mostrar && (
         <Footer data={config.footer} negocioNombre={negocio.nombre} />
       )}
 
-      {/* --- MODALES (LEAD & FEEDBACK) --- */}
+      {/* --- MODALES --- */}
       
       {isLeadModalOpen && (
         <Modal onClose={() => setIsLeadModalOpen(false)}>
@@ -353,7 +360,6 @@ function BenefitCard({ icon, title, desc, color }: any) {
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 mx-auto md:mx-0 transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: `${color}10`, color: color }}>
                 {icon}
             </div>
-            {/* Usamos SafeHTML para permitir negritas en títulos y descripciones */}
             <div className="mb-3">
                 <SafeHTML as="h3" html={title} className="font-bold text-xl text-zinc-900" />
             </div>
