@@ -1,384 +1,629 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { Phone, CheckCircle, Clock, MapPin, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart } from "lucide-react";
+import { 
+  Users, 
+  LayoutDashboard, 
+  LogOut, 
+  Star, 
+  MessageCircle, 
+  AlertTriangle, 
+  CheckCircle, 
+  CreditCard, 
+  ShieldCheck,
+  TrendingUp,
+  ArrowUpRight,
+  Settings,
+  Link as LinkIcon,
+  Check,
+  Calendar,
+  Smartphone
+} from "lucide-react";
 
-// --- IMPORTACIONES DE COMPONENTES ---
-import { SafeHTML } from "@/components/ui/SafeHTML";
-import { Testimonials } from "@/components/blocks/Testimonials";
-import { Footer } from "@/components/blocks/Footer";
-import type { WebConfig } from "@/types/web-config";
+// --- CONFIGURACIÓN ---
+// Reemplaza esto con tu link real de MercadoPago si lo tienes
+const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
 
-export default function LandingCliente({ initialData }: { initialData: any }) {
+export default function ClientDashboard() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const supabase = createClient();
-  
-  // Estado principal con los datos que vienen del servidor (ISR)
-  const [negocio, setNegocio] = useState<any>(initialData);
-  
-  // Estados para Modales
-  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  
-  // Estados de formularios y UI
-  const [nombreCliente, setNombreCliente] = useState("");
-  const [feedbackComentario, setFeedbackComentario] = useState("");
-  const [ratingSeleccionado, setRatingSeleccionado] = useState(0);
-  const [enviando, setEnviando] = useState(false);
-  const [mostrarGracias, setMostrarGracias] = useState(false);
 
-  // ---------------------------------------------------------
-  // ⚡ ESCUCHA DE CAMBIOS EN TIEMPO REAL (PostMessage)
-  // ---------------------------------------------------------
+  const [leads, setLeads] = useState<any[]>([]);
+  const [resenas, setResenas] = useState<any[]>([]);
+  const [negocio, setNegocio] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<any>({}); 
+  
+  const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion" | "configuracion">("resumen");
+
+  // Cálculos estadísticos
+  const promedio = resenas.length > 0
+    ? (resenas.reduce((acc, curr) => acc + curr.puntuacion, 0) / resenas.length).toFixed(1)
+    : "0.0";
+
+  const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  resenas.forEach(r => {
+    // @ts-ignore
+    if (counts[r.puntuacion] !== undefined) counts[r.puntuacion]++;
+  });
+  const totalReviews = resenas.length;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  const handleConnectGoogle = () => {
+    if (!negocio?.slug) {
+        console.error("No hay slug de negocio cargado");
+        return;
+    }
+    window.location.href = `/api/google/auth?slug=${negocio.slug}`;
+  };
+
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Si recibimos un mensaje del tipo correcto, actualizamos el estado
-      if (event.data?.type === "UPDATE_CONFIG" && event.data?.payload) {
-        console.log("⚡ Configuración recibida en tiempo real:", event.data.payload);
-        
-        // Actualizamos solo la configuración visual, manteniendo el resto de datos
-        setNegocio((prev: any) => ({
-          ...prev,
-          config_web: event.data.payload
-        }));
-      }
-    };
+    async function cargarDatos() {
+      setLoading(true);
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  // --- 1. CONFIGURACIÓN ROBUSTA (Mapeo de JSON a TypeScript) ---
-  const rawConfig = negocio?.config_web || {};
-  
-  // Helper para mezclar arrays por defecto si están vacíos
-  const defaultBeneficios = rawConfig.beneficios?.items?.length > 0 
-    ? rawConfig.beneficios.items 
-    : [
-        { titulo: "Servicio Garantizado", desc: "Calidad asegurada en cada trabajo." },
-        { titulo: "Atención Rápida", desc: "Respondemos tus consultas al instante." },
-        { titulo: "Experiencia", desc: "Años de trayectoria en el sector." }
-      ];
-
-  const config: WebConfig = {
-    // Mapeo directo de propiedades de la raíz (como el logo)
-    logoUrl: rawConfig.logoUrl || negocio.logo_url, // Prioridad al config, luego a la DB
-
-    template: rawConfig.template || "modern",
-    colors: {
-        primary: negocio?.color_principal || "#000000",
-        ...rawConfig.colors
-    },
-    hero: {
-        mostrar: true,
-        titulo: negocio?.nombre,
-        subtitulo: negocio?.mensaje_bienvenida,
-        ctaTexto: "Solicitar Presupuesto",
-        imagenUrl: rawConfig.hero?.imagenUrl, // Importante mapearlo aquí
-        ...rawConfig.hero
-    },
-    beneficios: {
-        mostrar: true,
-        titulo: "Nuestros Servicios",
-        items: defaultBeneficios,
-        ...rawConfig.beneficios
-    },
-    testimonios: {
-        mostrar: rawConfig.testimonios?.mostrar ?? false,
-        titulo: rawConfig.testimonios?.titulo || "Opiniones de Clientes",
-        items: rawConfig.testimonios?.items || []
-    },
-    footer: {
-        mostrar: true,
-        textoCopyright: rawConfig.footer?.textoCopyright || `© ${new Date().getFullYear()} ${negocio.nombre}. Todos los derechos reservados.`,
-        ...rawConfig.footer
-    }
-  };
-
-  // --- 2. VARIABLES VISUALES CORREGIDAS ---
-  const brandColor = config.colors.primary;
-  
-  // CORRECCIÓN CLAVE: Priorizamos la URL que viene del editor (config.hero.imagenUrl)
-  // Si no hay en el editor, usamos la de la DB (negocio.imagen_url), y si no, un placeholder.
-  const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
-
-  // --- 3. HANDLERS (Lógica de Negocio) ---
-  
-  const handleRating = (stars: number) => {
-    setRatingSeleccionado(stars);
-    
-    if (stars >= 4) {
-      supabase.from("resenas").insert([{
-        negocio_id: negocio.id,
-        puntuacion: stars,
-        comentario: "Calificación positiva (Rápida)",
-        nombre_cliente: "Anónimo"
-      }]);
-
-      if (negocio.google_maps_link && negocio.google_maps_link.trim() !== "") {
-        window.open(negocio.google_maps_link, '_blank');
-      } else {
-        setMostrarGracias(true);
-        setTimeout(() => setMostrarGracias(false), 5000);
-      }
-    } else {
-      setIsFeedbackModalOpen(true);
-    }
-  };
-
-  const handleEnviarFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEnviando(true);
-    
-    await supabase.from("resenas").insert([{
-        negocio_id: negocio.id,
-        puntuacion: ratingSeleccionado,
-        comentario: feedbackComentario,
-        nombre_cliente: nombreCliente || "Anónimo"
-    }]);
-
-    setEnviando(false);
-    setIsFeedbackModalOpen(false);
-    setFeedbackComentario("");
-    setMostrarGracias(true);
-    setTimeout(() => setMostrarGracias(false), 5000);
-  };
-
-  const handleConsultar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEnviando(true);
-
-    if (!nombreCliente.trim()) {
-      alert("Por favor dinos tu nombre.");
-      setEnviando(false);
-      return;
-    }
-
-    await supabase.from("leads").insert([{
-        negocio_id: negocio.id,
-        nombre_cliente: nombreCliente,
-        telefono_cliente: "No especificado",
-        estado: "nuevo"
-    }]);
-
-    const mensaje = `Hola, soy ${nombreCliente}. Vi su web y quiero consultar.`;
-    const url = `https://wa.me/${negocio.whatsapp}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
-    
-    setEnviando(false);
-    setIsLeadModalOpen(false);
-    setNombreCliente("");
-  };
-
-  // --- 4. RENDERIZADO VISUAL ---
-  return (
-    <div className="min-h-screen font-sans bg-white text-zinc-900 selection:bg-zinc-900 selection:text-white pb-0 overflow-x-hidden">
+      // 1. Verificar sesión de usuario (Cualquiera logueado pasa)
+      const { data: { user } } = await supabase.auth.getUser();
       
-      {/* --- NUEVO: NAVBAR PARA MOSTRAR LOGO --- */}
-      <nav className="absolute top-0 left-0 w-full z-30 p-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-            {config.logoUrl ? (
-                <img src={config.logoUrl} alt="Logo Negocio" className="h-12 object-contain" />
-            ) : (
-                <span className="text-xl font-bold tracking-tight">{config.hero.titulo}</span>
+      if (!user) {
+        console.log("No hay usuario logueado");
+        router.push("/login");
+        return;
+      }
+
+      setDebugInfo((prev: any) => ({ ...prev, userId: user.id, userEmail: user.email }));
+
+      // 2. Construir la consulta
+      // Seleccionamos los datos. NO filtramos por dueño aquí, solo por slug.
+      let query = supabase
+        .from("negocios")
+        .select("id, nombre, slug, estado_plan, google_calendar_connected, google_email, user_id");
+
+      // Si hay slug en la URL, buscamos por slug (Acceso "Super Admin" / Invitado)
+      if (params.slug) {
+        query = query.eq("slug", params.slug);
+        setDebugInfo((prev: any) => ({ ...prev, searchMode: "slug", searchTerm: params.slug }));
+      } else {
+        // Fallback: Si no hay slug, buscamos el del usuario (solo por comodidad)
+        query = query.eq("user_id", user.id); 
+        setDebugInfo((prev: any) => ({ ...prev, searchMode: "user_id", searchTerm: user.id }));
+      }
+
+      const { data: datosNegocio, error } = await query.single();
+
+      if (error) {
+        console.error("Error Supabase:", error);
+        setDebugInfo((prev: any) => ({ ...prev, errorSupabase: error.message, errorCode: error.code }));
+      }
+
+      if (!datosNegocio) {
+        setLoading(false);
+        // Si no se encuentra el negocio, se mostrará la pantalla de error abajo
+        return; 
+      }
+
+      setNegocio(datosNegocio);
+
+      // 3. Auto-detectar conexión exitosa de Google
+      if (searchParams.get('google_connected') === 'true') {
+        setActiveTab("configuracion");
+        router.replace(window.location.pathname, { scroll: false });
+      }
+
+      // 4. Cargar datos relacionados (Leads y Reseñas)
+      const { data: datosLeads } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("negocio_id", datosNegocio.id)
+        .order('created_at', { ascending: false });
+      if (datosLeads) setLeads(datosLeads);
+
+      const { data: datosResenas } = await supabase
+        .from("resenas")
+        .select("*")
+        .eq("negocio_id", datosNegocio.id)
+        .order('created_at', { ascending: false });
+      if (datosResenas) setResenas(datosResenas);
+      
+      setLoading(false);
+    }
+
+    cargarDatos();
+  }, [params.slug, searchParams, router]); 
+
+  if (loading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"/>
+            <p className="text-zinc-400 text-sm animate-pulse">Cargando panel...</p>
+        </div>
+    </div>
+  );
+  
+  // --- PANTALLA DE DIAGNÓSTICO (Si falla la carga) ---
+  if (!negocio) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 p-10 font-sans">
+        <AlertTriangle size={64} className="text-amber-500" />
+        <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">Error de Acceso</h1>
+            <p className="text-zinc-400">No se pudieron cargar los datos del negocio.</p>
+        </div>
+        
+        <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 font-mono text-sm w-full max-w-3xl overflow-hidden shadow-2xl">
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-zinc-800">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="ml-2 text-zinc-500">diagnostic.log</span>
+            </div>
+            
+            <div className="space-y-3">
+                <p><span className="text-blue-400">User ID (Auth):</span> <span className="text-zinc-100">{debugInfo.userId || "No detectado"}</span></p>
+                <p><span className="text-blue-400">User Email:</span> <span className="text-zinc-100">{debugInfo.userEmail || "No detectado"}</span></p>
+                <p><span className="text-purple-400">Modo de Búsqueda:</span> <span className="text-zinc-100">{debugInfo.searchMode}</span></p>
+                <p><span className="text-purple-400">Término Buscado:</span> <span className="text-yellow-200">"{debugInfo.searchTerm}"</span></p>
+                
+                <div className="my-4 border-t border-zinc-800 border-dashed"></div>
+                
+                <p className="text-red-400 font-bold">Error Reportado por Supabase:</p>
+                <p className="text-red-300 bg-red-900/20 p-2 rounded border border-red-900/50">
+                    {debugInfo.errorSupabase || "Ninguno (Retorno Null/Vacío)"}
+                </p>
+                <p><span className="text-zinc-500">Código:</span> {debugInfo.errorCode || "N/A"}</p>
+            </div>
+
+            <div className="mt-6 bg-zinc-800/50 p-4 rounded text-zinc-400 text-xs">
+                <strong>Solución Probable:</strong>
+                <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Si el error es "PGRST116" o Vacío: Ejecuta el SQL de "Acceso Total" en Supabase.</li>
+                    <li>Este código NO tiene bloqueos, así que el problema es 100% de la Base de Datos (RLS).</li>
+                </ul>
+            </div>
+        </div>
+
+        <button 
+          onClick={() => router.push("/login")}
+          className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-zinc-200 transition-colors"
+        >
+          Volver al Login
+        </button>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
+      
+      {/* --- SIDEBAR --- */}
+      <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
+        <div className="p-6">
+          <div className="flex items-center gap-3 px-2 mb-8">
+            <div className="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center text-white font-bold">
+                {negocio.nombre.substring(0,1)}
+            </div>
+            <span className="font-bold tracking-tight truncate">{negocio.nombre}</span>
+          </div>
+
+          <nav className="space-y-1">
+            <SidebarItem 
+                icon={<LayoutDashboard size={18} />} 
+                label="General" 
+                active={activeTab === "resumen"} 
+                onClick={() => setActiveTab("resumen")}
+            />
+            <SidebarItem 
+                icon={<MessageCircle size={18} />} 
+                label="Reseñas" 
+                active={activeTab === "resenas"} 
+                onClick={() => setActiveTab("resenas")}
+                badge={resenas.filter(r => r.puntuacion <= 3).length}
+            />
+            <SidebarItem 
+                icon={<CreditCard size={18} />} 
+                label="Suscripción" 
+                active={activeTab === "suscripcion"} 
+                onClick={() => setActiveTab("suscripcion")}
+            />
+            <SidebarItem 
+                icon={<Settings size={18} />} 
+                label="Configuración" 
+                active={activeTab === "configuracion"} 
+                onClick={() => setActiveTab("configuracion")}
+            />
+          </nav>
+        </div>
+
+        <div className="mt-auto p-6 border-t border-zinc-100">
+            <div className="bg-zinc-50 rounded-xl p-3 mb-4 border border-zinc-100">
+                <p className="text-xs text-zinc-500 font-medium mb-1">Estado del Plan</p>
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${negocio.estado_plan === 'activo' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300'}`}></div>
+                    <span className="text-sm font-semibold">{negocio.estado_plan === 'activo' ? 'Premium' : 'Gratuito'}</span>
+                </div>
+            </div>
+            <button 
+                onClick={handleLogout} 
+                className="flex items-center gap-2 text-zinc-400 hover:text-red-600 text-sm font-medium transition-colors w-full px-2"
+            >
+                <LogOut size={16} /> Cerrar Sesión
+            </button>
+        </div>
+      </aside>
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-1 overflow-y-auto h-screen">
+        <div className="max-w-6xl mx-auto p-6 lg:p-10">
+            
+            {/* --- TAB: RESUMEN --- */}
+            {activeTab === "resumen" && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <header className="mb-8">
+                        <h1 className="text-2xl font-bold tracking-tight mb-1">Buenos días, {negocio.nombre}</h1>
+                        <p className="text-zinc-500 text-sm">Aquí está lo que está pasando en tu negocio hoy.</p>
+                    </header>
+
+                    {/* KPI GRID */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <StatCard 
+                            title="Total Leads" 
+                            value={leads.length} 
+                            icon={<Users className="text-blue-600" size={20}/>}
+                            trend="+2 esta semana"
+                            trendPositive={true}
+                        />
+                        <StatCard 
+                            title="Calificación" 
+                            value={promedio} 
+                            icon={<Star className="text-yellow-500" size={20} fill="currentColor"/>}
+                            subtext={`Basado en ${totalReviews} reseñas`}
+                        />
+                         <StatCard 
+                            title="Tasa de Respuesta" 
+                            value="98%" 
+                            icon={<Smartphone className="text-emerald-600" size={20}/>}
+                            trend="Excelente"
+                            trendPositive={true}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        {/* TABLA LEADS */}
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                                <h3 className="font-bold text-zinc-800 text-sm">Últimos Contactos</h3>
+                                <button className="text-xs font-medium text-zinc-500 hover:text-zinc-900">Descargar CSV</button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="text-zinc-400 font-medium text-xs uppercase bg-white">
+                                        <tr>
+                                            <th className="px-5 py-3 font-medium">Cliente</th>
+                                            <th className="px-5 py-3 font-medium">Fecha</th>
+                                            <th className="px-5 py-3 font-medium text-right">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-50">
+                                        {leads.slice(0, 6).map((lead) => (
+                                            <tr key={lead.id} className="group hover:bg-zinc-50 transition-colors">
+                                                <td className="px-5 py-3">
+                                                    <div className="font-medium text-zinc-900">{lead.nombre_cliente}</div>
+                                                    <div className="text-xs text-zinc-400">Interesado en servicios</div>
+                                                </td>
+                                                <td className="px-5 py-3 text-zinc-500 font-mono text-xs">
+                                                    {new Date(lead.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-5 py-3 text-right">
+                                                    <a 
+                                                        href={`https://wa.me/${lead.telefono_cliente}`} 
+                                                        target="_blank"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 hover:bg-zinc-900 hover:text-white rounded-lg text-xs font-medium transition-all"
+                                                    >
+                                                        Contactar <ArrowUpRight size={12} />
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {leads.length === 0 && (
+                                            <tr>
+                                                <td colSpan={3} className="px-5 py-8 text-center text-zinc-400 text-sm">
+                                                    Aún no hay clientes registrados.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* DESGLOSE RESEÑAS */}
+                        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 h-fit">
+                            <h3 className="font-bold text-zinc-800 text-sm mb-6">Desglose de Opiniones</h3>
+                            <div className="space-y-4">
+                                {[5, 4, 3, 2, 1].map((star) => {
+                                    // @ts-ignore
+                                    const count = counts[star];
+                                    const percent = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                                    return (
+                                        <div key={star} className="flex items-center gap-3 text-xs">
+                                            <span className="w-3 font-bold text-zinc-500">{star}</span>
+                                            <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-zinc-900 rounded-full" 
+                                                    style={{ width: `${percent}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="w-6 text-right text-zinc-400 font-mono">{count}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <div className="mt-8 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                                <p className="text-xs text-zinc-500 text-center leading-relaxed">
+                                    Mantener un promedio superior a <strong>4.0</strong> aumenta un 30% la conversión de leads.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- TAB: RESEÑAS (MODERACIÓN) --- */}
+            {activeTab === "resenas" && (
+                <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <header className="mb-8 flex justify-between items-end">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Feedback Privado</h1>
+                            <p className="text-zinc-500 text-sm mt-1">Opiniones de clientes insatisfechos (no públicas).</p>
+                        </div>
+                        <div className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-bold text-zinc-600">
+                            Total: {resenas.filter(r => r.puntuacion <= 3).length}
+                        </div>
+                    </header>
+
+                    <div className="grid gap-4">
+                        {resenas.filter(r => r.puntuacion <= 3).map((resena) => (
+                            <div key={resena.id} className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-sm">
+                                            {resena.puntuacion}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-zinc-900 text-sm">{resena.nombre_cliente || "Anónimo"}</h4>
+                                            <span className="text-xs text-zinc-400 flex items-center gap-1">
+                                                <Calendar size={10} /> {new Date(resena.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-red-100">
+                                        Atención Requerida
+                                    </span>
+                                </div>
+                                <div className="pl-13 border-l-2 border-red-100 pl-4 ml-5">
+                                    <p className="text-zinc-700 text-sm italic">"{resena.comentario}"</p>
+                                </div>
+                            </div>
+                        ))}
+                        {resenas.filter(r => r.puntuacion <= 3).length === 0 && (
+                            <div className="text-center py-24 border-2 border-dashed border-zinc-200 rounded-2xl">
+                                <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle size={32} />
+                                </div>
+                                <h3 className="text-lg font-bold text-zinc-900">Bandeja Limpia</h3>
+                                <p className="text-zinc-500 text-sm">No hay quejas pendientes por resolver.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* --- TAB: SUSCRIPCIÓN --- */}
+            {activeTab === "suscripcion" && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-4xl mx-auto">
+                    <header className="mb-8 text-center">
+                        <h1 className="text-2xl font-bold tracking-tight">Gestionar Suscripción</h1>
+                        <p className="text-zinc-500 text-sm">Mejora tu plan para desbloquear todas las funcionalidades.</p>
+                    </header>
+
+                    <div className="grid md:grid-cols-2 gap-8 items-start">
+                        {/* PLAN CARD */}
+                        <div className="bg-white rounded-2xl border border-zinc-200 shadow-xl shadow-zinc-200/40 overflow-hidden relative">
+                             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900"></div>
+                             <div className="p-8">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className="font-bold text-xl">Plan Pro Business</h3>
+                                        <p className="text-zinc-500 text-sm">Todo lo que necesitas para crecer.</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-3xl font-bold tracking-tight">$35k</span>
+                                        <span className="text-zinc-400 text-xs font-medium block">/mes ARS</span>
+                                    </div>
+                                </div>
+
+                                <ul className="space-y-4 mb-8">
+                                    <li className="flex gap-3 text-sm text-zinc-600">
+                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Landing Page Personalizada
+                                    </li>
+                                    <li className="flex gap-3 text-sm text-zinc-600">
+                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Redirección a Google Maps (4+ estrellas)
+                                    </li>
+                                    <li className="flex gap-3 text-sm text-zinc-600">
+                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Captura de Feedback Negativo
+                                    </li>
+                                    <li className="flex gap-3 text-sm text-zinc-600">
+                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Panel de Control de Leads
+                                    </li>
+                                </ul>
+
+                                {negocio.estado_plan === 'activo' ? (
+                                    <button disabled className="w-full py-3 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100 flex items-center justify-center gap-2 cursor-default">
+                                        <ShieldCheck size={18} /> Plan Activo
+                                    </button>
+                                ) : (
+                                    <a 
+                                        href={CONST_LINK_MP} 
+                                        target="_blank"
+                                        className="block w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white text-center font-bold rounded-xl transition-all shadow-lg shadow-zinc-900/20"
+                                    >
+                                        Suscribirse Ahora
+                                    </a>
+                                )}
+                             </div>
+                        </div>
+
+                        {/* INFO LATERAL */}
+                        <div className="space-y-6 pt-4">
+                            <div className="flex gap-4">
+                                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+                                    <ShieldCheck size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-sm text-zinc-900">Pagos Seguros</h4>
+                                    <p className="text-xs text-zinc-500 leading-relaxed mt-1">
+                                        Procesamos todos los pagos a través de MercadoPago. Tus datos están encriptados y seguros.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                                    <TrendingUp size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-sm text-zinc-900">Cancela cuando quieras</h4>
+                                    <p className="text-xs text-zinc-500 leading-relaxed mt-1">
+                                        Sin contratos forzosos. Si el servicio no te sirve, puedes darte de baja en cualquier momento desde este panel.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- TAB: CONFIGURACIÓN (INTEGRACIONES) --- */}
+            {activeTab === "configuracion" && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
+                    <header className="mb-8">
+                        <h1 className="text-2xl font-bold tracking-tight mb-1">Integraciones</h1>
+                        <p className="text-zinc-500 text-sm">Conecta herramientas externas para potenciar tu negocio.</p>
+                    </header>
+
+                    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+                        <div className="p-6 flex items-start justify-between gap-6">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                    <Calendar size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-zinc-900">Google Calendar</h3>
+                                    <p className="text-sm text-zinc-500 mt-1 leading-relaxed max-w-md">
+                                        Sincroniza automáticamente los leads generados como eventos en tu calendario para no perder ninguna cita.
+                                    </p>
+                                    
+                                    {negocio.google_calendar_connected ? (
+                                        <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full w-fit font-medium">
+                                            <Check size={14} /> 
+                                            Conectado como {negocio.google_email}
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 flex items-center gap-2 text-sm text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-full w-fit">
+                                            <div className="w-2 h-2 rounded-full bg-zinc-300" />
+                                            Sin conectar
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleConnectGoogle}
+                                disabled={negocio.google_calendar_connected}
+                                className={`
+                                    shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${negocio.google_calendar_connected 
+                                        ? "bg-zinc-100 text-zinc-400 cursor-default border border-zinc-200" 
+                                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+                                    }
+                                `}
+                            >
+                                {negocio.google_calendar_connected ? (
+                                    "Configurado"
+                                ) : (
+                                    <>
+                                        <LinkIcon size={16} />
+                                        Conectar
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        
+                        <div className="bg-zinc-50/50 px-6 py-3 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-400">
+                            <ShieldCheck size={12} />
+                            <span>Solo solicitamos acceso para crear eventos. No leemos tus correos.</span>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
-      </nav>
-
-      {/* --- HERO SECTION --- */}
-      {config.hero.mostrar && (
-      <header className="relative w-full overflow-hidden pt-24 pb-24 lg:pt-32 lg:pb-32 px-6">
-        {/* Decoración de fondo */}
-        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full opacity-10 blur-3xl pointer-events-none" style={{ backgroundColor: brandColor }}></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-zinc-100 blur-3xl pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
-            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 shadow-sm text-sm font-medium text-zinc-600">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Disponible ahora
-                </div>
-                
-                {/* Título */}
-                <SafeHTML 
-                  as="h1"
-                  html={config.hero.titulo} 
-                  className="text-5xl lg:text-7xl font-bold tracking-tight text-zinc-900 leading-[1.1]"
-                />
-                
-                {/* Subtítulo */}
-                <SafeHTML 
-                  as="p"
-                  html={config.hero.subtitulo} 
-                  className="text-xl text-zinc-500 leading-relaxed max-w-lg mx-auto lg:mx-0"
-                />
-
-                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start pt-2">
-                  <button 
-                    onClick={() => setIsLeadModalOpen(true)}
-                    className="w-full sm:w-auto group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-xl shadow-zinc-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                    <span className="relative flex items-center gap-2">
-                        {config.hero.ctaTexto} <ArrowRight size={20} />
-                    </span>
-                  </button>
-                  <div className="flex items-center gap-2 text-sm text-zinc-500 font-medium">
-                     <span className="pl-2 flex items-center gap-1"><ShieldCheck size={16} className="text-emerald-500"/> Servicio Verificado</span>
-                  </div>
-                </div>
-            </div>
-            {/* Imagen Hero Dinámica */}
-            <div className="relative animate-in fade-in slide-in-from-right-4 duration-1000 delay-200 lg:h-[500px] hidden lg:block">
-                <div className="absolute inset-0 bg-zinc-900/5 rounded-[2.5rem] transform rotate-3 scale-95 translate-x-4"></div>
-                <div className="relative h-full w-full rounded-[2rem] overflow-hidden shadow-2xl border border-zinc-100 group">
-                    <img 
-                      src={heroImage} 
-                      alt={config.hero.titulo} 
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                </div>
-            </div>
-        </div>
-      </header>
-      )}
-
-      {/* --- RATING SECTION --- */}
-      <div className="w-full bg-zinc-900 text-white py-12 transform -skew-y-2 origin-left relative z-20 mt-[-50px] lg:mt-0 mb-12 overflow-hidden">
-          <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(45deg, ${brandColor} 0%, transparent 100%)` }}></div>
-          <div className="max-w-6xl mx-auto px-6 transform skew-y-2 flex flex-col md:flex-row items-center justify-between gap-6 min-h-[80px]">
-              {!mostrarGracias ? (
-                <>
-                  <div className="text-center md:text-left animate-in fade-in slide-in-from-left-4">
-                      <h3 className="text-2xl font-bold">¿Ya eres cliente?</h3>
-                      <p className="text-zinc-400">Ayúdanos a mejorar con tu opinión.</p>
-                  </div>
-                  <div className="flex gap-2 bg-white/10 p-4 rounded-2xl backdrop-blur-sm animate-in fade-in slide-in-from-right-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                        <button key={star} onClick={() => handleRating(star)} className="group/star transition-transform hover:scale-110 focus:outline-none">
-                        <Star size={32} className={`transition-colors duration-200 ${ratingSeleccionado >= star ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-500 group-hover/star:text-yellow-200'}`} />
-                        </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="w-full flex items-center justify-center gap-4 animate-in zoom-in-95 duration-300">
-                    <div className="bg-emerald-500 text-white p-3 rounded-full shadow-lg">
-                        <Heart size={32} fill="currentColor" />
-                    </div>
-                    <div>
-                        <h3 className="text-2xl font-bold text-white">¡Muchas gracias!</h3>
-                        <p className="text-emerald-200">Tu opinión nos ayuda a crecer.</p>
-                    </div>
-                </div>
-              )}
-          </div>
-      </div>
-
-      {/* --- BENEFITS SECTION --- */}
-      {config.beneficios.mostrar && (
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        {config.beneficios.titulo && (
-            <h2 className="text-3xl font-bold text-center mb-16 text-zinc-900">{config.beneficios.titulo}</h2>
-        )}
-        <div className="grid md:grid-cols-3 gap-8">
-            {config.beneficios.items.map((item, i) => (
-                <BenefitCard 
-                    key={i}
-                    icon={<CheckCircle size={28} />} 
-                    title={item.titulo} 
-                    desc={item.desc} 
-                    color={brandColor}
-                />
-            ))}
-        </div>
-      </section>
-      )}
-
-      {/* --- TESTIMONIOS --- */}
-      {config.testimonios && config.testimonios.mostrar && (
-        <Testimonials data={config.testimonios} primaryColor={brandColor} />
-      )}
-
-      {/* --- FOOTER --- */}
-      {config.footer && config.footer.mostrar && (
-        <Footer data={config.footer} negocioNombre={negocio.nombre} />
-      )}
-
-      {/* --- MODALES --- */}
-      
-      {isLeadModalOpen && (
-        <Modal onClose={() => setIsLeadModalOpen(false)}>
-            <div className="text-center mb-8 relative">
-                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-20 h-20 bg-white rounded-full p-2 shadow-xl">
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-white" style={{ backgroundColor: brandColor }}>
-                        <Phone size={32} />
-                    </div>
-                </div>
-                <h3 className="text-2xl font-bold text-zinc-900 mt-6 mb-2">¡Hablemos ahora!</h3>
-                <p className="text-zinc-500 text-sm">Déjanos tu nombre para avisarle al técnico.</p>
-            </div>
-            <form onSubmit={handleConsultar} className="space-y-4">
-              <input autoFocus type="text" required value={nombreCliente} onChange={(e) => setNombreCliente(e.target.value)} placeholder="Tu Nombre Completo" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none transition-all font-medium text-zinc-900"/>
-              <button type="submit" disabled={enviando} className="w-full text-white font-bold py-4 rounded-xl transition-all hover:brightness-110 shadow-lg flex items-center justify-center gap-2" style={{ backgroundColor: brandColor }}>
-                {enviando ? <Loader2 className="animate-spin" /> : <>Contactar por WhatsApp <ChevronRight /></>}
-              </button>
-            </form>
-        </Modal>
-      )}
-
-      {isFeedbackModalOpen && (
-        <Modal onClose={() => setIsFeedbackModalOpen(false)}>
-            <div className="text-center mb-6">
-                <div className="bg-yellow-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600">
-                    <MessageCircle size={28} />
-                </div>
-                <h3 className="text-xl font-bold text-zinc-900">Ayúdanos a mejorar</h3>
-                <p className="text-zinc-500 text-sm mt-2">¿Qué sucedió con tu experiencia?</p>
-            </div>
-            <form onSubmit={handleEnviarFeedback} className="space-y-4">
-              <input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(e.target.value)} placeholder="Tu Nombre (Opcional)" className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none text-zinc-900"/>
-              <textarea required rows={4} value={feedbackComentario} onChange={(e) => setFeedbackComentario(e.target.value)} placeholder="Escribe tu comentario aquí..." className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none resize-none text-zinc-900"/>
-              <button type="submit" disabled={enviando} className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg">
-                {enviando ? "Enviando..." : "Enviar Sugerencia"}
-              </button>
-            </form>
-        </Modal>
-      )}
+      </main>
     </div>
   );
 }
 
-// --- SUB-COMPONENTES AUXILIARES ---
+// --- COMPONENTES UI REUTILIZABLES ---
 
-function BenefitCard({ icon, title, desc, color }: any) {
+function SidebarItem({ icon, label, active, onClick, badge }: any) {
     return (
-        <div className="p-8 bg-white rounded-[2rem] border border-zinc-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group text-center md:text-left">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 mx-auto md:mx-0 transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: `${color}10`, color: color }}>
-                {icon}
+        <button 
+            onClick={onClick}
+            className={`
+                w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all mb-1
+                ${active 
+                    ? "bg-zinc-100 text-zinc-900" 
+                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                }
+            `}
+        >
+            <div className="flex items-center gap-3">
+                <span className={active ? "text-zinc-900" : "text-zinc-400"}>{icon}</span>
+                {label}
             </div>
-            <div className="mb-3">
-                <SafeHTML as="h3" html={title} className="font-bold text-xl text-zinc-900" />
-            </div>
-            <div>
-                <SafeHTML as="p" html={desc} className="text-zinc-500 text-base leading-relaxed" />
-            </div>
-        </div>
+            {badge > 0 && (
+                <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {badge}
+                </span>
+            )}
+        </button>
     )
 }
 
-function Modal({ children, onClose }: any) {
+function StatCard({ title, value, icon, trend, trendPositive, subtext }: any) {
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-zinc-600 rounded-full transition-all">
-                <X size={20} />
-            </button>
-            {children}
-          </div>
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between h-full">
+            <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-zinc-50 rounded-lg border border-zinc-100">
+                    {icon}
+                </div>
+            </div>
+            <div>
+                <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-1">{title}</p>
+                <h3 className="text-3xl font-extrabold text-zinc-900 tracking-tight">{value}</h3>
+                
+                {trend && (
+                    <div className={`flex items-center gap-1 text-xs font-medium mt-2 ${trendPositive ? 'text-emerald-600' : 'text-zinc-500'}`}>
+                        {trendPositive && <TrendingUp size={12} />}
+                        {trend}
+                    </div>
+                )}
+                {subtext && <p className="text-zinc-400 text-xs mt-2">{subtext}</p>}
+            </div>
         </div>
     )
 }

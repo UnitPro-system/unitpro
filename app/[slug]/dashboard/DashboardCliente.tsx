@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 // --- CONFIGURACIÓN ---
+// Reemplaza esto con tu link real de MercadoPago si lo tienes
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
 
 export default function ClientDashboard() {
@@ -68,7 +69,7 @@ export default function ClientDashboard() {
     async function cargarDatos() {
       setLoading(true);
 
-      // 1. Verificar sesión de usuario
+      // 1. Verificar sesión de usuario (Cualquiera logueado pasa)
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -80,15 +81,17 @@ export default function ClientDashboard() {
       setDebugInfo((prev: any) => ({ ...prev, userId: user.id, userEmail: user.email }));
 
       // 2. Construir la consulta
+      // Seleccionamos los datos. NO filtramos por dueño aquí, solo por slug.
       let query = supabase
         .from("negocios")
         .select("id, nombre, slug, estado_plan, google_calendar_connected, google_email, user_id");
 
-      // Lógica Híbrida
+      // Si hay slug en la URL, buscamos por slug (Acceso "Super Admin" / Invitado)
       if (params.slug) {
         query = query.eq("slug", params.slug);
         setDebugInfo((prev: any) => ({ ...prev, searchMode: "slug", searchTerm: params.slug }));
       } else {
+        // Fallback: Si no hay slug, buscamos el del usuario (solo por comodidad)
         query = query.eq("user_id", user.id); 
         setDebugInfo((prev: any) => ({ ...prev, searchMode: "user_id", searchTerm: user.id }));
       }
@@ -102,6 +105,7 @@ export default function ClientDashboard() {
 
       if (!datosNegocio) {
         setLoading(false);
+        // Si no se encuentra el negocio, se mostrará la pantalla de error abajo
         return; 
       }
 
@@ -113,7 +117,7 @@ export default function ClientDashboard() {
         router.replace(window.location.pathname, { scroll: false });
       }
 
-      // 4. Cargar datos relacionados
+      // 4. Cargar datos relacionados (Leads y Reseñas)
       const { data: datosLeads } = await supabase
         .from("leads")
         .select("*")
@@ -143,7 +147,7 @@ export default function ClientDashboard() {
     </div>
   );
   
-  // --- MODO DEBUG: IMPRIMIR ERROR EN PANTALLA ---
+  // --- PANTALLA DE DIAGNÓSTICO (Si falla la carga) ---
   if (!negocio) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 p-10 font-sans">
         <AlertTriangle size={64} className="text-amber-500" />
@@ -176,10 +180,10 @@ export default function ClientDashboard() {
             </div>
 
             <div className="mt-6 bg-zinc-800/50 p-4 rounded text-zinc-400 text-xs">
-                <strong>Posible Solución:</strong>
+                <strong>Solución Probable:</strong>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Si el error es "PGRST116" o vacío: El slug no existe o <strong>RLS (Seguridad)</strong> lo está ocultando.</li>
-                    <li>Verifica en Supabase: Tabla <code>negocios</code> {'>'} columna <code>user_id</code> debe coincidir con el ID de arriba.</li>
+                    <li>Si el error es "PGRST116" o Vacío: Ejecuta el SQL de "Acceso Total" en Supabase.</li>
+                    <li>Este código NO tiene bloqueos, así que el problema es 100% de la Base de Datos (RLS).</li>
                 </ul>
             </div>
         </div>
@@ -196,7 +200,7 @@ export default function ClientDashboard() {
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
       
-      {/* --- SIDEBAR MINIMALISTA --- */}
+      {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">

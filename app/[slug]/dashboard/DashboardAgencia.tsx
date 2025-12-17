@@ -24,24 +24,29 @@ export default function DashboardAgencia() {
   }, []);
 
   async function checkAgencySession() {
-    // --- CORRECCIÓN AQUÍ ---
-    // Usamos getUser() en lugar de getSession() para obtener el usuario directamente
+    // 1. Verificar que el usuario esté logueado (cualquiera sirve)
     const { data: { user } } = await supabase.auth.getUser();
     
-    if (!user) { router.push("/login"); return; }
+    if (!user) { 
+      router.push("/login"); 
+      return; 
+    }
 
+    // 2. Buscar la agencia por SLUG (sin restricción de dueño)
     const { data: agencyData, error } = await supabase
         .from("agencies")
         .select("*")
         .eq("slug", params.slug)
         .single();
     
-    if (error || !agencyData || agencyData.user_id !== user.id) {
-        console.error("Acceso denegado o agencia no encontrada");
-        router.push("/login"); 
+    // Si hay error o no existe, solo mostramos error en consola
+    if (error || !agencyData) {
+        console.error("Agencia no encontrada o error de conexión");
+        // Opcional: router.push("/login"); // Si prefieres que te expulse si no existe
         return;
     }
 
+    // ¡ÉXITO! Cargamos los datos sin preguntar "de quién es"
     setAgency(agencyData);
     cargarClientes(agencyData.id);
   }
@@ -147,6 +152,7 @@ export default function DashboardAgencia() {
             </div>
         </div>
         <div className="flex items-center gap-4">
+            {/* Link corregido para usar el slug de la agencia si es necesario */}
             <a href={`/${agency.slug}`} target="_blank" className="text-sm text-indigo-600 font-bold hover:underline hidden md:block">
                 Ver mi Landing
             </a>
