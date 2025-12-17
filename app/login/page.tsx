@@ -37,7 +37,6 @@ export default function LoginPage() {
     const { data: agencia } = await supabase
       .from("agencies")
       .select("slug")
-      .eq("user_id", data.user.id)
       .single();
 
     if (agencia && agencia.slug) {
@@ -49,7 +48,6 @@ export default function LoginPage() {
     const { data: negocio } = await supabase
       .from("negocios")
       .select("slug")
-      .eq("user_id", data.user.id)
       .single();
 
     if (negocio && negocio.slug) {
