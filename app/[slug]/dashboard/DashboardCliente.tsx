@@ -34,7 +34,6 @@ export default function ClientDashboard() {
   const [resenas, setResenas] = useState<any[]>([]);
   const [negocio, setNegocio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  // Tipamos 'prev' como 'any' para evitar error de build en Vercel
   const [debugInfo, setDebugInfo] = useState<any>({}); 
   
   const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion" | "configuracion">("resumen");
