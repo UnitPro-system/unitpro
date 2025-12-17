@@ -13,11 +13,7 @@ export default function LoginPage() {
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const handleLogin = async () => {
+    e.preventDefault(); // Evita que la página se recargue
     setLoading(true);
     setError(null);
 
