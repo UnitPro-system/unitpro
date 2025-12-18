@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { ShieldCheck, Plus, LogOut, Users, Loader2, Palette, ExternalLink } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import WebEditor from "@/components/WebEditor"; // Asegúrate que la ruta sea correcta
+import WebEditor from "./WebEditor"; 
 
 export default function DashboardAgencia() {
   const supabase = createClient();

@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import DashboardAgencia from "./DashboardAgencia";
 import DashboardCliente from "./DashboardCliente";
 
+
 export default async function DashboardPage({ params }: { params: { slug: string } }) {
   const cookieStore = cookies();
   const supabase = createClient();
+
 
   console.log("--- DEBUG START ---");
   console.log("1. Buscando SLUG:", params.slug);
