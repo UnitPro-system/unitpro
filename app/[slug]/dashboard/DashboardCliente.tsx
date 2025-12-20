@@ -18,11 +18,12 @@ import {
   Link as LinkIcon,
   Check,
   Calendar,
-  Smartphone
+  Smartphone,
+  UserCheck,
+  Search
 } from "lucide-react";
 
 // --- CONFIGURACIÓN ---
-// Reemplaza esto con tu link real de MercadoPago
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
 
 export default function ClientDashboard() {
@@ -37,7 +38,8 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState<any>({}); 
   
-  const [activeTab, setActiveTab] = useState<"resumen" | "resenas" | "suscripcion" | "configuracion">("resumen");
+  // AGREGADO: "clientes" al estado de pestañas
+  const [activeTab, setActiveTab] = useState<"resumen" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
 
   // Cálculos estadísticos
   const promedio = resenas.length > 0
@@ -69,20 +71,15 @@ export default function ClientDashboard() {
     async function cargarDatos() {
       setLoading(true);
 
-      // 1. Obtener usuario logueado
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user || !user.email) {
-        console.log("No hay usuario logueado");
         router.push("/login");
         return;
       }
 
       setDebugInfo((prev: any) => ({ ...prev, userEmail: user.email }));
 
-      // 2. Buscar Negocio por SLUG
-      // CORRECCIÓN: Usamos select("*") para evitar errores de columnas faltantes como 'google_email'
-      // Y filtramos directamente por el slug de la URL.
       const { data: datosNegocio, error } = await supabase
         .from("negocios")
         .select("*")
@@ -94,23 +91,18 @@ export default function ClientDashboard() {
         setDebugInfo((prev: any) => ({ ...prev, errorSupabase: error.message, errorCode: error.code }));
       }
 
-      // 3. SEGURIDAD "MAIL CONTRA MAIL"
-      // Si el negocio no existe O el email no coincide, bloqueamos el acceso.
       if (!datosNegocio || datosNegocio.email !== user.email) {
         setLoading(false);
-        // Esto dejará que se renderice la pantalla de "Error de Acceso" más abajo
         return; 
       }
 
       setNegocio(datosNegocio);
 
-      // 4. Auto-detectar conexión exitosa de Google
       if (searchParams.get('google_connected') === 'true') {
         setActiveTab("configuracion");
         router.replace(window.location.pathname, { scroll: false });
       }
 
-      // 5. Cargar datos relacionados (Leads y Reseñas)
       const { data: datosLeads } = await supabase
         .from("leads")
         .select("*")
@@ -140,7 +132,6 @@ export default function ClientDashboard() {
     </div>
   );
   
-  // --- PANTALLA DE ERROR / ACCESO DENEGADO ---
   if (!negocio) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 p-10 font-sans">
         <AlertTriangle size={64} className="text-amber-500" />
@@ -150,47 +141,18 @@ export default function ClientDashboard() {
         </div>
         
         <div className="bg-zinc-900 p-8 rounded-2xl border border-zinc-800 font-mono text-sm w-full max-w-3xl overflow-hidden shadow-2xl">
-            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-zinc-800">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="ml-2 text-zinc-500">diagnostic.log</span>
-            </div>
-            
             <div className="space-y-3">
                 <p><span className="text-blue-400">Tu Email:</span> <span className="text-zinc-100">{debugInfo.userEmail || "No detectado"}</span></p>
                 <p><span className="text-purple-400">Negocio Buscado:</span> <span className="text-yellow-200">"{params.slug}"</span></p>
-                
-                <div className="my-4 border-t border-zinc-800 border-dashed"></div>
-                
-                {debugInfo.errorSupabase && (
-                    <>
-                        <p className="text-red-400 font-bold">Error Técnico:</p>
-                        <p className="text-red-300 bg-red-900/20 p-2 rounded border border-red-900/50">
-                            {debugInfo.errorSupabase}
-                        </p>
-                    </>
-                )}
-            </div>
-
-            <div className="mt-6 bg-zinc-800/50 p-4 rounded text-zinc-400 text-xs">
-                <strong>Nota:</strong> Verifica que hayas iniciado sesión con el email correcto asociado a este negocio.
             </div>
         </div>
-
-        <button 
-          onClick={() => router.push("/login")}
-          className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-zinc-200 transition-colors"
-        >
-          Ir al Login
-        </button>
+        <button onClick={() => router.push("/login")} className="bg-white text-black px-6 py-3 rounded-full font-bold">Ir al Login</button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
       
-      {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">
@@ -206,6 +168,13 @@ export default function ClientDashboard() {
                 label="General" 
                 active={activeTab === "resumen"} 
                 onClick={() => setActiveTab("resumen")}
+            />
+            {/* NUEVO ITEM CLIENTES */}
+            <SidebarItem 
+                icon={<UserCheck size={18} />} 
+                label="Clientes" 
+                active={activeTab === "clientes"} 
+                onClick={() => setActiveTab("clientes")}
             />
             <SidebarItem 
                 icon={<MessageCircle size={18} />} 
@@ -237,16 +206,12 @@ export default function ClientDashboard() {
                     <span className="text-sm font-semibold">{negocio.estado_plan === 'activo' ? 'Premium' : 'Gratuito'}</span>
                 </div>
             </div>
-            <button 
-                onClick={handleLogout} 
-                className="flex items-center gap-2 text-zinc-400 hover:text-red-600 text-sm font-medium transition-colors w-full px-2"
-            >
+            <button onClick={handleLogout} className="flex items-center gap-2 text-zinc-400 hover:text-red-600 text-sm font-medium transition-colors w-full px-2">
                 <LogOut size={16} /> Cerrar Sesión
             </button>
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto h-screen">
         <div className="max-w-6xl mx-auto p-6 lg:p-10">
             
@@ -258,10 +223,9 @@ export default function ClientDashboard() {
                         <p className="text-zinc-500 text-sm">Aquí está lo que está pasando en tu negocio hoy.</p>
                     </header>
 
-                    {/* KPI GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <StatCard 
-                            title="Total Leads" 
+                            title="Total Clientes" 
                             value={leads.length} 
                             icon={<Users className="text-blue-600" size={20}/>}
                             trend="+2 esta semana"
@@ -273,91 +237,103 @@ export default function ClientDashboard() {
                             icon={<Star className="text-yellow-500" size={20} fill="currentColor"/>}
                             subtext={`Basado en ${totalReviews} reseñas`}
                         />
+                        <StatCard 
+                            title="Próximos Turnos" 
+                            value="0" 
+                            icon={<Calendar className="text-purple-600" size={20}/>}
+                            subtext="Conecta Google Calendar"
+                        />
                     </div>
+                </div>
+            )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        
-                        {/* TABLA LEADS */}
-                        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
-                            <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-                                <h3 className="font-bold text-zinc-800 text-sm">Últimos Contactos</h3>
-                                <button className="text-xs font-medium text-zinc-500 hover:text-zinc-900">Descargar CSV</button>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="text-zinc-400 font-medium text-xs uppercase bg-white">
-                                        <tr>
-                                            <th className="px-5 py-3 font-medium">Cliente</th>
-                                            <th className="px-5 py-3 font-medium">Fecha</th>
-                                            <th className="px-5 py-3 font-medium text-right">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-50">
-                                        {leads.slice(0, 6).map((lead) => (
-                                            <tr key={lead.id} className="group hover:bg-zinc-50 transition-colors">
-                                                <td className="px-5 py-3">
-                                                    <div className="font-medium text-zinc-900">{lead.nombre_cliente}</div>
-                                                    <div className="text-xs text-zinc-400">Interesado en servicios</div>
-                                                </td>
-                                                <td className="px-5 py-3 text-zinc-500 font-mono text-xs">
-                                                    {new Date(lead.created_at).toLocaleDateString()}
-                                                </td>
-                                                <td className="px-5 py-3 text-right">
-                                                    <a 
-                                                        href={`https://wa.me/${lead.telefono_cliente}`} 
-                                                        target="_blank"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 hover:bg-zinc-900 hover:text-white rounded-lg text-xs font-medium transition-all"
-                                                    >
-                                                        Contactar <ArrowUpRight size={12} />
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {leads.length === 0 && (
-                                            <tr>
-                                                <td colSpan={3} className="px-5 py-8 text-center text-zinc-400 text-sm">
-                                                    Aún no hay clientes registrados.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+            {/* --- NUEVA TAB: CLIENTES --- */}
+            {activeTab === "clientes" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <header className="flex justify-between items-end mb-6">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Gestión de Clientes</h1>
+                            <p className="text-zinc-500 text-sm mt-1">Base de datos de contactos y seguimiento de turnos.</p>
                         </div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                            <input 
+                                type="text" 
+                                placeholder="Buscar cliente..." 
+                                className="pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-zinc-900 w-64"
+                            />
+                        </div>
+                    </header>
 
-                        {/* DESGLOSE RESEÑAS */}
-                        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 h-fit">
-                            <h3 className="font-bold text-zinc-800 text-sm mb-6">Desglose de Opiniones</h3>
-                            <div className="space-y-4">
-                                {[5, 4, 3, 2, 1].map((star) => {
-                                    // @ts-ignore
-                                    const count = counts[star];
-                                    const percent = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-                                    return (
-                                        <div key={star} className="flex items-center gap-3 text-xs">
-                                            <span className="w-3 font-bold text-zinc-500">{star}</span>
-                                            <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
-                                                <div 
-                                                    className="h-full bg-zinc-900 rounded-full" 
-                                                    style={{ width: `${percent}%` }}
-                                                ></div>
-                                            </div>
-                                            <span className="w-6 text-right text-zinc-400 font-mono">{count}</span>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                            <div className="mt-8 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
-                                <p className="text-xs text-zinc-500 text-center leading-relaxed">
-                                    Mantener un promedio superior a <strong>4.0</strong> aumenta un 30% la conversión de leads.
-                                </p>
-                            </div>
+                    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
+                                    <tr>
+                                        <th className="px-6 py-4">Cliente</th>
+                                        <th className="px-6 py-4">Contacto</th>
+                                        <th className="px-6 py-4">Próximo Turno</th>
+                                        <th className="px-6 py-4">Estado</th>
+                                        <th className="px-6 py-4 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-50">
+                                    {leads.map((cliente) => (
+                                        <tr key={cliente.id} className="group hover:bg-zinc-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                                        {cliente.nombre_cliente.substring(0,1)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-zinc-900">{cliente.nombre_cliente}</div>
+                                                        <div className="text-xs text-zinc-400">Registrado el {new Date(cliente.created_at).toLocaleDateString()}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-zinc-600 font-mono text-xs">{cliente.telefono_cliente}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2 text-zinc-400 text-xs">
+                                                    <Calendar size={14}/>
+                                                    <span>Pendiente</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Activo
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button className="text-zinc-400 hover:text-indigo-600 transition-colors">
+                                                    <ArrowUpRight size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {leads.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-12 text-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center">
+                                                        <Users className="text-zinc-300" />
+                                                    </div>
+                                                    <p className="text-zinc-500 font-medium">No hay clientes registrados aún.</p>
+                                                    <p className="text-zinc-400 text-xs">Los clientes aparecerán aquí cuando completen el formulario en tu landing.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- TAB: RESEÑAS (MODERACIÓN) --- */}
+            {/* --- TAB: RESEÑAS --- */}
             {activeTab === "resenas" && (
                 <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <header className="mb-8 flex justify-between items-end">
@@ -442,7 +418,7 @@ export default function ClientDashboard() {
                                         <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Captura de Feedback Negativo
                                     </li>
                                     <li className="flex gap-3 text-sm text-zinc-600">
-                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Panel de Control de Leads
+                                        <CheckCircle size={18} className="text-emerald-500 shrink-0"/> Panel de Control de Clientes
                                     </li>
                                 </ul>
 
@@ -514,7 +490,6 @@ export default function ClientDashboard() {
                                     {negocio.google_calendar_connected ? (
                                         <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full w-fit font-medium">
                                             <Check size={14} /> 
-                                            {/* CORRECCIÓN: Aquí mostramos el email unificado */}
                                             Conectado como {negocio.email}
                                         </div>
                                     ) : (
