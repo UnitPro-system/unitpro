@@ -8,11 +8,10 @@ export async function GET(request: Request) {
   if (!slug) return NextResponse.json({ error: "Falta el slug" }, { status: 400 });
 
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    // URL de retorno (Callback)
-    process.env.NEXT_PUBLIC_APP_URL + "/api/google/auth/callback" 
-  );
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "http://localhost:3000/api/google/callback" // <--- Ponlo así tal cual, entre comillas
+);
 
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
