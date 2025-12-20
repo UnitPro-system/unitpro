@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
+// Forzamos a que esta ruta no se guarde en caché (importante en Vercel)
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug");
 
-  // 1. HARDCODE (Asegúrate que esta sea TU URL de Vercel exacta, sin / al final)
-  const DOMINIO_REAL = "https://tu-proyecto.vercel.app"; 
+  // 1. HARDCODE: Pon tu URL exacta de Vercel aquí (sin barra al final)
+  const DOMINIO_REAL = "https://TU-PROYECTO.vercel.app"; 
   const redirectUri = `${DOMINIO_REAL}/api/google/callback`;
-
-  // 🔍 LOG PARA VERCEL: Vamos a ver si esto se está ejecutando
-  console.log("--- DEBUG GOOGLE AUTH ---");
-  console.log("Slug:", slug);
-  console.log("Redirect URI calculada:", redirectUri);
-  console.log("Client ID (primeros 5):", process.env.GOOGLE_CLIENT_ID?.substring(0, 5));
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -29,12 +26,11 @@ export async function GET(request: Request) {
     ],
     state: slug || "",
     prompt: "consent",
-    // ⚠️ TRUCO DE FUERZA BRUTA: Pasamos el redirect_uri AQUÍ TAMBIÉN
-    // Esto obliga a la librería a incluir el parámetro si el constructor falló
+    
+    // 🔥 CRÍTICO: ESTA ES LA LÍNEA QUE TE FALTA O QUE FALLA
+    // Al ponerla aquí, obligamos a la librería a escribir el parámetro en la URL
     redirect_uri: redirectUri 
   });
-
-  console.log("URL Final generada:", url); // <--- Aquí veremos si falta el parámetro
 
   return NextResponse.redirect(url);
 }
