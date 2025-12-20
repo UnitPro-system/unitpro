@@ -3,39 +3,39 @@
 import { createClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
 
-// Cliente Supabase con permisos de admin (Service Role) para leer tokens
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
-// 1. CONSULTAR DISPONIBILIDAD (Busy Slots)
+// CONFIGURACIÓN DE ZONA HORARIA (Argentina)
+const TIMEZONE = "America/Argentina/Buenos_Aires";
+const OFFSET = "-03:00"; // Ajuste manual para la fecha ISO
+
 export async function getAvailability(slug: string, dateStr: string) {
   try {
-    // A. Obtener credenciales del negocio
     const { data: negocio } = await supabase.from("negocios").select("*").eq("slug", slug).single();
     if (!negocio?.google_calendar_connected) return { error: "Negocio no conectado a Google" };
 
-    // B. Autenticar con Google
     const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
     auth.setCredentials({ refresh_token: negocio.google_refresh_token, access_token: negocio.google_access_token });
 
-    // C. Definir rango de tiempo (El día completo seleccionado)
-    const startOfDay = new Date(`${dateStr}T00:00:00`);
-    const endOfDay = new Date(`${dateStr}T23:59:59`);
+    // Definir rango del día CON ZONA HORARIA CORRECTA
+    // Forzamos el inicio y fin del día en hora Argentina
+    const timeMin = `${dateStr}T00:00:00${OFFSET}`;
+    const timeMax = `${dateStr}T23:59:59${OFFSET}`;
 
     const calendar = google.calendar({ version: "v3", auth });
     
-    // D. Pedir eventos a Google
     const response = await calendar.events.list({
       calendarId: "primary",
-      timeMin: startOfDay.toISOString(),
-      timeMax: endOfDay.toISOString(),
+      timeMin: timeMin,
+      timeMax: timeMax,
+      timeZone: TIMEZONE, // Importante para que Google entienda
       singleEvents: true,
       orderBy: "startTime",
     });
 
-    // E. Retornar solo los intervalos ocupados
     const busySlots = response.data.items?.map(event => ({
       start: event.start?.dateTime || event.start?.date,
       end: event.end?.dateTime || event.end?.date
@@ -49,56 +49,70 @@ export async function getAvailability(slug: string, dateStr: string) {
   }
 }
 
-// 2. CREAR EL TURNO (Agendar)
 export async function createAppointment(slug: string, bookingData: any) {
   try {
     const { service, date, time, clientName, clientPhone, clientEmail } = bookingData;
     
-    // A. Obtener negocio
     const { data: negocio } = await supabase.from("negocios").select("*").eq("slug", slug).single();
     
-    // B. Configurar Google
     const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
     auth.setCredentials({ refresh_token: negocio.google_refresh_token });
     const calendar = google.calendar({ version: "v3", auth });
 
-    // C. Calcular Inicio y Fin (Asumimos 1 hora de duración por defecto)
-    const startDateTime = new Date(`${date}T${time}:00`);
-    const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // +1 Hora
+    // 1. CONSTRUCCIÓN ROBUSTA DE LA FECHA (Con Offset Argentina)
+    // Formato final esperado: "2023-12-21T09:00:00-03:00"
+    const startDateTimeISO = `${date}T${time}:00${OFFSET}`;
+    
+    // Calculamos el fin sumando 1 hora (manualmente para no depender de objetos Date del servidor)
+    const [hours, minutes] = time.split(':').map(Number);
+    const endHour = hours + 1;
+    // Formateamos para asegurar dos dígitos (ej: 9 -> 09)
+    const endHourStr = endHour.toString().padStart(2, '0');
+    const minutesStr = minutes.toString().padStart(2, '0');
+    
+    const endDateTimeISO = `${date}T${endHourStr}:${minutesStr}:00${OFFSET}`;
 
-    // D. Insertar en Google Calendar
     const googleEvent = await calendar.events.insert({
       calendarId: "primary",
       requestBody: {
         summary: `Turno: ${clientName} (${service})`,
         description: `Servicio: ${service}\nCliente: ${clientName}\nTel: ${clientPhone}\nEmail: ${clientEmail}`,
-        start: { dateTime: startDateTime.toISOString() },
-        end: { dateTime: endDateTime.toISOString() },
+        start: { 
+            dateTime: startDateTimeISO,
+            timeZone: TIMEZONE 
+        },
+        end: { 
+            dateTime: endDateTimeISO,
+            timeZone: TIMEZONE
+        },
       }
     });
 
-    // E. Guardar en Supabase (Para el Dashboard)
+    // Guardar en Supabase (Usamos la respuesta de Google para asegurar consistencia)
     const { error: dbError } = await supabase.from("turnos").insert({
       negocio_id: negocio.id,
       cliente_nombre: clientName,
       cliente_email: clientEmail,
       servicio: service,
-      fecha_inicio: startDateTime.toISOString(),
-      fecha_fin: endDateTime.toISOString(),
+      fecha_inicio: startDateTimeISO, // Guardamos con el offset para que el Dashboard lo lea bien
+      fecha_fin: endDateTimeISO,
       google_event_id: googleEvent.data.id,
       estado: "confirmado"
     });
 
-    // F. También guardamos como Lead si es nuevo (Opcional pero recomendado)
+    // Crear Lead
     await supabase.from("leads").insert({
         negocio_id: negocio.id,
         nombre_cliente: clientName,
         telefono_cliente: clientPhone,
-        estado: "cliente" // Ya reservó, es cliente
+        estado: "cliente"
     });
 
     if (dbError) throw dbError;
-    return { success: true };
+    return { 
+        success: true, 
+        eventLink: googleEvent.data.htmlLink // <--- ESTO ES NUEVO
+    };
 
   } catch (error: any) {
     console.error("Error creating appointment:", error);

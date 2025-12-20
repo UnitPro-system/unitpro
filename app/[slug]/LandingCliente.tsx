@@ -17,6 +17,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
   const [negocio, setNegocio] = useState<any>(initialData);
   
+  // Muestra el link del evento creado
+  const [eventLink, setEventLink] = useState(""); // <--- NUEVO
+  
   // MODALES
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false); // Presupuesto rápido
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false); // <--- NUEVO: Modal de Turnos
