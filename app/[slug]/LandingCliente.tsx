@@ -50,7 +50,6 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   // --- 1. CONFIGURACIÓN ROBUSTA (Mapeo de JSON a TypeScript) ---
   const rawConfig = negocio?.config_web || {};
   
-  // Helper para mezclar arrays por defecto si están vacíos
   const defaultBeneficios = rawConfig.beneficios?.items?.length > 0 
     ? rawConfig.beneficios.items 
     : [
@@ -97,25 +96,33 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   // --- 2. VARIABLES VISUALES CORREGIDAS ---
   const brandColor = config.colors.primary;
   
-  // CORRECCIÓN CLAVE: Priorizamos la URL que viene del editor (config.hero.imagenUrl)
-  // Si no hay en el editor, usamos la de la DB (negocio.imagen_url), y si no, un placeholder.
   const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
 
   // --- 3. HANDLERS (Lógica de Negocio) ---
   
-  const handleRating = (stars: number) => {
+  // CORRECCIÓN PRINCIPAL: Ahora es async y espera el insert
+  const handleRating = async (stars: number) => {
     setRatingSeleccionado(stars);
     
     if (stars >= 4) {
-      supabase.from("resenas").insert([{
+      // 1. Guardar en Base de Datos (Esperamos a que termine)
+      const { error } = await supabase.from("resenas").insert([{
         negocio_id: negocio.id,
         puntuacion: stars,
         comentario: "Calificación positiva (Rápida)",
         nombre_cliente: "Anónimo"
       }]);
 
+      if (error) {
+        console.error("Error al guardar reseña:", error);
+      }
+
+      // 2. Redirección o Mensaje
       if (negocio.google_maps_link && negocio.google_maps_link.trim() !== "") {
-        window.open(negocio.google_maps_link, '_blank');
+        // Pequeña pausa para asegurar la experiencia de usuario
+        setTimeout(() => {
+            window.open(negocio.google_maps_link, '_blank');
+        }, 300);
       } else {
         setMostrarGracias(true);
         setTimeout(() => setMostrarGracias(false), 5000);
