@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { ShieldCheck, Plus, LogOut, Users, Loader2, Palette, ExternalLink } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-// IMPORTANTE: Asegúrate de que el archivo WebEditor.tsx exista en la carpeta 'components'
+// Importación local porque WebEditor está en la misma carpeta
 import WebEditor from "./WebEditor"; 
 
 export default function DashboardAgencia() {
@@ -40,10 +40,10 @@ export default function DashboardAgencia() {
         .eq("slug", params.slug)
         .single();
     
-    // 3. SEGURIDAD "MAIL CONTRA MAIL"
-    // Verificamos que la agencia exista Y que el email coincida con el usuario logueado
+    // 3. SEGURIDAD "MAIL CONTRA MAIL" (Columna Única)
+    // Verificamos que la agencia exista Y que el email coincida exactamente
     if (error || !agencyData || agencyData.email !== user.email) {
-        console.error("Acceso denegado: El email no coincide con el dueño de la agencia.");
+        console.error("Acceso denegado: El email no coincide con el dueño.");
         router.push("/login"); 
         return;
     }
@@ -89,9 +89,9 @@ export default function DashboardAgencia() {
           .replace(/[^\w\s-]/g, '')
           .replace(/[\s_-]+/g, '-') + "-" + Math.floor(Math.random() * 1000);
 
-        // B. INSERTAR EL NEGOCIO CON EL EMAIL (La clave para que el login funcione solo)
+        // B. INSERTAR EL NEGOCIO USANDO LA COLUMNA ÚNICA 'email'
         const { error: dbError } = await supabase.from("negocios").insert([{
-            email: newClientData.email, // <--- ESTO ES LO CRÍTICO
+            email: newClientData.email, // <--- Única columna de verdad
             agency_id: agency.id,
             nombre: newClientData.nombre,
             slug: slug,
