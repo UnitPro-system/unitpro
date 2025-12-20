@@ -7,28 +7,18 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const slug = searchParams.get("state");
+  const slug = searchParams.get("state"); 
   const error = searchParams.get("error");
 
-  // 1. DUMP INICIAL DE VARIABLES (Para ver si Vercel las lee)
-  const debugEnv = {
-    hasClientId: !!process.env.GOOGLE_CLIENT_ID,
-    hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    slugRecibido: slug,
-    codeRecibido: code ? "SÍ (Oculto)" : "NO",
-    errorGoogle: error
-  };
-
+  // 1. Manejo de errores o cancelación por parte del usuario
   if (error) {
-     return NextResponse.json({ status: "Error de Google", details: error }, { status: 400 });
+     return NextResponse.redirect(new URL(`/${slug}?error=google_denied`, request.url));
   }
-
   if (!code || !slug) {
-     return NextResponse.json({ status: "Faltan datos", debug: debugEnv }, { status: 400 });
+     return NextResponse.json({ error: "Faltan parámetros code o slug" }, { status: 400 });
   }
 
+  // 2. Configuración (Igual que en auth)
   const DOMINIO_REAL = "https://unitpro-system.vercel.app";
   const redirectUri = `${DOMINIO_REAL}/api/google/callback`;
 
@@ -39,52 +29,34 @@ export async function GET(request: Request) {
   );
 
   try {
-    // PASO A: Intentar canjear tokens con Google
-    console.log("Intentando obtener tokens...");
+    // 3. Canjear código por tokens
     const { tokens } = await oauth2Client.getToken(code);
-    console.log("Tokens obtenidos correctamente");
-
-    // PASO B: Intentar conectar con Supabase
+    
+    // 4. Guardar en Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // PASO C: Intentar escribir en la base de datos
-    // Nota: Usamos select() al final para forzar que nos devuelva el dato o el error
-    const { data, error: dbError } = await supabase
+    // Actualizamos el negocio con los tokens
+    const { error: dbError } = await supabase
       .from("negocios")
       .update({
         google_calendar_connected: true,
-        google_refresh_token: tokens.refresh_token || "no_refresh_token_sent",
+        // Solo guardamos el refresh_token si Google nos lo envía (generalmente solo la primera vez)
+        ...(tokens.refresh_token && { google_refresh_token: tokens.refresh_token }),
         google_access_token: tokens.access_token,
       })
-      .eq("slug", slug)
-      .select();
+      .eq("slug", slug);
 
-    if (dbError) {
-        throw new Error(`Error de Supabase: ${dbError.message} (Código: ${dbError.code})`);
-    }
+    if (dbError) throw dbError;
 
-    if (!data || data.length === 0) {
-        throw new Error("Supabase no devolvió error, pero NO actualizó ninguna fila. ¿El SLUG es correcto? ¿Bloqueo RLS?");
-    }
-
-    // SI TODO SALE BIEN:
-    return NextResponse.json({ 
-        status: "¡ÉXITO TOTAL!", 
-        message: "Todo funcionó. Ahora puedes volver al código original.",
-        dataUpdate: data 
-    });
+    // 5. ¡ÉXITO! Redirigir al dashboard para que el usuario vea "Conectado"
+    return NextResponse.redirect(new URL(`/${slug}?google_connected=true`, request.url));
 
   } catch (err: any) {
-    // AQUÍ ESTÁ LA CAUSA VERDADERA
-    return NextResponse.json({ 
-        status: "ERROR CRÍTICO DETECTADO", 
-        causa: err.message,
-        stack: err.stack, // Opcional
-        variables_entorno: debugEnv, // Para confirmar que Vercel tiene las claves
-        redirect_uri_usada: redirectUri
-    }, { status: 500 });
+    console.error("Error OAuth Final:", err.message);
+    // Si falla algo inesperado, redirigimos con error
+    return NextResponse.redirect(new URL(`/${slug}?error=auth_failed`, request.url));
   }
 }
