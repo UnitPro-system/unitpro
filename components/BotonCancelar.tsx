@@ -15,7 +15,7 @@ export function BotonCancelar({ idTurno }: { idTurno: string }) {
     if (!confirmacion) return;
 
     setLoading(true);
-    const res = await cancelarTurno(idTurno);
+    const res = await cancelAppointment(idTurno);
     
     if (!res.success) {
       alert("Error: " + res.error);
