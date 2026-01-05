@@ -9,7 +9,8 @@ import { Testimonials } from "@/components/blocks/Testimonials"; // Asegúrate d
 import { Footer } from "@/components/blocks/Footer";
 import type { WebConfig } from "@/types/web-config";
 // Ruta relativa para llegar a 'actions'
-import { getAvailability, createAppointment } from "../actions/google-calendar"; 
+import { checkAvailability } from "@/app/actions/booking/check-availability"; 
+import { createAppointment } from "@/app/actions/booking/manage-appointment"; 
 
 export default function LandingCliente({ initialData }: { initialData: any }) {
   const supabase = createClient();
@@ -75,16 +76,20 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
   const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = e.target.value;
+    // Reseteamos la hora elegida y limpiamos los slots ocupados anteriores
     setBookingData({...bookingData, date, time: ""}); 
+    setBusySlots([]); 
     
     setLoadingSlots(true);
     
     try {
-        const res = await getAvailability(negocio.slug, date);
-        if (res.success) {
-            setBusySlots((res as any).busySlots);
+        // Llamamos a la NUEVA acción modular
+        const res = await checkAvailability(negocio.slug, date);
+        
+        if (res.success && res.busy) {
+            setBusySlots(res.busy); // Guardamos los intervalos ocupados (start/end)
         } else {
-            console.error("Error del servidor:", res.error);
+            console.error("Error al obtener disponibilidad:", res.error);
         }
     } catch (error) {
         console.error("Error de conexión:", error);
@@ -96,14 +101,23 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const generateTimeSlots = () => {
     const { start, end } = getBusinessHours();
     const slots = [];
+    const SLOT_DURATION_MINUTES = 60; // Duración estándar del turno
+
     for (let hour = start; hour < end; hour++) {
         const timeString = `${hour.toString().padStart(2, '0')}:00`;
-        const slotDate = new Date(`${bookingData.date}T${timeString}:00`);
         
+        // Definimos el rango exacto de ESTE slot candidato (Hora local del navegador)
+        const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
+        const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION_MINUTES * 60000);
+
+        // Verificamos si choca con algún intervalo "busy" de Google
         const isBusy = busySlots.some((busy: any) => {
-            const busyStart = new Date(busy.start);
+            const busyStart = new Date(busy.start); // Google devuelve ISO, JS lo convierte a local
             const busyEnd = new Date(busy.end);
-            return slotDate >= busyStart && slotDate < busyEnd;
+
+            // FÓRMULA DE COLISIÓN: (StartA < EndB) Y (EndA > StartB)
+            // Si esto es true, se superponen
+            return slotStart < busyEnd && slotEnd > busyStart;
         });
 
         slots.push({ time: timeString, available: !isBusy });
@@ -115,7 +129,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     e.preventDefault();
     setEnviando(true);
     
-    const res = await createAppointment(negocio.slug, bookingData);
+    // Calculamos los tiempos exactos aquí en el cliente
+    const slotStart = new Date(`${bookingData.date}T${bookingData.time}:00`);
+    const slotEnd = new Date(slotStart.getTime() + 60 * 60000); // +1 hora
+
+    // Preparamos el payload completo
+    const payload = {
+        ...bookingData,
+        start: slotStart.toISOString(),
+        end: slotEnd.toISOString()
+    };
+    
+    // Llamamos a la nueva acción unificada
+    const res = await createAppointment(negocio.slug, payload);
     
     setEnviando(false);
     if (res.success) {
@@ -124,6 +150,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             setEventLink((res as any).eventLink); 
         }
         setMostrarGracias(true);
+        // Reseteamos el formulario
         setBookingStep(1);
         setBookingData({ service: "", date: "", time: "", clientName: "", clientPhone: "", clientEmail: "" });
     } else {
