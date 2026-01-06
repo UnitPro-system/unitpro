@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase";
 import { ShieldCheck, Plus, LogOut, Users, Loader2, Palette, ExternalLink, MapPin, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import WebEditor from "./WebEditor"; 
+import { BusinessCategory } from "@/types/business-types";
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -27,6 +28,10 @@ export default function DashboardAgencia() {
     direccion: "",
     google_maps_link: "" // <--- CAMPO NUEVO AGREGADO
   });
+
+  // SELECTOR CATEGORIA
+  const [newClientCategory, setNewClientCategory] = useState<BusinessCategory>('service_booking');
+
 
   // ESTADO HORARIOS
   const [scheduleConfig, setScheduleConfig] = useState({
@@ -109,7 +114,7 @@ export default function DashboardAgencia() {
     e.preventDefault();
     setCreating(true);
 
-    // 1. Crear usuario en Auth
+    // 1. Auth (Esto queda igual)
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newClientData.email,
         password: newClientData.password,
@@ -123,45 +128,53 @@ export default function DashboardAgencia() {
     }
 
     if (authData.user) {
-        const slug = newClientData.nombre
-          .toLowerCase()
-          .trim()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/[\s_-]+/g, '-') + "-" + Math.floor(Math.random() * 1000);
-
+        const slug = newClientData.nombre.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-') + "-" + Math.floor(Math.random() * 1000);
         const horarioFinal = `${scheduleConfig.diaInicio} a ${scheduleConfig.diaFin}: ${scheduleConfig.apertura} - ${scheduleConfig.cierre}`;
 
+        // --- LÓGICA DINÁMICA DE CONFIGURACIÓN ---
+        let initialConfigWeb = {};
+
+        // Si es CITAS, usamos tu estructura clásica
+        if (newClientCategory === 'service_booking') {
+            initialConfigWeb = {
+                template: "modern",
+                hero: { 
+                    titulo: newClientData.nombre, 
+                    subtitulo: "Reserva tu cita online con los mejores profesionales.", 
+                    ctaTexto: "Reservar Turno", 
+                    mostrar: true 
+                },
+                beneficios: { 
+                    mostrar: true, 
+                    titulo: "Por qué elegirnos", 
+                    items: [{titulo: "Atención Premium", desc: "Nos enfocamos en los detalles."}]
+                }
+            };
+        } 
+        // Aquí agregarás 'else if (newClientCategory === 'restaurant_menu')' en el futuro...
+
+        // 2. Insertar en Base de Datos
         const { error: dbError } = await supabase.from("negocios").insert([{
             email: newClientData.email,
             agency_id: agency.id,
             nombre: newClientData.nombre,
             slug: slug,
+            category: newClientCategory, // <--- CAMPO NUEVO IMPORTANTE
             whatsapp: newClientData.whatsapp,
             direccion: newClientData.direccion,
-            google_maps_link: newClientData.google_maps_link, // <--- GUARDAMOS EL LINK EN LA BD
+            google_maps_link: newClientData.google_maps_link,
             horarios: horarioFinal,
             mensaje_bienvenida: `Bienvenidos a ${newClientData.nombre}`,
             color_principal: '#000000',
             estado_plan: 'activo', 
-            config_web: {
-              template: "modern",
-              hero: { 
-                titulo: newClientData.nombre, 
-                subtitulo: "El mejor servicio profesional.", 
-                ctaTexto: "Contactar", 
-                mostrar: true 
-              },
-              beneficios: { 
-                mostrar: true, 
-                titulo: "Nuestros Servicios", 
-                items: [{titulo: "Calidad", desc: "Garantizada"}]
-              }
-            }
+            config_web: initialConfigWeb // <--- JSON DINÁMICO
         }]);
 
         if (!dbError) {
             setShowModal(false);
+            // Reseteamos el formulario
             setNewClientData({ email: "", password: "", nombre: "", whatsapp: "", direccion: "", google_maps_link: "" });
+            setNewClientCategory('service_booking'); // Volver al default
             cargarClientes(agency.id);
         } else {
             alert("Error BD: " + dbError.message);
@@ -169,6 +182,7 @@ export default function DashboardAgencia() {
     }
     setCreating(false);
   };
+  
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -273,6 +287,21 @@ export default function DashboardAgencia() {
                 <h3 className="text-2xl font-bold mb-6 text-slate-900">Nuevo Cliente</h3>
                 
                 <form onSubmit={handleCreateClient} className="space-y-4">
+                    <div className="mb-6">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Tipo de Negocio</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {/* Opción 1: Servicios (Activa) */}
+                            <button 
+                                type="button"
+                                onClick={() => setNewClientCategory('service_booking')}
+                                className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'service_booking' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
+                            >
+                                <span></span> Citas / Servicios
+                            </button>
+                            
+                        </div>
+                    </div>
+                    
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nombre Negocio</label>
@@ -367,7 +396,7 @@ export default function DashboardAgencia() {
                     <div className="h-px bg-slate-100 my-2"></div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">WhatsApp (Opcional)</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">WhatsApp</label>
                       <input placeholder="+549..." className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" onChange={e => setNewClientData({...newClientData, whatsapp: e.target.value})}/>
                     </div>
                     
