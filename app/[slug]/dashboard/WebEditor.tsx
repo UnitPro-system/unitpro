@@ -1,309 +1,35 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock } from "lucide-react";
-import { ImageUpload } from "@/components/ui/ImageUpload";
+import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor"; // El archivo que acabas de renombrar
+import { AlertTriangle } from "lucide-react";
 
-const DEFAULT_CONFIG = {
-  template: "modern",
-  appearance: { font: 'sans', radius: 'medium' },
-  colors: { primary: "#000000" },
-  hero: { 
-    titulo: "Tu Título Principal", 
-    subtitulo: "Escribe aquí una descripción atractiva.", 
-    ctaTexto: "Contactar", 
-    mostrar: true,
-    layout: "split", 
-    parallax: false,
-    overlayOpacity: 50
-  },
-  beneficios: { 
-    mostrar: true, 
-    titulo: "Nuestros Servicios", 
-    items: [
-      { titulo: "Servicio 1", desc: "Descripción breve." },
-      { titulo: "Servicio 2", desc: "Descripción breve." },
-      { titulo: "Servicio 3", desc: "Descripción breve." }
-    ]
-  },
-  testimonios: { mostrar: false, titulo: "Opiniones", items: [] },
-  footer: { mostrar: true, textoCopyright: "Derechos reservados" }
-};
+interface Props {
+  negocio: any;
+  onClose: () => void;
+  onSave: () => void;
+}
 
-export default function WebEditor({ negocio, onClose, onSave }: any) {
-  const supabase = createClient();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  
-  // REFERENCIAS PARA SCROLL
-  const sectionsRefs: any = {
-    contact: useRef<HTMLDivElement>(null),
-    appearance: useRef<HTMLDivElement>(null),
-    identity: useRef<HTMLDivElement>(null),
-    hero: useRef<HTMLDivElement>(null),
-    beneficios: useRef<HTMLDivElement>(null),
-    footer: useRef<HTMLDivElement>(null),
-  };
+export default function WebEditorFactory({ negocio, onClose, onSave }: Props) {
+  // LÓGICA DE SELECCIÓN (STRATEGY PATTERN)
 
-  // ESTADO DE LA CONFIGURACIÓN VISUAL (JSONB)
-  const [config, setConfig] = useState({ ...DEFAULT_CONFIG, ...(negocio.config_web || {}) });
-  
-  // ESTADO DE DATOS DEL NEGOCIO (COLUMNAS DB)
-  const [dbFields, setDbFields] = useState({
-    direccion: negocio.direccion || "",
-    horarios: negocio.horarios || "",
-    google_maps_link: negocio.google_maps_link || "" // <--- CAMPO NUEVO EN EL ESTADO
-  });
+  // 1. Si es Service Booking (Tu caso actual), cargamos el editor completo
+  if (negocio.category === 'service_booking') {
+    return <ServiceBookingEditor negocio={negocio} onClose={onClose} onSave={onSave} />;
+  }
 
-  const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-
-  // ESCUCHAR CLICS DESDE EL IFRAME
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-        if (event.data?.type === "FOCUS_SECTION") {
-            const sectionName = event.data.section;
-            const targetRef = sectionsRefs[sectionName];
-            if (targetRef && targetRef.current) {
-                targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setActiveSection(sectionName);
-                setTimeout(() => setActiveSection(null), 2000); 
-            }
-        }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  // ENVÍO DE CAMBIOS AL IFRAME
-  const sendConfigUpdate = (newConfig: any) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: "UPDATE_CONFIG", payload: newConfig }, "*");
-    }
-  };
-
-  const sendDbUpdate = (newDbFields: any) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: "UPDATE_DB", payload: newDbFields }, "*");
-    }
-  };
-
-  // GUARDADO EN SUPABASE (ACTUALIZA JSON Y COLUMNAS)
-  const handleSave = async () => {
-    setSaving(true);
-    const { error } = await supabase.from("negocios").update({ 
-        config_web: config,
-        direccion: dbFields.direccion,
-        horarios: dbFields.horarios,
-        google_maps_link: dbFields.google_maps_link // <--- GUARDAMOS EL LINK EN DB
-    }).eq("id", negocio.id);
-
-    if (error) alert("Error: " + error.message);
-    setSaving(false);
-    if (onSave) onSave();
-  };
-
-  // ACTUALIZADORES DE ESTADO
-  const updateConfigField = (section: string, field: string, value: any) => {
-    setConfig((prev: any) => {
-      let newConfig;
-      if (section === 'root') newConfig = { ...prev, [field]: value };
-      else newConfig = { ...prev, [section]: { ...prev[section], [field]: value } };
-      sendConfigUpdate(newConfig);
-      return newConfig;
-    });
-  };
-
-  const updateArrayItem = (section: string, index: number, field: string, value: string) => {
-    setConfig((prev: any) => {
-        const currentItems = prev[section]?.items || [];
-        const newItems = [...currentItems];
-        if (!newItems[index]) newItems[index] = {}; 
-        newItems[index] = { ...newItems[index], [field]: value };
-        const newConfig = { ...prev, [section]: { ...prev[section], items: newItems } };
-        sendConfigUpdate(newConfig);
-        return newConfig;
-    });
-  };
-
-  const updateDbField = (field: string, value: string) => {
-      const newDb = { ...dbFields, [field]: value };
-      setDbFields(newDb);
-      sendDbUpdate(newDb);
-  };
-
-  const previewUrl = `/${negocio.slug}?editor=true`; 
-  const getSectionClass = (name: string) => `space-y-4 bg-white p-5 rounded-xl border transition-all duration-500 ${activeSection === name ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)] ring-1 ring-indigo-500' : 'border-zinc-200 shadow-sm'}`;
-
+  // 2. Si es cualquier otro tipo futuro, mostramos un aviso por ahora
   return (
-    <div className="fixed inset-0 z-[100] flex bg-zinc-100 font-sans h-screen w-screen overflow-hidden">
-      
-      {/* --- PREVIEW AREA --- */}
-      <div className="flex-1 flex flex-col h-full relative border-r border-zinc-300">
-        <div className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-6 shadow-sm z-10">
-            <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-full border border-indigo-100 font-bold">
-                    <MousePointerClick size={14}/> Click-to-Edit Activo
-                </div>
-            </div>
-            <div className="flex bg-zinc-100 p-1 rounded-lg border border-zinc-200">
-                <button onClick={() => setViewMode("desktop")} className={`p-2 rounded-md ${viewMode === "desktop" ? "bg-white shadow text-indigo-600" : "text-zinc-400"}`}><Monitor size={18} /></button>
-                <button onClick={() => setViewMode("mobile")} className={`p-2 rounded-md ${viewMode === "mobile" ? "bg-white shadow text-indigo-600" : "text-zinc-400"}`}><Smartphone size={18} /></button>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md text-center">
+        <div className="mx-auto bg-amber-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+            <AlertTriangle className="text-amber-600" />
         </div>
-        <div className="flex-1 bg-zinc-200/50 flex items-center justify-center p-8 overflow-hidden relative">
-            <div className={`transition-all duration-500 bg-white shadow-2xl border border-zinc-300 overflow-hidden ${viewMode === "mobile" ? "w-[375px] h-[667px] rounded-[2.5rem] border-[8px] border-zinc-800 shadow-xl" : "w-full h-full rounded-lg shadow-lg"}`}>
-                <iframe 
-                    ref={iframeRef} 
-                    src={previewUrl} 
-                    className="w-full h-full bg-white" 
-                    style={{ border: 'none' }} 
-                    title="Preview" 
-                    onLoad={() => { sendConfigUpdate(config); sendDbUpdate(dbFields); }} 
-                />
-            </div>
-        </div>
-      </div>
-
-      {/* --- SIDEBAR --- */}
-      <div className="w-[400px] bg-white shadow-2xl flex flex-col h-full z-20 border-l border-zinc-200">
-        <div className="p-5 border-b border-zinc-200 flex justify-between items-center bg-white sticky top-0 z-10">
-            <h2 className="font-bold text-lg text-zinc-900 flex items-center gap-2"><LayoutTemplate size={20} className="text-indigo-600"/> Editor</h2>
-            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20}/></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-50/30">
-            
-            {/* 1. SECCIÓN CONTACTO */}
-            <div ref={sectionsRefs.contact} className={getSectionClass('contact')}>
-                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100">
-                    <MapPin size={16} className="text-blue-500" /> Información de Contacto
-                </h3>
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Dirección</label>
-                    <input 
-                        type="text" 
-                        value={dbFields.direccion} 
-                        onChange={(e) => updateDbField('direccion', e.target.value)} 
-                        className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Ej: Av. Principal 123"
-                    />
-                </div>
-                {/* INPUT NUEVO PARA GOOGLE MAPS */}
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Link Google Maps</label>
-                    <div className="relative">
-                        <input 
-                            type="text" 
-                            value={dbFields.google_maps_link} 
-                            onChange={(e) => updateDbField('google_maps_link', e.target.value)} 
-                            className="w-full p-2 pl-8 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="https://goo.gl/maps/..."
-                        />
-                        <ExternalLink size={14} className="absolute left-2.5 top-2.5 text-zinc-400"/>
-                    </div>
-                </div>
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Horarios</label>
-                    <input 
-                        type="text" 
-                        value={dbFields.horarios} 
-                        onChange={(e) => updateDbField('horarios', e.target.value)} 
-                        className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Ej: Lun-Vie 9:00 - 18:00"
-                    />
-                </div>
-            </div>
-
-            {/* 2. SECCIÓN APARIENCIA */}
-            <div ref={sectionsRefs.appearance} className={getSectionClass('appearance')}>
-                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100"><Palette size={16} className="text-purple-500" /> Apariencia</h3>
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Tipografía</label>
-                    <select value={config.appearance?.font || 'sans'} onChange={(e) => updateConfigField('appearance', 'font', e.target.value)} className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white">
-                        <option value="sans">Moderna (Sans)</option>
-                        <option value="serif">Elegante (Serif)</option>
-                        <option value="mono">Técnica (Mono)</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Bordes</label>
-                    <div className="flex gap-2">
-                        {['none', 'medium', 'full'].map((mode) => (
-                            <button key={mode} onClick={() => updateConfigField('appearance', 'radius', mode)} className={`flex-1 py-2 text-xs border rounded-lg ${config.appearance?.radius === mode ? 'bg-purple-50 border-purple-500 text-purple-700 font-bold' : 'bg-white'}`}>{mode}</button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. IDENTIDAD */}
-            <div ref={sectionsRefs.identity} className={getSectionClass('identity')}>
-                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Identidad</h3>
-                <ImageUpload label="Logo" value={config.logoUrl} onChange={(url) => updateConfigField('root', 'logoUrl', url)} />
-            </div>
-
-            {/* 4. HERO */}
-            <div ref={sectionsRefs.hero} className={getSectionClass('hero')}>
-                <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> Portada</h3>
-                    <button onClick={() => updateConfigField('hero', 'mostrar', !config.hero?.mostrar)} className="text-zinc-400 hover:text-indigo-600"><Eye size={16}/></button>
-                </div>
-                {config.hero?.mostrar && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                        <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
-                            <label className="text-[11px] font-bold text-zinc-400 uppercase mb-2 block flex items-center gap-1"><Layout size={12}/> Diseño</label>
-                            <div className="flex gap-2">
-                                <button onClick={() => updateConfigField('hero', 'layout', 'split')} className={`flex-1 py-2 text-xs border rounded-lg ${config.hero?.layout !== 'full' ? 'bg-white border-indigo-500 text-indigo-700 font-bold' : ''}`}>Dividido</button>
-                                <button onClick={() => updateConfigField('hero', 'layout', 'full')} className={`flex-1 py-2 text-xs border rounded-lg ${config.hero?.layout === 'full' ? 'bg-white border-indigo-500 text-indigo-700 font-bold' : ''}`}>Cinemático</button>
-                            </div>
-                        </div>
-                        {config.hero?.layout === 'full' && (
-                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Layers size={14}/> Efecto Parallax</label>
-                                    <button onClick={() => updateConfigField('hero', 'parallax', !config.hero?.parallax)} className={`w-10 h-6 rounded-full p-1 transition-colors ${config.hero?.parallax ? 'bg-indigo-600' : 'bg-zinc-300'}`}>
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${config.hero?.parallax ? 'translate-x-4' : ''}`}></div>
-                                    </button>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">Oscuridad ({config.hero?.overlayOpacity || 50}%)</label>
-                                    <input type="range" min="0" max="90" value={config.hero?.overlayOpacity || 50} onChange={(e) => updateConfigField('hero', 'overlayOpacity', e.target.value)} className="w-full accent-indigo-600"/>
-                                </div>
-                            </div>
-                        )}
-                        <input type="text" value={config.hero.titulo} onChange={(e) => updateConfigField('hero', 'titulo', e.target.value)} className="w-full p-2 border rounded text-sm"/>
-                        <textarea rows={3} value={config.hero.subtitulo} onChange={(e) => updateConfigField('hero', 'subtitulo', e.target.value)} className="w-full p-2 border rounded text-sm"/>
-                        <ImageUpload label="Imagen de Fondo" value={config.hero.imagenUrl} onChange={(url) => updateConfigField('hero', 'imagenUrl', url)} />
-                    </div>
-                )}
-            </div>
-
-            {/* 5. BENEFICIOS */}
-            <div ref={sectionsRefs.beneficios} className={getSectionClass('beneficios')}>
-                <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Beneficios</h3>
-                    <button onClick={() => updateConfigField('beneficios', 'mostrar', !config.beneficios?.mostrar)} className="text-zinc-400 hover:text-emerald-600"><Eye size={16}/></button>
-                </div>
-                {config.beneficios?.mostrar && (
-                    <div className="space-y-4">
-                        <input type="text" value={config.beneficios.titulo} onChange={(e) => updateConfigField('beneficios', 'titulo', e.target.value)} className="w-full p-2 border rounded text-sm font-bold"/>
-                        {config.beneficios.items?.map((item: any, i: number) => (
-                            <div key={i} className="p-2 border rounded bg-zinc-50">
-                                <input value={item.titulo} onChange={(e) => updateArrayItem('beneficios', i, 'titulo', e.target.value)} className="w-full p-1 mb-1 border rounded text-xs"/>
-                                <input value={item.desc} onChange={(e) => updateArrayItem('beneficios', i, 'desc', e.target.value)} className="w-full p-1 border rounded text-xs text-zinc-500"/>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-
-        <div className="p-5 border-t bg-white flex gap-3">
-            <button onClick={onClose} className="px-6 py-3 text-zinc-500 font-bold hover:bg-zinc-100 rounded-xl text-sm">Cerrar</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl flex justify-center gap-2">
-                {saving ? <Loader2 className="animate-spin"/> : <><Save size={18}/> Guardar</>}
-            </button>
-        </div>
+        <h3 className="text-lg font-bold text-slate-900">Módulo en Desarrollo</h3>
+        <p className="text-slate-500 mt-2 mb-6">
+          El editor para la categoría <strong>{negocio.category}</strong> estará disponible próximamente.
+        </p>
+        <button onClick={onClose} className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold">
+          Entendido
+        </button>
       </div>
     </div>
   );
