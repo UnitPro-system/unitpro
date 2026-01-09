@@ -189,7 +189,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const fontClass = { 'sans': 'font-sans', 'serif': 'font-serif', 'mono': 'font-mono' }[appearance.font as string] || 'font-sans';
   const radiusClass = { 'none': 'rounded-none', 'medium': 'rounded-2xl', 'full': 'rounded-[2.5rem]' }[appearance.radius as string] || 'rounded-2xl';
   const btnRadius = { 'none': 'rounded-none', 'medium': 'rounded-xl', 'full': 'rounded-full' }[appearance.radius as string] || 'rounded-xl';
-
+  const cardRadius = { 'none': 'rounded-none', 'medium': 'rounded-2xl', 'full': 'rounded-[2.5rem]' }[appearance.radius as string] || 'rounded-2xl';
+  const buttonRadius = { 'none': 'rounded-none', 'medium': 'rounded-xl', 'full': 'rounded-full' }[appearance.radius as string] || 'rounded-xl';
   const config: WebConfig = {
     logoUrl: rawConfig.logoUrl || negocio.logo_url,
     template: rawConfig.template || "modern",
@@ -198,7 +199,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     beneficios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.beneficios },
     testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
     ubicacion: { mostrar: true, ...rawConfig.ubicacion },
-    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, ...rawConfig.footer }
+    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, ...rawConfig.footer },
+    customSections: rawConfig.customSections || []
   };
   
   const brandColor = config.colors.primary;
@@ -206,6 +208,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const textColor = config.colors.text || "#1f2937";
   const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
 
+  
   return (
     <div 
     className={`min-h-screen pb-0 overflow-x-hidden ${fontClass}`}
@@ -334,32 +337,33 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
           </section>
       )}
-      {/* --- SECCIONES DINÁMICAS --- */}
+      {/* --- SECCIONES DINÁMICAS (Nuevo Bloque) --- */}
       {config.customSections?.map((section: any) => (
         <section key={section.id} className="py-20 px-6 max-w-7xl mx-auto">
             
-            {/* TIPO: QUIENES SOMOS */}
+            {/* Si es QUIENES SOMOS */}
             {section.type === 'about' && (
                 <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className={`${section.imagenUrl ? 'order-1' : ''}`}>
+                    <div className={section.imagenUrl ? 'order-1' : ''}>
                         <h2 className="text-3xl font-bold mb-6 text-zinc-900">{section.titulo}</h2>
+                        {/* Usamos SafeHTML para que respete saltos de línea */}
                         <SafeHTML as="div" html={section.texto} className="text-lg text-zinc-600 leading-relaxed whitespace-pre-line" />
                     </div>
                     {section.imagenUrl && (
-                        <div className="rounded-3xl overflow-hidden shadow-xl h-[400px]">
+                        <div className={`overflow-hidden shadow-xl h-[400px] ${cardRadius}`}>
                             <img src={section.imagenUrl} alt={section.titulo} className="w-full h-full object-cover"/>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* TIPO: GALERÍA */}
+            {/* Si es GALERÍA */}
             {section.type === 'gallery' && (
                 <div>
                     <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {section.imagenes?.map((img: any, i: number) => (
-                            <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-100 cursor-zoom-in">
+                            <div key={i} className={`group relative aspect-square overflow-hidden bg-zinc-100 ${cardRadius}`}>
                                 <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
                                 {img.descripcion && (
                                     <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
