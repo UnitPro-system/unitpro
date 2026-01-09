@@ -29,6 +29,7 @@ const DEFAULT_CONFIG = {
       { titulo: "Servicio 3", desc: "Descripción breve." }
     ]
   },
+  ubicacion: { mostrar: true },
   testimonios: { mostrar: false, titulo: "Opiniones", items: [] },
   footer: { mostrar: true, textoCopyright: "Derechos reservados" }
 };
@@ -176,6 +177,57 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-50/30">
+            {/*  GESTOR DE SECCIONES --- */}
+            <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
+                <h3 className="font-bold text-zinc-800 text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <Layers size={14} className="text-zinc-400"/> Secciones Activas
+                </h3>
+                <div className="space-y-2">
+                    {/* Toggle Hero */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Portada (Hero)</span>
+                        <button 
+                            onClick={() => updateConfigField('hero', 'mostrar', !config.hero?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.hero?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.hero?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+
+                    {/* Toggle Servicios */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Servicios</span>
+                        <button 
+                            onClick={() => updateConfigField('beneficios', 'mostrar', !config.beneficios?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.beneficios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.beneficios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+
+                    {/* Toggle Ubicación (NUEVO) */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Ubicación y Mapa</span>
+                        <button 
+                            onClick={() => updateConfigField('ubicacion', 'mostrar', !config.ubicacion?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.ubicacion?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.ubicacion?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+
+                    {/* Toggle Footer */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Pie de Página</span>
+                        <button 
+                            onClick={() => updateConfigField('footer', 'mostrar', !config.footer?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.footer?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.footer?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             {/* 1. SECCIÓN CONTACTO */}
             <div ref={sectionsRefs.contact} className={getSectionClass('contact')}>
