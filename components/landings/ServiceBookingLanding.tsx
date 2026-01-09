@@ -227,8 +227,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {/* Menú Desktop */}
             <div className="hidden md:flex items-center gap-8">
                 <button onClick={() => scrollToSection('inicio')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Inicio</button>
+                {config.beneficios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Servicios</button>
+                )}
+                {config.ubicacion?.mostrar && (
                 <button onClick={() => scrollToSection('ubicacion')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Dónde estamos</button>
+                )}
                 <button onClick={() => scrollToSection('contacto')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Contacto</button>
                 
                 <button 
@@ -250,8 +254,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         {mobileMenuOpen && (
             <div className="md:hidden bg-white border-t border-zinc-100 p-6 flex flex-col gap-4 shadow-xl">
                 <button onClick={() => scrollToSection('inicio')} className="text-left font-medium text-zinc-600 py-2">Inicio</button>
+                {config.beneficios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-left font-medium text-zinc-600 py-2">Servicios</button>
+                )}
+                {config.ubicacion?.mostrar && (
                 <button onClick={() => scrollToSection('ubicacion')} className="text-left font-medium text-zinc-600 py-2">Dónde estamos</button>
+                )}
                 <button onClick={() => scrollToSection('contacto')} className="text-left font-medium text-zinc-600 py-2">Contacto</button>
                 <button onClick={() => {setIsBookingModalOpen(true); setMobileMenuOpen(false)}} className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl mt-2">Reservar Turno</button>
             </div>
