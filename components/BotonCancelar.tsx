@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 
 // IMPORTANTE: Aquí corregimos la ruta roja. 
 // Asumiendo que tu archivo está en app/actions/agendar-turno.ts
-import { cancelAppointment } from "@/app/actions/booking/manage-appointment"; 
+import { cancelAppointment } from "@/app/actions/service-booking/manage-appointment"; 
 
 export function BotonCancelar({ idTurno }: { idTurno: string }) {
   const [loading, setLoading] = useState(false);
