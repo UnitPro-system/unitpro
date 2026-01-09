@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock } from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
 const DEFAULT_CONFIG = {
@@ -138,7 +138,53 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
 
   const previewUrl = `/${negocio.slug}?editor=true`; 
   const getSectionClass = (name: string) => `space-y-4 bg-white p-5 rounded-xl border transition-all duration-500 ${activeSection === name ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)] ring-1 ring-indigo-500' : 'border-zinc-200 shadow-sm'}`;
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  // Agregar una nueva sección
+  const addSection = (type: 'about' | 'gallery') => {
+    const newId = Math.random().toString(36).substr(2, 9);
+    let newSection: any = { id: newId, type };
 
+    if (type === 'about') {
+        newSection = { ...newSection, titulo: "Sobre Nosotros", texto: "Escribe aquí tu historia...", imagenUrl: "" };
+    } else if (type === 'gallery') {
+        newSection = { ...newSection, titulo: "Nuestros Trabajos", imagenes: [] };
+    }
+
+    setConfig((prev: any) => {
+        const currentSections = prev.customSections || [];
+        const newConfig = { ...prev, customSections: [...currentSections, newSection] };
+        sendConfigUpdate(newConfig);
+        return newConfig;
+    });
+    setIsAddMenuOpen(false);
+    
+    // Scroll automático hacia la nueva sección
+    setTimeout(() => {
+        const el = document.getElementById(`section-editor-${newId}`);
+        if(el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  // Eliminar sección
+  const removeSection = (id: string) => {
+    if(!window.confirm("¿Borrar esta sección?")) return;
+    setConfig((prev: any) => {
+        const newSections = prev.customSections.filter((s: any) => s.id !== id);
+        const newConfig = { ...prev, customSections: newSections };
+        sendConfigUpdate(newConfig);
+        return newConfig;
+    });
+  };
+
+  // Actualizar datos de una sección dinámica
+  const updateCustomSection = (id: string, field: string, value: any) => {
+    setConfig((prev: any) => {
+        const newSections = prev.customSections.map((s: any) => s.id === id ? { ...s, [field]: value } : s);
+        const newConfig = { ...prev, customSections: newSections };
+        sendConfigUpdate(newConfig);
+        return newConfig;
+    });
+  };
   return (
     <div className="fixed inset-0 z-[100] flex bg-zinc-100 font-sans h-screen w-screen overflow-hidden">
       
@@ -225,6 +271,31 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.footer?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
                         </button>
+                    </div>
+                    {/* ... (Toggles anteriores: Hero, Servicios, etc) ... */}
+                    
+                    {/* BOTÓN AGREGAR SECCIÓN */}
+                    <div className="pt-4 border-t border-zinc-100 relative">
+                        <button 
+                            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                            className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                        >
+                            <PlusCircle size={18}/> Agregar Sección
+                        </button>
+
+                        {/* Menú Desplegable */}
+                        {isAddMenuOpen && (
+                            <div className="absolute top-full left-0 w-full mt-2 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
+                                <button onClick={() => addSection('about')} className="w-full text-left px-4 py-3 hover:bg-zinc-50 flex items-center gap-3 text-sm font-medium text-zinc-700">
+                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><FileText size={16}/></div>
+                                    Quiénes Somos (Texto + Foto)
+                                </button>
+                                <button onClick={() => addSection('gallery')} className="w-full text-left px-4 py-3 hover:bg-zinc-50 flex items-center gap-3 text-sm font-medium text-zinc-700 border-t border-zinc-100">
+                                    <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Image size={16}/></div>
+                                    Galería de Trabajos
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -405,6 +476,100 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 )}
             </div>
+            {/* --- EDITORES DE SECCIONES DINÁMICAS --- */}
+            {config.customSections?.map((section: any, index: number) => (
+                <div key={section.id} id={`section-editor-${section.id}`} className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm space-y-4 relative group">
+                    
+                    {/* Cabecera de la Sección */}
+                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                            {section.type === 'about' ? <FileText size={16} className="text-blue-500"/> : <Image size={16} className="text-purple-500"/>}
+                            {section.type === 'about' ? 'Quiénes Somos' : 'Galería'}
+                        </h3>
+                        <button onClick={() => removeSection(section.id)} className="text-zinc-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16}/></button>
+                    </div>
+
+                    {/* Editor: Quiénes Somos */}
+                    {section.type === 'about' && (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título</label>
+                                <input 
+                                    value={section.titulo} 
+                                    onChange={(e) => updateCustomSection(section.id, 'titulo', e.target.value)}
+                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Descripción</label>
+                                <textarea 
+                                    rows={4}
+                                    value={section.texto} 
+                                    onChange={(e) => updateCustomSection(section.id, 'texto', e.target.value)}
+                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
+                                />
+                            </div>
+                            <ImageUpload 
+                                label="Imagen (Opcional)" 
+                                value={section.imagenUrl} 
+                                onChange={(url) => updateCustomSection(section.id, 'imagenUrl', url)} 
+                            />
+                        </div>
+                    )}
+
+                    {/* Editor: Galería */}
+                    {section.type === 'gallery' && (
+                        <div className="space-y-3">
+                            <input 
+                                value={section.titulo} 
+                                onChange={(e) => updateCustomSection(section.id, 'titulo', e.target.value)}
+                                className="w-full p-2 border border-zinc-200 rounded-lg text-sm font-bold mb-2"
+                                placeholder="Título de la galería"
+                            />
+                            
+                            {/* Lista de Imágenes */}
+                            <div className="space-y-2">
+                                {section.imagenes?.map((img: any, i: number) => (
+                                    <div key={i} className="flex gap-2 items-center bg-zinc-50 p-2 rounded-lg border border-zinc-200">
+                                        <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200" />
+                                        <input 
+                                            value={img.descripcion || ''} 
+                                            onChange={(e) => {
+                                                const newImages = [...section.imagenes];
+                                                newImages[i].descripcion = e.target.value;
+                                                updateCustomSection(section.id, 'imagenes', newImages);
+                                            }}
+                                            className="flex-1 p-1 bg-transparent text-xs border-b border-transparent focus:border-zinc-300 outline-none"
+                                            placeholder="Descripción..."
+                                        />
+                                        <button 
+                                            onClick={() => {
+                                                const newImages = section.imagenes.filter((_:any, idx:number) => idx !== i);
+                                                updateCustomSection(section.id, 'imagenes', newImages);
+                                            }}
+                                            className="text-zinc-400 hover:text-red-500"
+                                        >
+                                            <X size={14}/>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Botón subir nueva imagen a la galería */}
+                            <div className="pt-2">
+                                <ImageUpload 
+                                    label="Agregar Imagen" 
+                                    value="" // Siempre vacío para que detecte cambios nuevos
+                                    onChange={(url) => {
+                                        const newImages = [...(section.imagenes || []), { url, descripcion: "" }];
+                                        updateCustomSection(section.id, 'imagenes', newImages);
+                                    }} 
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
         </div>
 
         <div className="p-5 border-t bg-white flex gap-3">

@@ -43,6 +43,29 @@ export interface TestimonialsSection {
   items: TestimonialItem[];
 }
 
+export interface AboutSection {
+  id: string;
+  type: 'about';
+  titulo: string;
+  texto: string;
+  imagenUrl?: string;
+}
+
+// 2. Sección "Galería / Nuestros Trabajos"
+export interface GalleryItem {
+  url: string;
+  descripcion?: string;
+}
+
+export interface GallerySection {
+  id: string;
+  type: 'gallery';
+  titulo: string;
+  imagenes: GalleryItem[];
+}
+
+// Union Type para las secciones personalizadas
+export type CustomSection = AboutSection | GallerySection;
 // --- BLOQUE: FOOTER (PIE DE PÁGINA) ---
 export interface FooterSection {
   mostrar: boolean;
@@ -84,4 +107,5 @@ export interface WebConfig {
   ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional
+  customSections?: CustomSection[];
 }
