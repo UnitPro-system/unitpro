@@ -201,10 +201,14 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   };
   
   const brandColor = config.colors.primary;
+  const secondaryColor = config.colors.secondary || "#ffffff"; // Color de Fondo
+  const textColor = config.colors.text || "#1f2937";
   const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
 
   return (
-    <div className={`min-h-screen bg-white text-zinc-900 pb-0 overflow-x-hidden ${fontClass}`}>
+    <div 
+    className={`min-h-screen pb-0 overflow-x-hidden ${fontClass}`}
+    style={{ backgroundColor: secondaryColor, color: textColor }}>
       
       {/* --- NAVBAR DE NAVEGACIÓN --- */}
       <nav className="fixed top-0 left-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100 transition-all duration-300">
@@ -294,24 +298,27 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
       {/* --- BENEFICIOS / SERVICIOS --- */}
       {config.beneficios?.mostrar && (
-          <section id="servicios" className="py-24 px-6 bg-zinc-50" onClick={(e) => handleEditClick(e, 'beneficios')}>
+          // Quitamos bg-zinc-50 para que se vea tu color de fondo secundario
+          <section id="servicios" className="py-24 px-6" onClick={(e) => handleEditClick(e, 'beneficios')}>
             <div className={`max-w-7xl mx-auto ${editableClass}`}>
                 {config.beneficios?.titulo && (
                     <div className="text-center mb-16">
-                        <span className="text-sm font-bold uppercase tracking-wider text-zinc-400">Lo que hacemos</span>
-                        <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mt-2">{config.beneficios.titulo}</h2>
+                        <span className="text-sm font-bold uppercase tracking-wider opacity-60">Lo que hacemos</span>
+                        {/* Usamos 'inherit' en el color para respetar tu configuración */}
+                        <h2 className="text-3xl md:text-4xl font-bold mt-2" style={{ color: textColor }}>{config.beneficios.titulo}</h2>
                         <div className="w-20 h-1.5 mt-4 mx-auto rounded-full" style={{ backgroundColor: brandColor }}></div>
                     </div>
                 )}
                 
                 <div className="grid md:grid-cols-3 gap-8">
                     {config.beneficios?.items?.map((item:any, i:number) => (
-                        <div key={i} className={`bg-white p-8 border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`}>
+                        // Quitamos bg-white y agregamos un borde sutil con transparencia para que funcione en fondos oscuros y claros
+                        <div key={i} className={`p-8 border border-zinc-500/10 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                             <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: brandColor }}>
                                 <CheckCircle size={28}/>
                             </div>
-                            <h3 className="font-bold text-xl mb-3 text-zinc-900">{item.titulo}</h3>
-                            <p className="text-zinc-500 leading-relaxed">{item.desc}</p>
+                            <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
+                            <p className="leading-relaxed opacity-70">{item.desc}</p>
                         </div>
                     ))}
                 </div>
@@ -320,36 +327,36 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       )}
 
       {/* --- UBICACIÓN (NUEVA SECCIÓN) --- */}
-      <section id="ubicacion" className="py-24 px-6 bg-white relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
+      <section id="ubicacion" className="py-24 px-6 relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
           <div className={`max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center ${editableClass}`}>
               <div>
-                  <span className="text-sm font-bold uppercase tracking-wider text-zinc-400">Dónde estamos</span>
-                  <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mt-2 mb-6">Visítanos en nuestra sucursal</h2>
-                  <p className="text-zinc-500 mb-8 text-lg">Estamos listos para atenderte con la mejor calidad y servicio. Agenda tu cita o ven directamente.</p>
+                  <span className="text-sm font-bold uppercase tracking-wider opacity-60">Dónde estamos</span>
+                  <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-6" style={{ color: textColor }}>Visítanos en nuestra sucursal</h2>
+                  <p className="mb-8 text-lg opacity-70">Estamos listos para atenderte con la mejor calidad y servicio. Agenda tu cita o ven directamente.</p>
                   
                   <div className="space-y-6">
                       <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center shrink-0 text-zinc-600"><MapPin size={20}/></div>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><MapPin size={20}/></div>
                           <div>
-                              <h4 className="font-bold text-zinc-900">Dirección</h4>
-                              <p className="text-zinc-500">{negocio.direccion || "Dirección no configurada"}</p>
+                              <h4 className="font-bold" style={{ color: textColor }}>Dirección</h4>
+                              <p className="opacity-70">{negocio.direccion || "Dirección no configurada"}</p>
                               {negocio.google_maps_link && (
                                   <a href={negocio.google_maps_link} target="_blank" className="text-sm font-bold mt-1 inline-flex items-center gap-1 hover:underline" style={{ color: brandColor }}>Ver en Google Maps <ArrowRight size={14}/></a>
                               )}
                           </div>
                       </div>
                       <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center shrink-0 text-zinc-600"><Clock size={20}/></div>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Clock size={20}/></div>
                           <div>
-                              <h4 className="font-bold text-zinc-900">Horarios de Atención</h4>
-                              <p className="text-zinc-500">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
+                              <h4 className="font-bold" style={{ color: textColor }}>Horarios de Atención</h4>
+                              <p className="opacity-70">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
                           </div>
                       </div>
                       <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center shrink-0 text-zinc-600"><Phone size={20}/></div>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Phone size={20}/></div>
                           <div>
-                              <h4 className="font-bold text-zinc-900">Contacto Directo</h4>
-                              <p className="text-zinc-500">{negocio.whatsapp || "No especificado"}</p>
+                              <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
+                              <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
                           </div>
                       </div>
                   </div>
@@ -357,10 +364,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
               
               {/* Mapa o Imagen Representativa */}
               <div className={`h-[400px] bg-zinc-100 overflow-hidden shadow-2xl relative ${radiusClass}`}>
-                  {/* Si tuvieras una API Key de Maps real podrías usar un iframe, por ahora simulamos con imagen o el link */}
                   <div className="absolute inset-0 bg-zinc-200 flex items-center justify-center text-zinc-400">
                       {negocio.google_maps_link ? (
-                           <iframe width="100%" height="100%" src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`} title="Mapa"></iframe>
+                           <iframe width="100%" height="100%" src={`https://www.google.com/maps/embed/v1/place?key=TU_API_KEY&q=${encodeURIComponent(negocio.direccion)}`} title="Mapa"></iframe>
                       ) : (
                            <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50"/>Mapa no disponible</div>
                       )}
