@@ -197,6 +197,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     hero: { mostrar: true, layout: 'split', ...rawConfig.hero },
     beneficios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.beneficios },
     testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
+    ubicacion: { mostrar: true, ...rawConfig.ubicacion },
     footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, ...rawConfig.footer }
   };
   
@@ -327,6 +328,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       )}
 
       {/* --- UBICACIÓN (NUEVA SECCIÓN) --- */}
+      {config.ubicacion?.mostrar && (
       <section id="ubicacion" className="py-24 px-6 relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
           <div className={`max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center ${editableClass}`}>
               <div>
@@ -375,6 +377,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
               </div>
           </div>
       </section>
+      )}
 
 
       {/* --- FOOTER / CONTACTO --- */}

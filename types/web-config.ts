@@ -54,7 +54,9 @@ export interface FooterSection {
     whatsapp?: string;
   };
 }
-
+export interface LocationSection {
+  mostrar: boolean;
+}
 // ------------------------------------
 // LA CONFIGURACIÓN MAESTRA (WEB CONFIG)
 // ------------------------------------
@@ -79,6 +81,7 @@ export interface WebConfig {
   // Secciones de la Landing Page
   hero: HeroSection;
   beneficios: FeaturesSection;
+  ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional
 }
