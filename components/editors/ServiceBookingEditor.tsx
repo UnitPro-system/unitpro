@@ -7,7 +7,10 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 const DEFAULT_CONFIG = {
   template: "modern",
   appearance: { font: 'sans', radius: 'medium' },
-  colors: { primary: "#000000" },
+  colors: { 
+      primary: "#4f46e5",  
+      secondary: "#f3f4f6", 
+      text: "#1f2937" },
   hero: { 
     titulo: "Tu Título Principal", 
     subtitulo: "Escribe aquí una descripción atractiva.", 
@@ -217,8 +220,61 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
 
             {/* 2. SECCIÓN APARIENCIA */}
             <div ref={sectionsRefs.appearance} className={getSectionClass('appearance')}>
-                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100"><Palette size={16} className="text-purple-500" /> Apariencia</h3>
+                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100">
+                    <Palette size={16} className="text-purple-500" /> Apariencia
+                </h3>
+
+                {/* --- NUEVO: GESTOR DE COLORES --- */}
                 <div>
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-2 block">Paleta de Colores</label>
+                    <div className="grid grid-cols-1 gap-3">
+                        
+                        {/* Color Principal */}
+                        <div className="flex items-center justify-between p-2 border border-zinc-200 rounded-lg bg-zinc-50">
+                            <span className="text-xs font-medium text-zinc-600">Principal</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-zinc-400 font-mono uppercase">{config.colors?.primary}</span>
+                                <input 
+                                    type="color" 
+                                    value={config.colors?.primary || "#000000"} 
+                                    onChange={(e) => updateConfigField('colors', 'primary', e.target.value)}
+                                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Color Secundario */}
+                        <div className="flex items-center justify-between p-2 border border-zinc-200 rounded-lg bg-zinc-50">
+                            <span className="text-xs font-medium text-zinc-600">Fondo / Secundario</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-zinc-400 font-mono uppercase">{config.colors?.secondary}</span>
+                                <input 
+                                    type="color" 
+                                    value={config.colors?.secondary || "#ffffff"} 
+                                    onChange={(e) => updateConfigField('colors', 'secondary', e.target.value)}
+                                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Color de Texto */}
+                        <div className="flex items-center justify-between p-2 border border-zinc-200 rounded-lg bg-zinc-50">
+                            <span className="text-xs font-medium text-zinc-600">Texto</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-zinc-400 font-mono uppercase">{config.colors?.text}</span>
+                                <input 
+                                    type="color" 
+                                    value={config.colors?.text || "#000000"} 
+                                    onChange={(e) => updateConfigField('colors', 'text', e.target.value)}
+                                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Selectores anteriores (Tipografía y Bordes) */}
+                <div className="pt-2 border-t border-zinc-100 mt-2">
                     <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Tipografía</label>
                     <select value={config.appearance?.font || 'sans'} onChange={(e) => updateConfigField('appearance', 'font', e.target.value)} className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white">
                         <option value="sans">Moderna (Sans)</option>
@@ -226,6 +282,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         <option value="mono">Técnica (Mono)</option>
                     </select>
                 </div>
+                
                 <div>
                     <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Bordes</label>
                     <div className="flex gap-2">
