@@ -16,7 +16,7 @@ export interface HeroSection {
   overlayOpacity?: number;    // Opacidad del fondo oscuro (0-100)
 }
 
-// --- BLOQUE: BENEFICIOS (FEATURES) ---
+
 export interface FeatureItem {
   titulo: string;
   desc: string;
@@ -103,7 +103,7 @@ export interface WebConfig {
 
   // Secciones de la Landing Page
   hero: HeroSection;
-  beneficios: FeaturesSection;
+  servicios: FeaturesSection;
   ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional

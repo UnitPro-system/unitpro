@@ -135,9 +135,10 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   // --- LÓGICA FEEDBACK / LEAD ---
   const handleEnviarFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (ratingSeleccionado === 0) return alert("Selecciona una puntuación");
+    if (ratingSeleccionado === 0) return alert("Por favor, selecciona una puntuación.");
     setEnviando(true);
 
+    // 1. Guardamos SIEMPRE en tu base de datos (para tu control interno)
     const { error } = await supabase.from("resenas").insert([{
         negocio_id: negocio.id,
         puntuacion: ratingSeleccionado,
@@ -146,14 +147,28 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     }]);
 
     setEnviando(false);
+    
     if (!error) {
-        setIsFeedbackModalOpen(false);
+        setIsFeedbackModalOpen(false); // Cerramos modal
+        
+        // 2. LÓGICA DE REDIRECCIÓN INTELIGENTE
         if (ratingSeleccionado >= 4 && negocio.google_maps_link) {
-            if(window.confirm("¿Te gustaría dejarla también en Google Maps?")) {
-                window.open(negocio.google_maps_link, '_blank');
+            // Clientes felices (4 o 5) -> Los invitamos a Google Maps
+            const irAGoogle = window.confirm("¡Muchas gracias por tu calificación!\n\n¿Te gustaría ayudarnos publicando esto mismo en Google Maps?");
+            if(irAGoogle) {
+                 window.open(negocio.google_maps_link, '_blank');
             }
+        } else {
+            // Clientes insatisfechos (1, 2 o 3) -> Solo agradecemos (feedback privado)
+            alert("Gracias por tu opinión. Trabajaremos para mejorar nuestro servicio.");
         }
-        setFeedbackComentario(""); setRatingSeleccionado(0); setNombreCliente("");
+
+        // Limpiamos el formulario
+        setFeedbackComentario(""); 
+        setRatingSeleccionado(0); 
+        setNombreCliente("");
+    } else {
+        alert("Hubo un error al guardar. Intenta nuevamente.");
     }
   };
 
@@ -196,7 +211,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     template: rawConfig.template || "modern",
     colors: { primary: negocio?.color_principal || "#000000", ...rawConfig.colors },
     hero: { mostrar: true, layout: 'split', ...rawConfig.hero },
-    beneficios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.beneficios },
+    servicios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.servicios },
     testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
     ubicacion: { mostrar: true, ...rawConfig.ubicacion },
     footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, ...rawConfig.footer },
@@ -230,7 +245,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {/* Menú Desktop */}
             <div className="hidden md:flex items-center gap-8">
                 <button onClick={() => scrollToSection('inicio')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Inicio</button>
-                {config.beneficios?.mostrar && (
+                {config.servicios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Servicios</button>
                 )}
                 {config.ubicacion?.mostrar && (
@@ -257,7 +272,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         {mobileMenuOpen && (
             <div className="md:hidden bg-white border-t border-zinc-100 p-6 flex flex-col gap-4 shadow-xl">
                 <button onClick={() => scrollToSection('inicio')} className="text-left font-medium text-zinc-600 py-2">Inicio</button>
-                {config.beneficios?.mostrar && (
+                {config.servicios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-left font-medium text-zinc-600 py-2">Servicios</button>
                 )}
                 {config.ubicacion?.mostrar && (
@@ -308,22 +323,22 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
          </div>
       </header>
 
-      {/* --- BENEFICIOS / SERVICIOS --- */}
-      {config.beneficios?.mostrar && (
+      {/* --- SERVICIOS --- */}
+      {config.servicios?.mostrar && (
           // Quitamos bg-zinc-50 para que se vea tu color de fondo secundario
-          <section id="servicios" className="py-24 px-6" onClick={(e) => handleEditClick(e, 'beneficios')}>
+          <section id="servicios" className="py-24 px-6" onClick={(e) => handleEditClick(e, 'servicios')}>
             <div className={`max-w-7xl mx-auto ${editableClass}`}>
-                {config.beneficios?.titulo && (
+                {config.servicios?.titulo && (
                     <div className="text-center mb-16">
                         <span className="text-sm font-bold uppercase tracking-wider opacity-60">Lo que hacemos</span>
                         {/* Usamos 'inherit' en el color para respetar tu configuración */}
-                        <h2 className="text-3xl md:text-4xl font-bold mt-2" style={{ color: textColor }}>{config.beneficios.titulo}</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold mt-2" style={{ color: textColor }}>{config.servicios.titulo}</h2>
                         <div className="w-20 h-1.5 mt-4 mx-auto rounded-full" style={{ backgroundColor: brandColor }}></div>
                     </div>
                 )}
                 
                 <div className="grid md:grid-cols-3 gap-8">
-                    {config.beneficios?.items?.map((item:any, i:number) => (
+                    {config.servicios?.items?.map((item:any, i:number) => (
                         // Quitamos bg-white y agregamos un borde sutil con transparencia para que funcione en fondos oscuros y claros
                         <div key={i} className={`p-8 border border-zinc-500/10 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                             <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: brandColor }}>
@@ -336,6 +351,27 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 </div>
             </div>
           </section>
+      )}
+      {/* --- SECCIÓN FEEDBACK (SOLO BOTÓN) --- */}
+      {config.testimonios?.mostrar && (
+      <section className="py-16 px-6 bg-zinc-50 border-y border-zinc-100">
+          <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-2xl font-bold mb-4" style={{ color: textColor }}>
+                  ¿Ya nos visitaste?
+              </h2>
+              <p className="text-zinc-500 mb-8">
+                  Tu opinión es muy importante para nosotros. Cuéntanos cómo fue tu experiencia.
+              </p>
+              
+              <button 
+                onClick={() => setIsFeedbackModalOpen(true)}
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+                style={{ backgroundColor: brandColor }}
+              >
+                <Star size={20} className="fill-current"/> Dejar mi valoración
+              </button>
+          </div>
+      </section>
       )}
       {/* --- SECCIONES DINÁMICAS (Nuevo Bloque) --- */}
       {config.customSections?.map((section: any) => (

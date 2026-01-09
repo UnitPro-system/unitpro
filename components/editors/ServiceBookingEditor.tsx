@@ -20,7 +20,7 @@ const DEFAULT_CONFIG = {
     parallax: false,
     overlayOpacity: 50
   },
-  beneficios: { 
+  servicios: { 
     mostrar: true, 
     titulo: "Nuestros Servicios", 
     items: [
@@ -44,7 +44,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
     appearance: useRef<HTMLDivElement>(null),
     identity: useRef<HTMLDivElement>(null),
     hero: useRef<HTMLDivElement>(null),
-    beneficios: useRef<HTMLDivElement>(null),
+    servicios: useRef<HTMLDivElement>(null),
     footer: useRef<HTMLDivElement>(null),
   };
 
@@ -244,10 +244,10 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
                         <span className="text-sm font-medium text-zinc-600">Servicios</span>
                         <button 
-                            onClick={() => updateConfigField('beneficios', 'mostrar', !config.beneficios?.mostrar)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.beneficios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                            onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.servicios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
                         >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.beneficios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.servicios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
                         </button>
                     </div>
 
@@ -458,19 +458,19 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                 )}
             </div>
 
-            {/* 5. BENEFICIOS */}
-            <div ref={sectionsRefs.beneficios} className={getSectionClass('beneficios')}>
+            {/* 5. servicios */}
+            <div ref={sectionsRefs.servicios} className={getSectionClass('servicios')}>
                 <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Beneficios</h3>
-                    <button onClick={() => updateConfigField('beneficios', 'mostrar', !config.beneficios?.mostrar)} className="text-zinc-400 hover:text-emerald-600"><Eye size={16}/></button>
+                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> servicios</h3>
+                    <button onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)} className="text-zinc-400 hover:text-emerald-600"><Eye size={16}/></button>
                 </div>
-                {config.beneficios?.mostrar && (
+                {config.servicios?.mostrar && (
                     <div className="space-y-4">
-                        <input type="text" value={config.beneficios.titulo} onChange={(e) => updateConfigField('beneficios', 'titulo', e.target.value)} className="w-full p-2 border rounded text-sm font-bold"/>
-                        {config.beneficios.items?.map((item: any, i: number) => (
+                        <input type="text" value={config.servicios.titulo} onChange={(e) => updateConfigField('servicios', 'titulo', e.target.value)} className="w-full p-2 border rounded text-sm font-bold"/>
+                        {config.servicios.items?.map((item: any, i: number) => (
                             <div key={i} className="p-2 border rounded bg-zinc-50">
-                                <input value={item.titulo} onChange={(e) => updateArrayItem('beneficios', i, 'titulo', e.target.value)} className="w-full p-1 mb-1 border rounded text-xs"/>
-                                <input value={item.desc} onChange={(e) => updateArrayItem('beneficios', i, 'desc', e.target.value)} className="w-full p-1 border rounded text-xs text-zinc-500"/>
+                                <input value={item.titulo} onChange={(e) => updateArrayItem('servicios', i, 'titulo', e.target.value)} className="w-full p-1 mb-1 border rounded text-xs"/>
+                                <input value={item.desc} onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} className="w-full p-1 border rounded text-xs text-zinc-500"/>
                             </div>
                         ))}
                     </div>
