@@ -71,6 +71,7 @@ export interface WebConfig {
   colors: {
     primary: string;
     secondary?: string;
+    text?: string;
     background?: string;
     accent?: string;
   };
