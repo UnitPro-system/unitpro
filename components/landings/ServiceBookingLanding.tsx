@@ -222,7 +222,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const secondaryColor = config.colors.secondary || "#ffffff"; // Color de Fondo
   const textColor = config.colors.text || "#1f2937";
   const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
-
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   
   return (
     <div 
@@ -399,8 +399,18 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {section.imagenes?.map((img: any, i: number) => (
-                            <div key={i} className={`group relative aspect-square overflow-hidden bg-zinc-100 ${cardRadius}`}>
+                            <div 
+                                key={i} 
+                                onClick={() => setSelectedImage(img.url)} // <--- ESTO ES NUEVO
+                                className={`group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`} // <--- cursor-zoom-in AGREGADO
+                            >
                                 <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                
+                                {/* --- OVERLAY NUEVO (Icono al pasar mouse) --- */}
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                     <Maximize2 className="text-white drop-shadow-md" size={24} />
+                                </div>
+
                                 {img.descripcion && (
                                     <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                                         {img.descripcion}
@@ -472,7 +482,26 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       <div id="contacto">
         {config.footer?.mostrar && <Footer data={config.footer} negocioNombre={negocio.nombre} />}
       </div>
-
+      {/* --- LIGHTBOX (MODAL DE IMAGEN) --- */}
+      {selectedImage && (
+        <div 
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
+            onClick={() => setSelectedImage(null)}
+        >
+            <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 p-3 bg-white/10 text-white hover:bg-white/20 rounded-full transition-colors z-50"
+            >
+                <X size={24} />
+            </button>
+            <img 
+                src={selectedImage} 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" 
+                onClick={(e) => e.stopPropagation()} 
+                alt="Vista completa"
+            />
+        </div>
+      )}
       {/* --- MODALES (NO CAMBIADOS, SE MANTIENEN IGUAL) --- */}
       {isBookingModalOpen && (
         <Modal onClose={() => setIsBookingModalOpen(false)} radiusClass={radiusClass}>
