@@ -476,6 +476,38 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 )}
             </div>
+            {/* 6. CONFIGURACIÓN DE VALORACIONES */}
+                <div ref={sectionsRefs.testimonios} className={getSectionClass('testimonios')}>
+                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Sección Valoración
+                        </h3>
+                        {/* Botón rápido de Ojo para ocultar/mostrar */}
+                        <button onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)} className="text-zinc-400 hover:text-yellow-500">
+                            {config.testimonios?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
+                        </button>
+                    </div>
+                    
+                    {config.testimonios?.mostrar && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                            <div>
+                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título de la invitación</label>
+                                <input 
+                                    type="text" 
+                                    value={config.testimonios?.titulo || "Tu opinión nos importa"} 
+                                    onChange={(e) => updateConfigField('testimonios', 'titulo', e.target.value)} 
+                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-400 outline-none"
+                                    placeholder="Ej: ¿Cómo fue tu experiencia?"
+                                />
+                            </div>
+                            
+                            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-xs text-yellow-800">
+                                <p><strong>Nota:</strong> Al activar esta sección, aparecerá un botón en tu web para que los clientes califiquen.</p>
+                                <p className="mt-1 opacity-75">Recuerda: Las calificaciones de 4-5 estrellas se redirigen a Google Maps. Las bajas te llegan solo a ti.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             {/* --- EDITORES DE SECCIONES DINÁMICAS --- */}
             {config.customSections?.map((section: any, index: number) => (
                 <div key={section.id} id={`section-editor-${section.id}`} className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm space-y-4 relative group">
@@ -487,6 +519,17 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             {section.type === 'about' ? 'Quiénes Somos' : 'Galería'}
                         </h3>
                         <button onClick={() => removeSection(section.id)} className="text-zinc-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16}/></button>
+                    </div>
+
+                    {/* Toggle Valoraciones / Feedback */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Sección de Valoración</span>
+                        <button 
+                            onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.testimonios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.testimonios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
                     </div>
 
                     {/* Editor: Quiénes Somos */}
