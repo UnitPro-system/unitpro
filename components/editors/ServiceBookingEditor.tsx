@@ -252,11 +252,8 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                     
                     {/* Toggle Valoracion */}
-                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                            <span className="text-sm font-medium text-zinc-600"></span> Sección Valoración 
-                        </h3>
-                        {/* Botón rápido de Ojo para ocultar/mostrar */}
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                            <span className="text-sm font-medium text-zinc-600">Valoración</span>
                         <button onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.testimonios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
                         >
