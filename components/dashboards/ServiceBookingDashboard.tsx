@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { 
   Users, LayoutDashboard, LogOut, Star, MessageCircle, 
   CreditCard, Settings, Link as LinkIcon, Check, 
-  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight 
+  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar"; 
 
@@ -24,7 +24,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [resenas, setResenas] = useState<any[]>([]);
   const [turnos, setTurnos] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
-  
+  const [reviews, setReviews] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
 
   // --- LÓGICA DE DATOS ESPECÍFICOS ---
@@ -67,7 +67,6 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
       
       setLoading(false);
     }
-
     cargarDatosEspecificos();
   }, [negocio.id, searchParams, router]); 
 
@@ -81,6 +80,24 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
     if (!negocio?.slug) return;
     window.location.href = `/api/google/auth?slug=${negocio.slug}`;
   };
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+        if (!negocio?.id) return;
+        
+        const { data, error } = await supabase
+            .from('resenas')
+            .select('*')
+            .eq('negocio_id', negocio.id)
+            .order('created_at', { ascending: false }); // Las más nuevas primero
+
+        if (data) {
+            setReviews(data);
+        }
+    };
+
+    fetchReviews();
+}, [negocio?.id]); // Se ejecuta cuando carga el negocio
 
   // CÁLCULOS ESTADÍSTICOS
   const promedio = resenas.length > 0
@@ -255,6 +272,9 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle }: any) {
         return date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
     };
 
+
+    
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
             {/* HEADER CALENDARIO */}
@@ -375,7 +395,68 @@ function StatCard({ title, value, icon, subtext }: any) {
     )
 }
 function ReviewsTab({ resenas }: any) {
-    return (<div className="p-6 text-center text-zinc-400 bg-white rounded-2xl border border-zinc-200">Aquí irían las reseñas (simplificado para el ejemplo)</div>);
+    return (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <header className="mb-6">
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
+                    <Star className="text-yellow-400 fill-yellow-400" /> 
+                    Reseñas de Clientes ({resenas.length})
+                </h2>
+                <p className="text-zinc-500 text-sm">Opiniones recibidas desde tu Landing Page.</p>
+            </header>
+
+            {resenas.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-zinc-300">
+                    <div className="w-16 h-16 bg-zinc-50 text-zinc-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <MessageCircle size={32} />
+                    </div>
+                    <h3 className="text-lg font-bold text-zinc-900">Sin reseñas aún</h3>
+                    <p className="text-zinc-500 max-w-sm mx-auto mt-1">
+                        Comparte el link de tu landing con tus clientes para empezar a recibir opiniones.
+                    </p>
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {resenas.map((review: any) => (
+                        <div key={review.id} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+                            {/* Encabezado */}
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-indigo-100">
+                                        <User size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-zinc-900">{review.nombre_cliente || "Anónimo"}</p>
+                                        <p className="text-[11px] text-zinc-400 font-medium uppercase tracking-wide">
+                                            {new Date(review.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                </div>
+                                {/* Estrellas */}
+                                <div className="flex bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100 gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star 
+                                            key={i} 
+                                            size={12} 
+                                            className={i < review.puntuacion ? "text-yellow-400 fill-yellow-400" : "text-zinc-200"} 
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Comentario */}
+                            <div className="relative mt-2">
+                                <span className="absolute -top-2 -left-1 text-4xl text-zinc-200 font-serif leading-none">“</span>
+                                <p className="text-sm text-zinc-600 italic leading-relaxed pl-4 relative z-10">
+                                    {review.comentario}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
     return (<div className="p-6 text-center text-zinc-400 bg-white rounded-2xl border border-zinc-200">Panel de Suscripción (simplificado)</div>);

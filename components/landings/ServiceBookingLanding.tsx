@@ -26,9 +26,21 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
   // --- ESTADO WIZARD (AGENDAMIENTO) ---
   const [bookingStep, setBookingStep] = useState(1);
-  const [bookingData, setBookingData] = useState({
-    service: "", date: "", time: "", clientName: "", clientPhone: "", clientEmail: ""
-  });
+  const [bookingData, setBookingData] = useState<{
+  service: any | null; // Cambiamos string por el objeto completo o null
+  date: string;
+  time: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+}>({
+  service: null, 
+  date: "", 
+  time: "", 
+  clientName: "", 
+  clientPhone: "", 
+  clientEmail: ""
+});
   const [busySlots, setBusySlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   
@@ -88,19 +100,39 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const generateTimeSlots = () => {
     const { start, end } = getBusinessHours();
     const slots = [];
-    const SLOT_DURATION_MINUTES = 60;
+    
+    // USAMOS LA DURACIÓN DEL SERVICIO SELECCIONADO (o 60 min por defecto)
+    const serviceDuration = bookingData.service?.duracion || 60; 
+    
+    // Intervalo entre turnos (puedes dejarlo fijo en 30 o 60, o igual a la duración)
+    // Para mayor flexibilidad, sugiero intervalos de 30 min aunque el turno dure 60.
+    const INTERVAL_STEP = 30; 
 
     for (let hour = start; hour < end; hour++) {
-        const timeString = `${hour.toString().padStart(2, '0')}:00`;
-        const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
-        const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION_MINUTES * 60000);
+        // Generamos slots cada 30 min (o lo que definas en INTERVAL_STEP)
+        for (let min = 0; min < 60; min += INTERVAL_STEP) {
+            
+            const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+            
+            // Calculamos INICIO y FIN basados en la duración del servicio
+            const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
+            const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
 
-        const isBusy = busySlots.some((busy: any) => {
-            const busyStart = new Date(busy.start);
-            const busyEnd = new Date(busy.end);
-            return slotStart < busyEnd && slotEnd > busyStart;
-        });
-        slots.push({ time: timeString, available: !isBusy });
+            // Verificamos si choca con algún turno ocupado (busySlots)
+            const isBusy = busySlots.some((busy: any) => {
+                const busyStart = new Date(busy.start);
+                const busyEnd = new Date(busy.end);
+                // Lógica de colisión de rangos
+                return (slotStart < busyEnd && slotEnd > busyStart);
+            });
+            
+            // Verificar que el turno no termine después de la hora de cierre
+            const closingTime = new Date(`${bookingData.date}T${end}:00:00`);
+            
+            if (!isBusy && slotEnd <= closingTime) {
+                slots.push({ time: timeString, available: true });
+            }
+        }
     }
     return slots;
   };
@@ -109,11 +141,17 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     e.preventDefault();
     setEnviando(true);
     
+    const serviceDuration = bookingData.service?.duracion || 60;
     const slotStart = new Date(`${bookingData.date}T${bookingData.time}:00`);
-    const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
+    const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
 
     const payload = {
-        ...bookingData,
+        service: bookingData.service?.titulo, // Enviamos el nombre string al backend
+        date: bookingData.date,
+        time: bookingData.time,
+        clientName: bookingData.clientName,
+        clientPhone: bookingData.clientPhone,
+        clientEmail: bookingData.clientEmail,
         start: slotStart.toISOString(),
         end: slotEnd.toISOString()
     };
@@ -518,12 +556,35 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
             {/* PASO 1 */}
             {bookingStep === 1 && (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
                     <p className="font-bold text-zinc-700 mb-2">Selecciona un servicio:</p>
-                    <button onClick={() => { setBookingData({...bookingData, service: "Estándar"}); setBookingStep(2); }} className="w-full p-4 border rounded-xl hover:bg-blue-50 hover:border-blue-500 text-left">
-                        <span className="font-bold block">Servicio Estándar</span>
-                    </button>
-                    {/* ... más servicios ... */}
+                    
+                    {/* Iteramos sobre los servicios reales del config */}
+                    {(config.servicios?.items?.length ?? 0) > 0 ? (
+                        config.servicios?.items?.map((item: any, i: number) => (
+                            <button 
+                                key={i}
+                                onClick={() => { 
+                                    setBookingData({...bookingData, service: item}); // Guardamos el objeto item 
+                                    setBookingStep(2); 
+                                }} 
+                                className="w-full p-4 border border-zinc-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-500 text-left transition-all group"
+                            >
+                                <div className="flex justify-between items-center w-full">
+                                    <span className="font-bold text-zinc-900 group-hover:text-indigo-700">{item.titulo}</span>
+                                    {item.precio && <span className="font-semibold text-zinc-900 bg-zinc-100 px-2 py-1 rounded text-sm group-hover:bg-indigo-100 group-hover:text-indigo-700">{item.precio}</span>}
+                                </div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-zinc-500 truncate max-w-[70%]">{item.desc}</span>
+                                    <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+                                        <Clock size={12}/> {item.duracion || 60} min
+                                    </span>
+                                </div>
+                            </button>
+                        ))
+                    ) : (
+                        <p className="text-center text-zinc-400 text-sm py-4">No hay servicios configurados.</p>
+                    )}
                 </div>
             )}
             {/* PASO 2 */}

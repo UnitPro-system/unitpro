@@ -118,7 +118,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
     });
   };
 
-  const updateArrayItem = (section: string, index: number, field: string, value: string) => {
+  const updateArrayItem = (section: string, index: number, field: string, value: any) => {
     setConfig((prev: any) => {
         const currentItems = prev[section]?.items || [];
         const newItems = [...currentItems];
@@ -248,6 +248,19 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.servicios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.servicios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+                    
+                    {/* Toggle Valoracion */}
+                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Sección Valoración 
+                        </h3>
+                        {/* Botón rápido de Ojo para ocultar/mostrar */}
+                        <button onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.testimonios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.testimonios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
                         </button>
                     </div>
 
@@ -458,21 +471,111 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                 )}
             </div>
 
-            {/* 5. servicios */}
+            {/* 5. SERVICIOS (DINÁMICO) */}
             <div ref={sectionsRefs.servicios} className={getSectionClass('servicios')}>
                 <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> servicios</h3>
-                    <button onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)} className="text-zinc-400 hover:text-emerald-600"><Eye size={16}/></button>
+                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Servicios
+                    </h3>
+                    <button onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)} className="text-zinc-400 hover:text-emerald-600">
+                        {config.servicios?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
+                    </button>
                 </div>
+                
                 {config.servicios?.mostrar && (
-                    <div className="space-y-4">
-                        <input type="text" value={config.servicios.titulo} onChange={(e) => updateConfigField('servicios', 'titulo', e.target.value)} className="w-full p-2 border rounded text-sm font-bold"/>
-                        {config.servicios.items?.map((item: any, i: number) => (
-                            <div key={i} className="p-2 border rounded bg-zinc-50">
-                                <input value={item.titulo} onChange={(e) => updateArrayItem('servicios', i, 'titulo', e.target.value)} className="w-full p-1 mb-1 border rounded text-xs"/>
-                                <input value={item.desc} onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} className="w-full p-1 border rounded text-xs text-zinc-500"/>
-                            </div>
-                        ))}
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                        {/* Título de la sección */}
+                        <input 
+                            type="text" 
+                            value={config.servicios.titulo} 
+                            onChange={(e) => updateConfigField('servicios', 'titulo', e.target.value)} 
+                            className="w-full p-2 border rounded-lg text-sm font-bold bg-zinc-50"
+                            placeholder="Título de la sección (Ej: Nuestros Servicios)"
+                        />
+
+                        {/* LISTA DE SERVICIOS */}
+                        <div className="space-y-3">
+                            {config.servicios.items?.map((item: any, i: number) => (
+                                <div key={i} className="p-3 border border-zinc-200 rounded-xl bg-white relative group shadow-sm hover:shadow-md transition-all">
+                                    
+                                    {/* Botón Eliminar (X) */}
+                                    <button 
+                                        onClick={() => {
+                                            const newItems = config.servicios.items.filter((_:any, idx:number) => idx !== i);
+                                            updateConfigField('servicios', 'items', newItems);
+                                        }}
+                                        className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-red-500 transition-colors"
+                                        title="Eliminar servicio"
+                                    >
+                                        <X size={16}/>
+                                    </button>
+
+                                    <div className="space-y-3 pr-6">
+                                        {/* Título */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Nombre del Servicio</label>
+                                            <input 
+                                                value={item.titulo} 
+                                                onChange={(e) => updateArrayItem('servicios', i, 'titulo', e.target.value)} 
+                                                className="w-full p-2 border rounded-lg text-sm font-medium"
+                                                placeholder="Ej: Corte de Pelo"
+                                            />
+                                        </div>
+
+                                        {/* Precio y Duración (Grid) */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-zinc-400 uppercase">Precio</label>
+                                                <input 
+                                                    value={item.precio || ''} 
+                                                    onChange={(e) => updateArrayItem('servicios', i, 'precio', e.target.value)} 
+                                                    className="w-full p-2 border rounded-lg text-sm"
+                                                    placeholder="$0.00"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-zinc-400 uppercase">Duración (min)</label>
+                                                <select 
+                                                    value={item.duracion || 60} 
+                                                    onChange={(e) => updateArrayItem('servicios', i, 'duracion', Number(e.target.value))} 
+                                                    className="w-full p-2 border rounded-lg text-sm bg-white"
+                                                >
+                                                    <option value={15}>15 min</option>
+                                                    <option value={30}>30 min</option>
+                                                    <option value={45}>45 min</option>
+                                                    <option value={60}>1 hora</option>
+                                                    <option value={90}>1.5 horas</option>
+                                                    <option value={120}>2 horas</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Descripción */}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Descripción</label>
+                                            <textarea 
+                                                value={item.desc} 
+                                                onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} 
+                                                className="w-full p-2 border rounded-lg text-sm text-zinc-600"
+                                                rows={2}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* BOTÓN AGREGAR SERVICIO */}
+                        <button 
+                            onClick={() => {
+                                const newItem = { titulo: "Nuevo Servicio", desc: "", precio: "", duracion: 60 };
+                                const newItems = [...(config.servicios.items || []), newItem];
+                                updateConfigField('servicios', 'items', newItems);
+                            }}
+                            className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
+                        >
+                            <PlusCircle size={18}/> Agregar Servicio
+                        </button>
                     </div>
                 )}
             </div>
@@ -499,11 +602,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                                     className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-400 outline-none"
                                     placeholder="Ej: ¿Cómo fue tu experiencia?"
                                 />
-                            </div>
-                            
-                            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-xs text-yellow-800">
-                                <p><strong>Nota:</strong> Al activar esta sección, aparecerá un botón en tu web para que los clientes califiquen.</p>
-                                <p className="mt-1 opacity-75">Recuerda: Las calificaciones de 4-5 estrellas se redirigen a Google Maps. Las bajas te llegan solo a ti.</p>
                             </div>
                         </div>
                     )}
