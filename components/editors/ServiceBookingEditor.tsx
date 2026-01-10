@@ -229,16 +229,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     <Layers size={14} className="text-zinc-400"/> Secciones Activas
                 </h3>
                 <div className="space-y-2">
-                    {/* Toggle Hero */}
-                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
-                        <span className="text-sm font-medium text-zinc-600">Portada (Hero)</span>
-                        <button 
-                            onClick={() => updateConfigField('hero', 'mostrar', !config.hero?.mostrar)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.hero?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.hero?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
-                        </button>
-                    </div>
 
                     {/* Toggle Servicios */}
                     <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
@@ -272,17 +262,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         </button>
                     </div>
 
-                    {/* Toggle Footer */}
-                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
-                        <span className="text-sm font-medium text-zinc-600">Pie de Página</span>
-                        <button 
-                            onClick={() => updateConfigField('footer', 'mostrar', !config.footer?.mostrar)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.footer?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.footer?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
-                        </button>
-                    </div>
-                    {/* ... (Toggles anteriores: Hero, Servicios, etc) ... */}
                     
                     {/* BOTÓN AGREGAR SECCIÓN */}
                     <div className="pt-4 border-t border-zinc-100 relative">
@@ -322,7 +301,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         value={dbFields.direccion} 
                         onChange={(e) => updateDbField('direccion', e.target.value)} 
                         className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Ej: Av. Principal 123"
                     />
                 </div>
                 {/* INPUT NUEVO PARA GOOGLE MAPS */}
@@ -334,7 +312,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             value={dbFields.google_maps_link} 
                             onChange={(e) => updateDbField('google_maps_link', e.target.value)} 
                             className="w-full p-2 pl-8 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="https://goo.gl/maps/..."
                         />
                         <ExternalLink size={14} className="absolute left-2.5 top-2.5 text-zinc-400"/>
                     </div>
@@ -582,10 +559,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Sección Valoración
                         </h3>
-                        {/* Botón rápido de Ojo para ocultar/mostrar */}
-                        <button onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)} className="text-zinc-400 hover:text-yellow-500">
-                            {config.testimonios?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
-                        </button>
                     </div>
                     
                     {config.testimonios?.mostrar && (
@@ -616,16 +589,6 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         <button onClick={() => removeSection(section.id)} className="text-zinc-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16}/></button>
                     </div>
 
-                    {/* Toggle Valoraciones / Feedback */}
-                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
-                        <span className="text-sm font-medium text-zinc-600">Sección de Valoración</span>
-                        <button 
-                            onClick={() => updateConfigField('testimonios', 'mostrar', !config.testimonios?.mostrar)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.testimonios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.testimonios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
-                        </button>
-                    </div>
 
                     {/* Editor: Quiénes Somos */}
                     {section.type === 'about' && (

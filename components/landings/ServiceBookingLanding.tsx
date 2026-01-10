@@ -384,7 +384,10 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             </div>
                             <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
                             <p className="leading-relaxed opacity-70">{item.precio}</p>
-                            <p className="leading-relaxed opacity-70"><Clock size={12}/> {item.duracion || 60} min</p>
+                            <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400">
+                                    <Clock size={12} />
+                                    <span>{item.duracion || 60} min</span>
+                                    </div>
                             <p className="leading-relaxed opacity-70">{item.desc}</p>
                         </div>
                     ))}

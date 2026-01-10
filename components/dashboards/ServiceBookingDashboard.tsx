@@ -139,7 +139,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
             />
             
             <SidebarItem icon={<UserCheck size={18} />} label="Clientes" active={activeTab === "clientes"} onClick={() => setActiveTab("clientes")} />
-            <SidebarItem icon={<MessageCircle size={18} />} label="Reseñas" active={activeTab === "resenas"} onClick={() => setActiveTab("resenas")} badge={resenas.filter(r => r.puntuacion <= 3).length} />
+            <SidebarItem icon={<MessageCircle size={18} />} label="Reseñas" active={activeTab === "resenas"} onClick={() => setActiveTab("resenas")} badge={resenas.length} />
             <SidebarItem icon={<CreditCard size={18} />} label="Suscripción" active={activeTab === "suscripcion"} onClick={() => setActiveTab("suscripcion")} />
             <SidebarItem icon={<Settings size={18} />} label="Configuración" active={activeTab === "configuracion"} onClick={() => setActiveTab("configuracion")} />
           </nav>
