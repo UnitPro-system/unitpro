@@ -199,7 +199,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
 
             {/* --- OTRAS TABS --- */}
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable leads={leads} /></div>}
-            {activeTab === "resenas" && <ReviewsTab resenas={resenas} />}
+            {activeTab === "resenas" && <ReviewsTab resenas={reviews} />}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
             

@@ -383,6 +383,16 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                 <CheckCircle size={28}/>
                             </div>
                             <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
+                            <div className="flex justify-between items-center w-full">
+                                    <span className="font-bold text-zinc-900 group-hover:text-indigo-700">{item.titulo}</span>
+                                    {item.precio && <span className="font-semibold text-zinc-900 bg-zinc-100 px-2 py-1 rounded text-sm group-hover:bg-indigo-100 group-hover:text-indigo-700">{item.precio}</span>}
+                                </div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-zinc-500 truncate max-w-[70%]">{item.desc}</span>
+                                    <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+                                        <Clock size={12}/> {item.duracion || 60} min
+                                    </span>
+                                </div>
                             <p className="leading-relaxed opacity-70">{item.desc}</p>
                         </div>
                     ))}

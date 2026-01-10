@@ -17,16 +17,18 @@ export interface HeroSection {
 }
 
 
-export interface FeatureItem {
+export interface ServiceItem {
   titulo: string;
   desc: string;
-  icono?: string; // Nombre del icono de lucide-react (opcional)
+  precio?: string;       
+  duracion: number;      // En minutos,
+  imagenUrl?: string;    
 }
 
-export interface FeaturesSection {
+export interface ServicesSection {
   mostrar: boolean;
   titulo: string;
-  items: FeatureItem[];
+  items: ServiceItem[]; 
 }
 
 // --- BLOQUE: TESTIMONIOS ---
@@ -103,7 +105,7 @@ export interface WebConfig {
 
   // Secciones de la Landing Page
   hero: HeroSection;
-  servicios: FeaturesSection;
+  servicios?: ServicesSection;
   ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional
