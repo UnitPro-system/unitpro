@@ -748,9 +748,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                                     {customSection.type === 'about' ? 'Quiénes Somos' : 'Galería'}
                                 </h3>
                                 <div className="flex items-center gap-1">
-                                    {/* Flechas también para las custom */}
-                                    <button onClick={() => moveSection(index, -1)} className="p-1 text-zinc-400 hover:text-zinc-800"><ArrowUp size={14}/></button>
-                                    <button onClick={() => moveSection(index, 1)} className="p-1 text-zinc-400 hover:text-zinc-800"><ArrowDown size={14}/></button>
+                            
                                     <button onClick={() => removeSection(sectionId)} className="ml-2 text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
                                 </div>
                             </div>

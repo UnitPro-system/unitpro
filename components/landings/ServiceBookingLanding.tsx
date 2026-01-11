@@ -275,8 +275,22 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             facebook: negocio.facebook,   
             linkedin: negocio.linkedin,  
             whatsapp: negocio.whatsapp}, ...rawConfig.footer },
-    customSections: rawConfig.customSections || []
+    customSections: rawConfig.customSections || [],
+    sectionOrder: rawConfig.sectionOrder
   };
+
+  const defaultOrder = [
+      'hero', 
+      'servicios', 
+      ...(config.customSections?.map((s:any) => s.id) || []), 
+      'testimonios',
+      'ubicacion'
+  ];
+
+  // Este es el array final que usaremos para pintar
+  const activeOrder = config.sectionOrder && config.sectionOrder.length > 0 
+      ? config.sectionOrder 
+      : defaultOrder;
   
   const brandColor = config.colors.primary;
   const secondaryColor = config.colors.secondary || "#ffffff"; // Color de Fondo
