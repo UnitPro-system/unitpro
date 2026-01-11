@@ -504,6 +504,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                           <div>
                               <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
                               <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
+                              <p className="opacity-70">{negocio.instagram || "No especificado"}</p>
                           </div>
                       </div>
                   </div>

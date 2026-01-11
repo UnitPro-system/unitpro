@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown } from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown} from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
@@ -161,7 +161,9 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
 
     setConfig((prev: any) => {
         const currentSections = prev.customSections || [];
-        const newConfig = { ...prev, customSections: [...currentSections, newSection] };
+        const currentOrder = prev.sectionOrder || [];
+        const newConfig = { ...prev, customSections: [...currentSections, newSection], sectionOrder: [...currentOrder, newId] };
+        
         sendConfigUpdate(newConfig);
         return newConfig;
     });
@@ -179,6 +181,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
     if(!window.confirm("¿Borrar esta sección?")) return;
     setConfig((prev: any) => {
         const newSections = prev.customSections.filter((s: any) => s.id !== id);
+        const newOrder = (prev.sectionOrder || []).filter((item: string) => item !== id);
         const newConfig = { ...prev, customSections: newSections };
         sendConfigUpdate(newConfig);
         return newConfig;
@@ -209,6 +212,30 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
         sendConfigUpdate(newConfig);
         return newConfig;
     });
+  };
+  // 1. GARANTIZAR QUE EXISTA UN ORDEN INICIAL
+  useEffect(() => {
+    // Si no existe un orden guardado, creamos uno por defecto
+    if (!config.sectionOrder || config.sectionOrder.length === 0) {
+        const customIds = config.customSections?.map((s:any) => s.id) || [];
+        // Define aquí el orden estándar inicial
+        const defaultOrder = ['hero', 'servicios', 'testimonios', ...customIds, 'ubicacion'];
+        
+        updateConfigField('root', 'sectionOrder', defaultOrder);
+    }
+  }, [config.customSections]);
+  const moveSection = (index: number, direction: -1 | 1) => {
+      const currentOrder = config.sectionOrder || [];
+      const newOrder = [...currentOrder];
+      
+      const targetIndex = index + direction;
+      // Evitar salirnos de los límites
+      if (targetIndex < 0 || targetIndex >= newOrder.length) return;
+      
+      // Intercambiar posiciones
+      [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+      
+      updateConfigField('root', 'sectionOrder', newOrder);
   };
   return (
     <div className="fixed inset-0 z-[100] flex bg-zinc-100 font-sans h-screen w-screen overflow-hidden">
@@ -535,233 +562,284 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 )}
             </div>
+            <div className="space-y-8 mt-8">
+                <div className="px-1 text-xs font-bold text-zinc-400 uppercase tracking-wider">Contenido de la Página</div>
+                {(config.sectionOrder || []).map((sectionId: string, index: number) => {
+                    
+                    // HEADER COMÚN CON FLECHAS
+                    const SectionHeader = ({ title, icon, toggleField, toggleSection }: any) => (
+                        <div className="flex justify-between items-center pb-3 border-b border-zinc-100 mb-4">
+                            <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                                {icon} {title}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                                {/* FLECHAS DE ORDEN */}
+                                <button onClick={() => moveSection(index, -1)} disabled={index === 0} className="p-1 text-zinc-400 hover:text-zinc-800 disabled:opacity-30"><ArrowUp size={14}/></button>
+                                <button onClick={() => moveSection(index, 1)} disabled={index === ((config.sectionOrder?.length || 0) - 1)} className="p-1 text-zinc-400 hover:text-zinc-800 disabled:opacity-30"><ArrowDown size={14}/></button>
+                                
+                                {/* TOGGLE VISIBILIDAD (Si aplica) */}
+                                {toggleField && (
+                                    <button onClick={() => updateConfigField(toggleSection, toggleField, !config[toggleSection]?.[toggleField])} className="ml-2 text-zinc-400 hover:text-indigo-600">
+                                        {config[toggleSection]?.[toggleField] ? <Eye size={16}/> : <EyeOff size={16}/>}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
 
-            {/* 5. SERVICIOS (DINÁMICO) */}
-            <div ref={sectionsRefs.servicios} className={getSectionClass('servicios')}>
-                <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Servicios
-                    </h3>
-                    <button onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)} className="text-zinc-400 hover:text-emerald-600">
-                        {config.servicios?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
-                    </button>
-                </div>
-                
-                {config.servicios?.mostrar && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                        {/* Título de la sección */}
-                        <input 
-                            type="text" 
-                            value={config.servicios.titulo} 
-                            onChange={(e) => updateConfigField('servicios', 'titulo', e.target.value)} 
-                            className="w-full p-2 border rounded-lg text-sm font-bold bg-zinc-50"
-                            placeholder="Título de la sección (Ej: Nuestros Servicios)"
-                        />
+                    {/* 5. SERVICIOS (DINÁMICO) */}
+                    if (sectionId === 'servicios') return (
+                        <div key="servicios" ref={sectionsRefs.servicios} className={getSectionClass('servicios')}>
+                            <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Servicios
+                                </h3>
+                                <button onClick={() => updateConfigField('servicios', 'mostrar', !config.servicios?.mostrar)} className="text-zinc-400 hover:text-emerald-600">
+                                    {config.servicios?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
+                                </button>
+                            </div>
+                            
+                            {config.servicios?.mostrar && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    {/* Título de la sección */}
+                                    <input 
+                                        type="text" 
+                                        value={config.servicios.titulo} 
+                                        onChange={(e) => updateConfigField('servicios', 'titulo', e.target.value)} 
+                                        className="w-full p-2 border rounded-lg text-sm font-bold bg-zinc-50"
+                                        placeholder="Título de la sección (Ej: Nuestros Servicios)"
+                                    />
 
-                        {/* LISTA DE SERVICIOS */}
-                        <div className="space-y-3">
-                            {config.servicios.items?.map((item: any, i: number) => (
-                                <div key={i} className="p-3 border border-zinc-200 rounded-xl bg-white relative group shadow-sm hover:shadow-md transition-all">
-                                    
-                                    {/* Botón Eliminar (X) */}
+                                    {/* LISTA DE SERVICIOS */}
+                                    <div className="space-y-3">
+                                        {config.servicios.items?.map((item: any, i: number) => (
+                                            <div key={i} className="p-3 border border-zinc-200 rounded-xl bg-white relative group shadow-sm hover:shadow-md transition-all">
+                                                
+                                                {/* Botón Eliminar (X) */}
+                                                <button 
+                                                    onClick={() => {
+                                                        const newItems = config.servicios.items.filter((_:any, idx:number) => idx !== i);
+                                                        updateConfigField('servicios', 'items', newItems);
+                                                    }}
+                                                    className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-red-500 transition-colors"
+                                                    title="Eliminar servicio"
+                                                >
+                                                    <X size={16}/>
+                                                </button>
+
+                                                <div className="space-y-3 pr-6">
+                                                    {/* Título */}
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Nombre del Servicio</label>
+                                                        <input 
+                                                            value={item.titulo} 
+                                                            onChange={(e) => updateArrayItem('servicios', i, 'titulo', e.target.value)} 
+                                                            className="w-full p-2 border rounded-lg text-sm font-medium"
+                                                            placeholder="Ej: Corte de Pelo"
+                                                        />
+                                                    </div>
+
+                                                    {/* Precio y Duración (Grid) */}
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Precio</label>
+                                                            <input 
+                                                                value={item.precio || ''} 
+                                                                onChange={(e) => updateArrayItem('servicios', i, 'precio', e.target.value)} 
+                                                                className="w-full p-2 border rounded-lg text-sm"
+                                                                placeholder="$0.00"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Duración (min)</label>
+                                                            <select 
+                                                                value={item.duracion || "Indeterminado"} 
+                                                                onChange={(e) => updateArrayItem('servicios', i, 'duracion', Number(e.target.value))} 
+                                                                className="w-full p-2 border rounded-lg text-sm bg-white"
+                                                            >
+                                                                <option value={15}>15 min</option>
+                                                                <option value={30}>30 min</option>
+                                                                <option value={45}>45 min</option>
+                                                                <option value={60}>1 hora</option>
+                                                                <option value={90}>1.5 horas</option>
+                                                                <option value={120}>2 horas</option>
+                                                                <option value={"Indeterminado"}>Indeterminado</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Descripción */}
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Descripción</label>
+                                                        <textarea 
+                                                            value={item.desc} 
+                                                            onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} 
+                                                            className="w-full p-2 border rounded-lg text-sm text-zinc-600"
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* BOTÓN AGREGAR SERVICIO */}
                                     <button 
                                         onClick={() => {
-                                            const newItems = config.servicios.items.filter((_:any, idx:number) => idx !== i);
+                                            const newItem = { titulo: "Nuevo Servicio", desc: "", precio: "", duracion: 60 };
+                                            const newItems = [...(config.servicios.items || []), newItem];
                                             updateConfigField('servicios', 'items', newItems);
                                         }}
-                                        className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-red-500 transition-colors"
-                                        title="Eliminar servicio"
+                                        className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <X size={16}/>
+                                        <PlusCircle size={18}/> Agregar Servicio
                                     </button>
-
-                                    <div className="space-y-3 pr-6">
-                                        {/* Título */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Nombre del Servicio</label>
-                                            <input 
-                                                value={item.titulo} 
-                                                onChange={(e) => updateArrayItem('servicios', i, 'titulo', e.target.value)} 
-                                                className="w-full p-2 border rounded-lg text-sm font-medium"
-                                                placeholder="Ej: Corte de Pelo"
-                                            />
-                                        </div>
-
-                                        {/* Precio y Duración (Grid) */}
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label className="text-[10px] font-bold text-zinc-400 uppercase">Precio</label>
-                                                <input 
-                                                    value={item.precio || ''} 
-                                                    onChange={(e) => updateArrayItem('servicios', i, 'precio', e.target.value)} 
-                                                    className="w-full p-2 border rounded-lg text-sm"
-                                                    placeholder="$0.00"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-bold text-zinc-400 uppercase">Duración (min)</label>
-                                                <select 
-                                                    value={item.duracion || 60} 
-                                                    onChange={(e) => updateArrayItem('servicios', i, 'duracion', Number(e.target.value))} 
-                                                    className="w-full p-2 border rounded-lg text-sm bg-white"
-                                                >
-                                                    <option value={15}>15 min</option>
-                                                    <option value={30}>30 min</option>
-                                                    <option value={45}>45 min</option>
-                                                    <option value={60}>1 hora</option>
-                                                    <option value={90}>1.5 horas</option>
-                                                    <option value={120}>2 horas</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Descripción */}
-                                        <div>
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase">Descripción</label>
-                                            <textarea 
-                                                value={item.desc} 
-                                                onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} 
-                                                className="w-full p-2 border rounded-lg text-sm text-zinc-600"
-                                                rows={2}
-                                            />
-                                        </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                    {/* 6. CONFIGURACIÓN DE VALORACIONES */}
+                    if (sectionId === 'testimonios') return (
+                        <div key="testimonios" ref={sectionsRefs.testimonios} className={getSectionClass('testimonios')}>
+                            <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Sección Valoración
+                                </h3>
+                            </div>
+                            
+                            {config.testimonios?.mostrar && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <div>
+                                        <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título de la invitación</label>
+                                        <input 
+                                            type="text" 
+                                            value={config.testimonios?.titulo || "Tu opinión nos importa"} 
+                                            onChange={(e) => updateConfigField('testimonios', 'titulo', e.target.value)} 
+                                            className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-400 outline-none"
+                                            placeholder="Ej: ¿Cómo fue tu experiencia?"
+                                        />
                                     </div>
                                 </div>
-                            ))}
+                            )}
                         </div>
-
-                        {/* BOTÓN AGREGAR SERVICIO */}
-                        <button 
-                            onClick={() => {
-                                const newItem = { titulo: "Nuevo Servicio", desc: "", precio: "", duracion: 60 };
-                                const newItems = [...(config.servicios.items || []), newItem];
-                                updateConfigField('servicios', 'items', newItems);
-                            }}
-                            className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
-                        >
-                            <PlusCircle size={18}/> Agregar Servicio
-                        </button>
-                    </div>
-                )}
-            </div>
-            {/* 6. CONFIGURACIÓN DE VALORACIONES */}
-                <div ref={sectionsRefs.testimonios} className={getSectionClass('testimonios')}>
-                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Sección Valoración
-                        </h3>
-                    </div>
+                    );
+                    if (sectionId === 'ubicacion') return (
+                        <div key="ubicacion" className={getSectionClass('ubicacion')}>
+                            <SectionHeader title="Mapa y Ubicación" icon={<MapPin size={14} className="text-red-500"/>} toggleSection="ubicacion" toggleField="mostrar" />
+                            {config.ubicacion?.mostrar && (
+                                <div className="text-xs text-zinc-500 bg-zinc-50 p-3 rounded border">
+                                    Esta sección muestra el mapa y los datos de contacto. 
+                                    <br/><span className="italic">Edita la dirección en el bloque "Información de Contacto" arriba.</span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                
+                {/* --- EDITORES DE SECCIONES DINÁMICAS --- */}
+                const customSection = config.customSections?.find((s:any) => s.id === sectionId);
+                if (customSection) {
+                    return customSection && (
+                        <div key={sectionId} id={`section-editor-${sectionId}`} className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm space-y-4 relative group">
                     
-                    {config.testimonios?.mostrar && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                            <div>
-                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título de la invitación</label>
-                                <input 
-                                    type="text" 
-                                    value={config.testimonios?.titulo || "Tu opinión nos importa"} 
-                                    onChange={(e) => updateConfigField('testimonios', 'titulo', e.target.value)} 
-                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-yellow-400 outline-none"
-                                    placeholder="Ej: ¿Cómo fue tu experiencia?"
+                            {/* Cabecera de la Sección */}
+                            <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    {customSection.type === 'about' ? <FileText size={16} className="text-blue-500"/> : <Image size={16} className="text-purple-500"/>}
+                                    {customSection.type === 'about' ? 'Quiénes Somos' : 'Galería'}
+                                </h3>
+                                <div className="flex items-center gap-1">
+                                    {/* Flechas también para las custom */}
+                                    <button onClick={() => moveSection(index, -1)} className="p-1 text-zinc-400 hover:text-zinc-800"><ArrowUp size={14}/></button>
+                                    <button onClick={() => moveSection(index, 1)} className="p-1 text-zinc-400 hover:text-zinc-800"><ArrowDown size={14}/></button>
+                                    <button onClick={() => removeSection(sectionId)} className="ml-2 text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
+                                </div>
+                            </div>
+
+
+                            {/* Editor: Quiénes Somos */}
+                            {customSection.type === 'about' && (
+                                <div className="space-y-3">
+                                <div>
+                                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título</label>
+                                    <input 
+                                        value={customSection.titulo} 
+                                        onChange={(e) => updateCustomSection(customSection.id, 'titulo', e.target.value)}
+                                        className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
                                 />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            {/* --- EDITORES DE SECCIONES DINÁMICAS --- */}
-            {config.customSections?.map((section: any, index: number) => (
-                <div key={section.id} id={`section-editor-${section.id}`} className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm space-y-4 relative group">
-                    
-                    {/* Cabecera de la Sección */}
-                    <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                        <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                            {section.type === 'about' ? <FileText size={16} className="text-blue-500"/> : <Image size={16} className="text-purple-500"/>}
-                            {section.type === 'about' ? 'Quiénes Somos' : 'Galería'}
-                        </h3>
-                        <button onClick={() => removeSection(section.id)} className="text-zinc-400 hover:text-red-500 transition-colors p-1"><Trash2 size={16}/></button>
-                    </div>
-
-
-                    {/* Editor: Quiénes Somos */}
-                    {section.type === 'about' && (
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Título</label>
-                                <input 
-                                    value={section.titulo} 
-                                    onChange={(e) => updateCustomSection(section.id, 'titulo', e.target.value)}
-                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Descripción</label>
-                                <textarea 
-                                    rows={4}
-                                    value={section.texto} 
-                                    onChange={(e) => updateCustomSection(section.id, 'texto', e.target.value)}
-                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
-                                />
-                            </div>
-                            <ImageUpload 
-                                label="Imagen (Opcional)" 
-                                value={section.imagenUrl} 
-                                onChange={(url) => updateCustomSection(section.id, 'imagenUrl', url)} 
-                            />
-                        </div>
-                    )}
-
-                    {/* Editor: Galería */}
-                    {section.type === 'gallery' && (
-                        <div className="space-y-3">
-                            <input 
-                                value={section.titulo} 
-                                onChange={(e) => updateCustomSection(section.id, 'titulo', e.target.value)}
-                                className="w-full p-2 border border-zinc-200 rounded-lg text-sm font-bold mb-2"
-                                placeholder="Título de la galería"
-                            />
-                            
-                            {/* Lista de Imágenes */}
-                            <div className="space-y-2">
-                                {section.imagenes?.map((img: any, i: number) => (
-                                    <div key={i} className="flex gap-2 items-center bg-zinc-50 p-2 rounded-lg border border-zinc-200">
-                                        <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200" />
-                                        <input 
-                                            value={img.descripcion || ''} 
-                                            onChange={(e) => {
-                                                const newImages = [...section.imagenes];
-                                                newImages[i].descripcion = e.target.value;
-                                                updateCustomSection(section.id, 'imagenes', newImages);
-                                            }}
-                                            className="flex-1 p-1 bg-transparent text-xs border-b border-transparent focus:border-zinc-300 outline-none"
-                                            placeholder="Descripción..."
-                                        />
-                                        <button 
-                                            onClick={() => {
-                                                const newImages = section.imagenes.filter((_:any, idx:number) => idx !== i);
-                                                updateCustomSection(section.id, 'imagenes', newImages);
-                                            }}
-                                            className="text-zinc-400 hover:text-red-500"
-                                        >
-                                            <X size={14}/>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Botón subir nueva imagen a la galería */}
-                            <div className="pt-2">
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Descripción</label>
+                                    <textarea 
+                                        rows={4}
+                                        value={customSection.texto} 
+                                        onChange={(e) => updateCustomSection(customSection.id, 'texto', e.target.value)}
+                                        className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
+                                    />
+                                </div>
                                 <ImageUpload 
-                                    label="Agregar Imagen" 
-                                    value="" // Siempre vacío para que detecte cambios nuevos
-                                    onChange={(url) => {
-                                        const newImages = [...(section.imagenes || []), { url, descripcion: "" }];
-                                        updateCustomSection(section.id, 'imagenes', newImages);
-                                    }} 
+                                    label="Imagen (Opcional)" 
+                                    value={customSection.imagenUrl} 
+                                    onChange={(url) => updateCustomSection(customSection.id, 'imagenUrl', url)} 
                                 />
                             </div>
-                        </div>
-                    )}
-                </div>
-            ))}
+                        )}
+
+                        {/* Editor: Galería */}
+                        {customSection.type === 'gallery' && (
+                            <div className="space-y-3">
+                                <input 
+                                    value={customSection.titulo} 
+                                    onChange={(e) => updateCustomSection(customSection.id, 'titulo', e.target.value)}
+                                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm font-bold mb-2"
+                                    placeholder="Título de la galería"
+                                />
+                                
+                                {/* Lista de Imágenes */}
+                                <div className="space-y-2">
+                                    {customSection.imagenes?.map((img: any, i: number) => (
+                                        <div key={i} className="flex gap-2 items-center bg-zinc-50 p-2 rounded-lg border border-zinc-200">
+                                            <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200" />
+                                            <input 
+                                                value={img.descripcion || ''} 
+                                                onChange={(e) => {
+                                                    const newImages = [...customSection.imagenes];
+                                                    newImages[i].descripcion = e.target.value;
+                                                    updateCustomSection(customSection.id, 'imagenes', newImages);
+                                                }}
+                                                className="flex-1 p-1 bg-transparent text-xs border-b border-transparent focus:border-zinc-300 outline-none"
+                                                placeholder="Descripción..."
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    const newImages = customSection.imagenes.filter((_:any, idx:number) => idx !== i);
+                                                    updateCustomSection(customSection.id, 'imagenes', newImages);
+                                                }}
+                                                className="text-zinc-400 hover:text-red-500"
+                                            >
+                                                <X size={14}/>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Botón subir nueva imagen a la galería */}
+                                <div className="pt-2">
+                                    <ImageUpload 
+                                        label="Agregar Imagen" 
+                                        value="" // Siempre vacío para que detecte cambios nuevos
+                                        onChange={(url) => {
+                                            const newImages = [...(customSection.imagenes || []), { url, descripcion: "" }];
+                                            updateCustomSection(customSection.id, 'imagenes', newImages);
+                                        }} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+                }
+                return null;
+            })}
         </div>
 
         <div className="p-5 border-t bg-white flex gap-3">
@@ -771,6 +849,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
             </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

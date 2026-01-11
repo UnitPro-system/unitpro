@@ -89,7 +89,7 @@ export interface WebConfig {
   template: TemplateTheme;
   logoUrl?: string; // URL del logo del negocio (desde Supabase Storage)
   
-  // --- NUEVA SECCIÓN: APARIENCIA GLOBAL ---
+ 
   appearance?: {
     font: string;
     radius: string;
@@ -110,4 +110,5 @@ export interface WebConfig {
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional
   customSections?: CustomSection[];
+  sectionOrder?: string[];
 }
