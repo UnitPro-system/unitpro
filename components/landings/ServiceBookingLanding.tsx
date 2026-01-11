@@ -733,6 +733,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                  <div className="flex justify-center gap-2">
                      {[1,2,3,4,5].map(s => <button key={s} type="button" onClick={() => setRatingSeleccionado(s)}><Star size={32} className={s <= ratingSeleccionado ? "fill-yellow-400 text-yellow-400" : "text-zinc-300"}/></button>)}
                  </div>
+                 <input required placeholder="Tu Nombre" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)} className="w-full p-3 border rounded-xl"/>
                  <textarea placeholder="Comentario..." value={feedbackComentario} onChange={e => setFeedbackComentario(e.target.value)} className="w-full p-3 border rounded-xl"/>
                  <button type="submit" disabled={enviando} className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl">{enviando ? <Loader2 className="animate-spin"/> : "Enviar"}</button>
              </form>
