@@ -252,7 +252,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     servicios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.servicios },
     testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
     ubicacion: { mostrar: true, ...rawConfig.ubicacion },
-    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, ...rawConfig.footer },
+    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright,
+        redesSociales: {
+            instagram: negocio.instagram, 
+            facebook: negocio.facebook,   
+            linkedin: negocio.linkedin,  
+            whatsapp: negocio.whatsapp}, ...rawConfig.footer },
     customSections: rawConfig.customSections || []
   };
   

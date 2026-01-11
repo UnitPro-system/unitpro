@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
 const DEFAULT_CONFIG = {
   template: "modern",
@@ -55,7 +56,11 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
   const [dbFields, setDbFields] = useState({
     direccion: negocio.direccion || "",
     horarios: negocio.horarios || "",
-    google_maps_link: negocio.google_maps_link || "" // <--- CAMPO NUEVO EN EL ESTADO
+    google_maps_link: negocio.google_maps_link || "",
+    whatsapp: negocio.whatsapp || "",
+    instagram: negocio.instagram || "",
+    facebook: negocio.facebook || "",
+    linkedin: negocio.linkedin || ""
   });
 
   const [saving, setSaving] = useState(false);
@@ -99,7 +104,11 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
         config_web: config,
         direccion: dbFields.direccion,
         horarios: dbFields.horarios,
-        google_maps_link: dbFields.google_maps_link // <--- GUARDAMOS EL LINK EN DB
+        google_maps_link: dbFields.google_maps_link,
+        whatsapp: dbFields.whatsapp,
+        instagram: dbFields.instagram,
+        facebook: dbFields.facebook,
+        linkedin: dbFields.linkedin
     }).eq("id", negocio.id);
 
     if (error) alert("Error: " + error.message);
@@ -181,6 +190,22 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
     setConfig((prev: any) => {
         const newSections = prev.customSections.map((s: any) => s.id === id ? { ...s, [field]: value } : s);
         const newConfig = { ...prev, customSections: newSections };
+        sendConfigUpdate(newConfig);
+        return newConfig;
+    });
+  };
+  const updateSocial = (network: string, value: string) => {
+    setConfig((prev: any) => {
+        const newConfig = {
+            ...prev,
+            footer: {
+                ...prev.footer,
+                redesSociales: {
+                    ...prev.footer?.redesSociales,
+                    [network]: value
+                }
+            }
+        };
         sendConfigUpdate(newConfig);
         return newConfig;
     });
@@ -294,6 +319,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                 <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100">
                     <MapPin size={16} className="text-blue-500" /> Información de Contacto
                 </h3>
+                {/* DIRECCIÓN */}
                 <div>
                     <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Dirección</label>
                     <input 
@@ -316,6 +342,21 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         <ExternalLink size={14} className="absolute left-2.5 top-2.5 text-zinc-400"/>
                     </div>
                 </div>
+                {/* TELÉFONO (NUEVO) */}
+                <div>
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Teléfono / WhatsApp</label>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            value={dbFields.whatsapp} 
+                            onChange={(e) => updateDbField('whatsapp', e.target.value)} 
+                            className="w-full p-2 pl-8 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Ej: 54911..."
+                        />
+                        <Phone size={14} className="absolute left-2.5 top-2.5 text-zinc-400"/>
+                    </div>
+                </div>
+                {/* HORARIOS */}
                 <div>
                     <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Horarios</label>
                     <input 
@@ -325,6 +366,56 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                         placeholder="Ej: Lun-Vie 9:00 - 18:00"
                     />
+                </div>
+                {/* REDES SOCIALES (NUEVO BLOQUE) */}
+                <div className="pt-4 border-t border-zinc-100 mt-2">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-2 block">Redes Sociales</label>
+                    <div className="space-y-2">
+                        
+                        {/* INPUT: INSTAGRAM */}
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                                <Instagram size={16}/>
+                            </div>
+                            <input 
+                                type="text" 
+                                /* AQUÍ ESTÁ EL CAMBIO: Usamos dbFields.instagram */
+                                value={dbFields.instagram} 
+                                /* Y usamos updateDbField para guardar */
+                                onChange={(e) => updateDbField('instagram', e.target.value)} 
+                                className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                                placeholder="Link de Instagram"
+                            />
+                        </div>
+
+                        {/* INPUT: FACEBOOK */}
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <Facebook size={16}/>
+                            </div>
+                            <input 
+                                type="text" 
+                                value={dbFields.facebook} 
+                                onChange={(e) => updateDbField('facebook', e.target.value)} 
+                                className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-600 outline-none"
+                                placeholder="Link de Facebook"
+                            />
+                        </div>
+
+                         {/* INPUT: LINKEDIN */}
+                         <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
+                                <Linkedin size={16}/>
+                            </div>
+                            <input 
+                                type="text" 
+                                value={dbFields.linkedin} 
+                                onChange={(e) => updateDbField('linkedin', e.target.value)} 
+                                className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-600 outline-none"
+                                placeholder="Link de LinkedIn"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
