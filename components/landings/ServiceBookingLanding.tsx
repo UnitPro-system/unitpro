@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu,Maximize2 } from "lucide-react";
+import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu,Maximize2, ChevronLeft,Instagram, Facebook, Linkedin } from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
@@ -51,6 +51,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const [enviando, setEnviando] = useState(false);
   const [mostrarGracias, setMostrarGracias] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollPrev = () => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollBy({ left: -340, behavior: 'smooth' });
+    }
+  };
+
+  const scrollNext = () => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollBy({ left: 340, behavior: 'smooth' });
+    }
+  };
   
   // Mostrar valoraciones
   useEffect(() => {
@@ -453,39 +466,71 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 </button>
               </div>
 
-              {/* LISTA DE RESEÑAS */}
+              {/* LISTA DE RESEÑAS CON CARRUSEL */}
               {reviews.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {reviews.map((review) => (
-                        <div key={review.id} className={`p-6 bg-white shadow-sm border border-zinc-100 flex flex-col h-full ${cardRadius}`}>
-                            {/* Estrellas */}
-                            <div className="flex gap-1 mb-4">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star 
-                                        key={i} 
-                                        size={16} 
-                                        className={i < review.puntuacion ? "text-yellow-400 fill-yellow-400" : "text-zinc-200"} 
-                                    />
-                                ))}
-                            </div>
-                            
-                            {/* Comentario */}
-                            <div className="flex-1">
-                                <p className="text-zinc-600 mb-6 italic text-sm leading-relaxed">"{review.comentario}"</p>
-                            </div>
+                <div className="relative">
+                    
+                    {/* Botón Izquierda (Solo si hay +3 reseñas) */}
+                    {reviews.length > 3 && (
+                        <button 
+                            onClick={scrollPrev}
+                            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 z-20 bg-white p-3 rounded-full shadow-lg border border-zinc-100 text-zinc-600 hover:text-indigo-600 hover:scale-110 transition-all"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                    )}
 
-                            {/* Autor */}
-                            <div className="flex items-center gap-3 pt-4 border-t border-zinc-50 mt-auto">
-                                <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-400 text-xs uppercase">
-                                    {review.nombre_cliente?.charAt(0) || "A"}
+                    {/* Contenedor Scrollable */}
+                    <div 
+                        ref={scrollContainerRef}
+                        className={`flex gap-6 overflow-x-auto pb-8 px-2 snap-x snap-mandatory ${reviews.length > 3 ? 'cursor-grab active:cursor-grabbing' : 'justify-center'}`}
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} // Oculta la barra de scroll nativa
+                    >
+                        {reviews.map((review) => (
+                            <div 
+                                key={review.id} 
+                                // CAMBIO: Usamos anchos fijos (w-[350px]) en lugar de grid flexible
+                                className={`snap-center shrink-0 w-[85vw] md:w-[350px] lg:w-[400px] p-6 bg-white shadow-sm border border-zinc-100 flex flex-col ${cardRadius}`}
+                            >
+                                {/* Estrellas */}
+                                <div className="flex gap-1 mb-4">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star 
+                                            key={i} 
+                                            size={16} 
+                                            className={i < review.puntuacion ? "text-yellow-400 fill-yellow-400" : "text-zinc-200"} 
+                                        />
+                                    ))}
                                 </div>
-                                <div>
-                                    <p className="font-bold text-sm text-zinc-900">{review.nombre_cliente || "Anónimo"}</p>
-                                    <p className="text-[10px] text-zinc-400 uppercase font-medium">{new Date(review.created_at).toLocaleDateString()}</p>
+                                
+                                {/* Comentario */}
+                                <div className="flex-1">
+                                    <p className="text-zinc-600 mb-6 italic text-sm leading-relaxed">"{review.comentario}"</p>
+                                </div>
+
+                                {/* Autor */}
+                                <div className="flex items-center gap-3 pt-4 border-t border-zinc-50 mt-auto">
+                                    <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-400 text-xs uppercase">
+                                        {review.nombre_cliente?.charAt(0) || "A"}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-zinc-900">{review.nombre_cliente || "Anónimo"}</p>
+                                        <p className="text-[10px] text-zinc-400 uppercase font-medium">{new Date(review.created_at).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+
+                    {/* Botón Derecha (Solo si hay +3 reseñas) */}
+                    {reviews.length > 3 && (
+                        <button 
+                            onClick={scrollNext}
+                            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-5 z-20 bg-white p-3 rounded-full shadow-lg border border-zinc-100 text-zinc-600 hover:text-indigo-600 hover:scale-110 transition-all"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    )}
                 </div>
               ) : (
                 <div className="text-center text-zinc-400 py-10 italic bg-white rounded-2xl border border-dashed border-zinc-200">
@@ -548,55 +593,98 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
       {/* --- UBICACIÓN (NUEVA SECCIÓN) --- */}
       {config.ubicacion?.mostrar && (
-      <section id="ubicacion" className="py-24 px-6 relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
-          <div className={`max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center ${editableClass}`}>
-              <div>
-                  <span className="text-sm font-bold uppercase tracking-wider opacity-60">Dónde estamos</span>
-                  <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-6" style={{ color: textColor }}>Visítanos en nuestra sucursal</h2>
-                  <p className="mb-8 text-lg opacity-70">Estamos listos para atenderte con la mejor calidad y servicio. Agenda tu cita o ven directamente.</p>
-                  
-                  <div className="space-y-6">
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><MapPin size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Dirección</h4>
-                              <p className="opacity-70">{negocio.direccion || "Dirección no configurada"}</p>
-                              {negocio.google_maps_link && (
-                                  <a href={negocio.google_maps_link} target="_blank" className="text-sm font-bold mt-1 inline-flex items-center gap-1 hover:underline" style={{ color: brandColor }}>Ver en Google Maps <ArrowRight size={14}/></a>
-                              )}
-                          </div>
-                      </div>
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Clock size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Horarios de Atención</h4>
-                              <p className="opacity-70">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
-                          </div>
-                      </div>
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Phone size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
-                              <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
-                              <p className="opacity-70">{negocio.instagram || "No especificado"}</p>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              
-              {/* Mapa o Imagen Representativa */}
-              <div className={`h-[400px] bg-zinc-100 overflow-hidden shadow-2xl relative ${radiusClass}`}>
-                  {/* Si tuvieras una API Key de Maps real podrías usar un iframe, por ahora simulamos con imagen o el link */}
-                  <div className="absolute inset-0 bg-zinc-200 flex items-center justify-center text-zinc-400">
-                      {negocio.google_maps_link ? (
-                           <iframe width="100%" height="100%" src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`} title="Mapa"></iframe>
-                      ) : (
-                           <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50"/>Mapa no disponible</div>
-                      )}
-                  </div>
-              </div>
-          </div>
-      </section>
+        <section id="ubicacion" className="py-24 px-6 relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
+            <div className={`max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center ${editableClass}`}>
+                <div>
+                    <span className="text-sm font-bold uppercase tracking-wider opacity-60">Dónde estamos</span>
+                    <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-6" style={{ color: textColor }}>Visítanos en nuestra sucursal</h2>
+                    <p className="mb-8 text-lg opacity-70">Estamos listos para atenderte con la mejor calidad y servicio. Agenda tu cita o ven directamente.</p>
+                    
+                    <div className="space-y-6">
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><MapPin size={20}/></div>
+                            <div>
+                                <h4 className="font-bold" style={{ color: textColor }}>Dirección</h4>
+                                <p className="opacity-70">{negocio.direccion || "Dirección no configurada"}</p>
+                                {negocio.google_maps_link && (
+                                    <a href={negocio.google_maps_link} target="_blank" className="text-sm font-bold mt-1 inline-flex items-center gap-1 hover:underline" style={{ color: brandColor }}>Ver en Google Maps <ArrowRight size={14}/></a>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Clock size={20}/></div>
+                            <div>
+                                <h4 className="font-bold" style={{ color: textColor }}>Horarios de Atención</h4>
+                                <p className="opacity-70">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Phone size={20}/></div>
+                            <div>
+                                <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
+                                <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
+                            </div>
+                        </div>
+                        {/* Redes Sociales */}
+                        <div className="flex flex-wrap justify-center gap-6 mb-8">
+                            <div>
+                                <h4 className="font-bold" style={{ color: textColor }}>Redes Sociales</h4>
+                                {/* INSTAGRAM */}
+                                {negocio.instagram && (
+                                    <a 
+                                        href={negocio.instagram} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm font-medium hover:text-pink-400 transition-colors"
+                                    >
+                                        <Instagram size={18} />
+                                        <span>Instagram</span>
+                                    </a>
+                                )}
+
+                                {/* FACEBOOK */}
+                                {negocio.facebook && (
+                                    <a 
+                                        href={negocio.facebook} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm font-medium hover:text-blue-400 transition-colors"
+                                    >
+                                        <Facebook size={18} />
+                                        <span>Facebook</span>
+                                    </a>
+                                )}
+
+                                {/* LINKEDIN */}
+                                {negocio.linkedin && (
+                                    <a 
+                                        href={negocio.linkedin} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm font-medium hover:text-sky-400 transition-colors"
+                                    >
+                                        <Linkedin size={18} />
+                                        <span>LinkedIn</span>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Mapa o Imagen Representativa */}
+                <div className={`h-[400px] bg-zinc-100 overflow-hidden shadow-2xl relative ${radiusClass}`}>
+                    {/* Si tuvieras una API Key de Maps real podrías usar un iframe, por ahora simulamos con imagen o el link */}
+                    <div className="absolute inset-0 bg-zinc-200 flex items-center justify-center text-zinc-400">
+                        {negocio.google_maps_link ? (
+                            <iframe width="100%" height="100%" src={negocio.google_maps_link} title="Mapa"></iframe>
+                        ) : (
+                            <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50"/>Mapa no disponible</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </section>
       )}
       
 
@@ -715,16 +803,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         </div>
       )}
 
-      {/* LEAD MODAL Y FEEDBACK MODAL (Mantener igual que original) */}
-      {isLeadModalOpen && (
-          <Modal onClose={() => setIsLeadModalOpen(false)} radiusClass={radiusClass}>
-             <h3 className="text-2xl font-bold mb-4">Solicitar Presupuesto</h3>
-             <form onSubmit={handleConsultar} className="space-y-4">
-                <input required placeholder="Tu Nombre" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)} className="w-full p-3 border rounded-xl"/>
-                <button type="submit" disabled={enviando} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2"><MessageCircle/> Contactar WhatsApp</button>
-             </form>
-          </Modal>
-      )}
+      
 
       {isFeedbackModalOpen && (
         <Modal onClose={() => setIsFeedbackModalOpen(false)} radiusClass={radiusClass}>

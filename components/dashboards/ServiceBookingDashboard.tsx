@@ -20,9 +20,8 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const router = useRouter();
   const supabase = createClient();
 
-  const [leads, setLeads] = useState<any[]>([]);
+  const [turnos, setTurnos] = useState<any[]>([]);
   const [resenas, setResenas] = useState<any[]>([]);
-  const [turnos, setTurnos] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
@@ -39,13 +38,6 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
         router.replace(window.location.pathname, { scroll: false });
       }
 
-      // 1. Cargar Leads
-      const { data: datosLeads } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("negocio_id", negocio.id)
-        .order('created_at', { ascending: false });
-      if (datosLeads) setLeads(datosLeads);
 
       // 2. Cargar Reseñas
       const { data: datosResenas } = await supabase
@@ -179,7 +171,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <StatCard 
                             title="Total Clientes" 
-                            value={leads.length} 
+                            value={turnos.length} 
                             icon={<Users className="text-blue-600" size={20}/>}
                             trend="Base de datos"
                             trendPositive={true}
@@ -210,7 +202,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
             )}
 
             {/* --- OTRAS TABS --- */}
-            {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable leads={leads} /></div>}
+            {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} /></div>}
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
@@ -366,19 +358,20 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle }: any) {
     );
 }
 
-function ClientesTable({ leads }: any) {
+function ClientesTable({ turnos }: any) {
     return (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
             <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
-                    <tr><th className="px-6 py-4">Nombre</th><th className="px-6 py-4">Contacto</th><th className="px-6 py-4">Origen</th></tr>
+                    <tr><th className="px-6 py-4">Nombre</th><th className="px-6 py-4">Contacto</th><th className="px-6 py-4">Servicio</th><th className="px-6 py-4">Ultimo Turno</th></tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
-                    {leads.map((c: any) => (
-                        <tr key={c.id} className="group hover:bg-zinc-50">
-                            <td className="px-6 py-4 font-medium">{c.nombre_cliente}</td>
-                            <td className="px-6 py-4 font-mono text-zinc-600">{c.telefono_cliente}</td>
-                            <td className="px-6 py-4 text-zinc-500">Web</td>
+                    {turnos.map((t: any) => (
+                        <tr key={t.id} className="group hover:bg-zinc-50">
+                            <td className="px-6 py-4 font-medium">{t.cliente_nombre}</td>
+                            <td className="px-6 py-4 font-mono text-zinc-600">{t.cliente_email}</td>
+                            <td className="px-6 py-4 text-zinc-500">{t.servicio || "General"}</td>
+                            <td className="px-6 py-4 font-mono text-zinc-600">{t.fecha_inicio || "Sin fecha"}</td>
                         </tr>
                     ))}
                 </tbody>
