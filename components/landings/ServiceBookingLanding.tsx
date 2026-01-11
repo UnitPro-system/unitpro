@@ -50,6 +50,23 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const [ratingSeleccionado, setRatingSeleccionado] = useState(0);
   const [enviando, setEnviando] = useState(false);
   const [mostrarGracias, setMostrarGracias] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  
+  // Mostrar valoraciones
+  useEffect(() => {
+    const fetchReviews = async () => {
+        if (!negocio?.id) return;
+        const { data } = await supabase
+            .from('resenas')
+            .select('*')
+            .eq('negocio_id', negocio.id)
+            .eq('visible', true) // <--- AGREGAR ESTA LÍNEA
+            .order('created_at', { ascending: false });
+        
+        if (data) setReviews(data);
+    };
+    fetchReviews();
+  }, [negocio?.id]);
 
   // --- LISTENER DEL EDITOR ---
   useEffect(() => {
@@ -391,7 +408,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             <p className="leading-relaxed opacity-70">{item.precio}</p>
                             <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400">
                                     <Clock size={12} />
-                                    <span>{item.duracion || 60} min</span>
+                                    <span>{item.duracion || "Indeterminado"} min</span>
                                     </div>
                             <p className="leading-relaxed opacity-70">{item.desc}</p>
                         </div>
@@ -401,23 +418,66 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
           </section>
       )}
       {/* --- SECCIÓN FEEDBACK (SOLO BOTÓN) --- */}
+      {/* --- SECCIÓN TESTIMONIOS/RESEÑAS --- */}
       {config.testimonios?.mostrar && (
-      <section className="py-16 px-6 bg-zinc-50 border-y border-zinc-100">
-          <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl font-bold mb-4" style={{ color: textColor }}>
-                  ¿Ya nos visitaste?
-              </h2>
-              <p className="text-zinc-500 mb-8">
-                  Tu opinión es muy importante para nosotros. Cuéntanos cómo fue tu experiencia.
-              </p>
-              
-              <button 
-                onClick={() => setIsFeedbackModalOpen(true)}
-                className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
-                style={{ backgroundColor: brandColor }}
-              >
-                <Star size={20} className="fill-current"/> Dejar mi valoración
-              </button>
+      <section className="py-24 px-6 bg-zinc-50 border-y border-zinc-100">
+          <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12 max-w-3xl mx-auto">
+                <span className="text-sm font-bold uppercase tracking-wider opacity-60 block mb-2">Testimonios</span>
+                <h2 className="text-3xl font-bold mb-4" style={{ color: textColor }}>
+                    Lo que dicen nuestros clientes
+                </h2>
+                <p className="text-zinc-500 mb-8">
+                    La confianza de nuestros clientes es nuestra mejor carta de presentación.
+                </p>
+                <button 
+                    onClick={() => setIsFeedbackModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all text-sm"
+                    style={{ backgroundColor: brandColor }}
+                >
+                    <Star size={18} className="fill-current"/> Dejar mi valoración
+                </button>
+              </div>
+
+              {/* LISTA DE RESEÑAS */}
+              {reviews.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {reviews.map((review) => (
+                        <div key={review.id} className={`p-6 bg-white shadow-sm border border-zinc-100 flex flex-col h-full ${cardRadius}`}>
+                            {/* Estrellas */}
+                            <div className="flex gap-1 mb-4">
+                                {[...Array(5)].map((_, i) => (
+                                    <Star 
+                                        key={i} 
+                                        size={16} 
+                                        className={i < review.puntuacion ? "text-yellow-400 fill-yellow-400" : "text-zinc-200"} 
+                                    />
+                                ))}
+                            </div>
+                            
+                            {/* Comentario */}
+                            <div className="flex-1">
+                                <p className="text-zinc-600 mb-6 italic text-sm leading-relaxed">"{review.comentario}"</p>
+                            </div>
+
+                            {/* Autor */}
+                            <div className="flex items-center gap-3 pt-4 border-t border-zinc-50 mt-auto">
+                                <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-400 text-xs uppercase">
+                                    {review.nombre_cliente?.charAt(0) || "A"}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm text-zinc-900">{review.nombre_cliente || "Anónimo"}</p>
+                                    <p className="text-[10px] text-zinc-400 uppercase font-medium">{new Date(review.created_at).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center text-zinc-400 py-10 italic bg-white rounded-2xl border border-dashed border-zinc-200">
+                    Aún no hay reseñas visibles. ¡Sé el primero en opinar!
+                </div>
+              )}
           </div>
       </section>
       )}

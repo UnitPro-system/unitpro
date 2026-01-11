@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { 
   Users, LayoutDashboard, LogOut, Star, MessageCircle, 
   CreditCard, Settings, Link as LinkIcon, Check, 
-  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User
+  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User, Eye, EyeOff
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar"; 
 
@@ -96,8 +96,20 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
         }
     };
 
-    fetchReviews();
-}, [negocio?.id]); // Se ejecuta cuando carga el negocio
+    fetchReviews();}, [negocio?.id]); // Se ejecuta cuando carga el negocio
+    const toggleVisibility = async (id: string, currentStatus: boolean) => {
+    // 1. Actualizar en Supabase
+    const { error } = await supabase
+        .from('resenas')
+        .update({ visible: !currentStatus })
+        .eq('id', id);
+
+    // 2. Actualizar visualmente en local (para que sea instantáneo)
+    if (!error) {
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, visible: !currentStatus } : r));
+    } else {
+        alert("Error al actualizar: " + error.message);}};
+
 
   // CÁLCULOS ESTADÍSTICOS
   const promedio = resenas.length > 0
@@ -199,7 +211,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
 
             {/* --- OTRAS TABS --- */}
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable leads={leads} /></div>}
-            {activeTab === "resenas" && <ReviewsTab resenas={reviews} />}
+            {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
             
@@ -394,7 +406,7 @@ function StatCard({ title, value, icon, subtext }: any) {
         </div>
     )
 }
-function ReviewsTab({ resenas }: any) {
+function ReviewsTab({ resenas, onToggle }: any) {
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
             <header className="mb-6">
@@ -420,7 +432,7 @@ function ReviewsTab({ resenas }: any) {
                     {resenas.map((review: any) => (
                         <div key={review.id} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
                             {/* Encabezado */}
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-3 pr-8">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-indigo-100">
                                         <User size={18} />
@@ -442,6 +454,16 @@ function ReviewsTab({ resenas }: any) {
                                         />
                                     ))}
                                 </div>
+                            </div>
+                            {/* --- BOTÓN DE VISIBILIDAD (NUEVO) --- */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <button 
+                                    onClick={() => onToggle(review.id, review.visible)}
+                                    className={`p-2 rounded-full transition-colors ${review.visible ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50' : 'text-zinc-400 hover:text-zinc-600 bg-zinc-200'}`}
+                                    title={review.visible ? "Ocultar reseña" : "Mostrar reseña"}
+                                >
+                                    {review.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                                </button>
                             </div>
                             
                             {/* Comentario */}
