@@ -430,7 +430,23 @@ function ReviewsTab({ resenas, onToggle }: any) {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {resenas.map((review: any) => (
-                        <div key={review.id} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+                        <div 
+                            key={review.id} 
+                            // CORRECCIÓN AQUÍ: Agregué 'relative' al principio de las clases
+                            className="relative bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group"
+                        >
+                            {/* --- BOTÓN DE VISIBILIDAD --- */}
+                            {/* Ahora que el padre es relative, este absolute se quedará dentro de la tarjeta */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <button 
+                                    onClick={() => onToggle(review.id, review.visible)}
+                                    className={`p-2 rounded-full transition-colors ${review.visible ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50' : 'text-zinc-400 hover:text-zinc-600 bg-zinc-200'}`}
+                                    title={review.visible ? "Ocultar reseña" : "Mostrar reseña"}
+                                >
+                                    {review.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                                </button>
+                            </div>
+
                             {/* Encabezado */}
                             <div className="flex justify-between items-start mb-3 pr-8">
                                 <div className="flex items-center gap-3">
@@ -454,16 +470,6 @@ function ReviewsTab({ resenas, onToggle }: any) {
                                         />
                                     ))}
                                 </div>
-                            </div>
-                            {/* --- BOTÓN DE VISIBILIDAD (NUEVO) --- */}
-                            <div className="absolute top-4 right-4 z-10">
-                                <button 
-                                    onClick={() => onToggle(review.id, review.visible)}
-                                    className={`p-2 rounded-full transition-colors ${review.visible ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50' : 'text-zinc-400 hover:text-zinc-600 bg-zinc-200'}`}
-                                    title={review.visible ? "Ocultar reseña" : "Mostrar reseña"}
-                                >
-                                    {review.visible ? <Eye size={16} /> : <EyeOff size={16} />}
-                                </button>
                             </div>
                             
                             {/* Comentario */}
