@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu,Maximize2, ChevronLeft,Instagram, Facebook, Linkedin } from "lucide-react";
+import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Globe } from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
@@ -626,7 +626,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             </div>
                         </div>
                         {/* Redes Sociales */}
-                        <div className="flex flex-wrap justify-center gap-6 mb-8">
+                        <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Globe size={20}/></div>
                             <div>
                                 <h4 className="font-bold" style={{ color: textColor }}>Redes Sociales</h4>
                                 {/* INSTAGRAM */}

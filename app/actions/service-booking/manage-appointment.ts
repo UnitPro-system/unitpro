@@ -51,6 +51,40 @@ export async function createAppointment(slug: string, bookingData: any) {
     })
 
     if (error) throw error
+    if (bookingData.clientEmail) {
+      // 1. Buscamos si el cliente ya existe en este negocio específico
+      const { data: clienteExistente } = await supabase
+        .from('turnos')
+        .select('id')
+        .eq('negocio_id', negocio.id)
+        .eq('cliente_email', bookingData.clientEmail)
+        .single() // Devuelve objeto si existe, null si no
+
+      const datosCliente = {
+        negocio_id: negocio.id,
+        cliente_nombre: bookingData.clientName,    // Actualizamos nombre por si hubo corrección
+        cliente_email: bookingData.clientEmail,
+        fecha_inicio: bookingData.start  // Guardamos la fecha de ESTE turno
+        fecha_fin: bookingData.end
+      }
+
+      if (clienteExistente) {
+        // A. EXISTE: Actualizamos sus datos y fecha de última visita
+        await supabase
+          .from('turnos')
+          .update({
+            cliente_nombre: datosCliente.cliente_nombre,
+            fecha_inicio: datosCliente.fecha_inicio
+            fecha_fin: datosCliente.fecha_fin
+          })
+          .eq('id', clienteExistente.id)
+      } else {
+        // B. NO EXISTE: Creamos el perfil nuevo
+        await supabase
+          .from('turnos')
+          .insert(datosCliente)
+      }
+    }
 
     // 5. Revalidate
     revalidatePath('/dashboard') // O la ruta que corresponda
