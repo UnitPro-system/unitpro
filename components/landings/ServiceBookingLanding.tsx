@@ -678,7 +678,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     {/* Si tuvieras una API Key de Maps real podrías usar un iframe, por ahora simulamos con imagen o el link */}
                     <div className="absolute inset-0 bg-zinc-200 flex items-center justify-center text-zinc-400">
                         {negocio.google_maps_link ? (
-                            <iframe width="100%" height="100%" src={negocio.google_maps_link} title="Mapa"></iframe>
+                            <iframe width="100%" height="100%" src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`} title="Mapa"></iframe>
                         ) : (
                             <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50"/>Mapa no disponible</div>
                         )}

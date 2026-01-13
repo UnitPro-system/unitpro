@@ -359,6 +359,23 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle }: any) {
 }
 
 function ClientesTable({ turnos }: any) {
+    const formatearFecha = (isoString: string) => {
+        if (!isoString) return "Sin fecha";
+        try {
+            // Separamos fecha (YYYY-MM-DD) y hora (HH:mm:ss)
+            const [fechaPart, horaPart] = isoString.split('T');
+            
+            // Damos vuelta la fecha: 2026-01-08 -> 08/01/2026
+            const fecha = fechaPart.split('-').reverse().join('/');
+            
+            // Cortamos la hora para que sean solo HH:mm (quitamos segundos y zona horaria)
+            const hora = horaPart ? horaPart.slice(0, 5) : "";
+            
+            return `${fecha} - ${hora}`;
+        } catch (e) {
+            return isoString; // Si falla, devolvemos el original
+        }
+    };
     return (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
             <table className="w-full text-left text-sm">
@@ -371,7 +388,9 @@ function ClientesTable({ turnos }: any) {
                             <td className="px-6 py-4 font-medium">{t.cliente_nombre}</td>
                             <td className="px-6 py-4 font-mono text-zinc-600">{t.cliente_email}</td>
                             <td className="px-6 py-4 text-zinc-500">{t.servicio || "General"}</td>
-                            <td className="px-6 py-4 font-mono text-zinc-600">{t.fecha_inicio || "Sin fecha"}</td>
+                            <td className="px-6 py-4 font-mono text-zinc-600">
+                                {formatearFecha(t.fecha_inicio)}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
