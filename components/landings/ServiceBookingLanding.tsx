@@ -795,7 +795,6 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
                         <h4 className="font-bold text-lg">¿Con quién te quieres atender?</h4>
                         
-                        // SI HAY EQUIPO CONFIGURADO
                         {config.equipo?.mostrar && config.equipo?.items?.length > 0 ? (
                             <div className="grid gap-3">
                                 <button 
@@ -832,7 +831,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 </div>
             )}
             {/* PASO 3 */}
-            {bookingStep === 2 && (
+            {bookingStep === 3 && (
                 <div className="space-y-4">
                      <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
                      <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full p-3 border rounded-xl" onChange={handleDateChange}/>
@@ -847,7 +846,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 </div>
             )}
             {/* PASO 4 */}
-            {bookingStep === 3 && (
+            {bookingStep === 4 && (
                 <form onSubmit={handleConfirmBooking} className="space-y-4">
                      <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
                      <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">

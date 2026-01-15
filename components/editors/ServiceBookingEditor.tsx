@@ -225,10 +225,11 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
     if (!config.sectionOrder || config.sectionOrder.length === 0) {
         const customIds = config.customSections?.map((s:any) => s.id) || [];
         // Define aquí el orden estándar inicial
-        const defaultOrder = ['hero', 'servicios', 'testimonios', ...customIds, 'ubicacion'];
+        const defaultOrder = ['hero', 'servicios', 'testimonios', 'equipo', ...customIds, 'ubicacion'];
         
         updateConfigField('root', 'sectionOrder', defaultOrder);
     }
+    
   }, [config.customSections]);
   const moveSection = (index: number, direction: -1 | 1) => {
       const currentOrder = config.sectionOrder || [];

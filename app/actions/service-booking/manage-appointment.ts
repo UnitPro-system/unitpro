@@ -43,16 +43,6 @@ export async function createAppointment(slug: string, bookingData: any) {
     })
 
     // 4. Guardar en Supabase
-    const { error } = await supabase.from('turnos').insert({
-      negocio_id: negocio.id,
-      cliente_nombre: bookingData.clientName,
-      cliente_email: bookingData.clientEmail,
-      servicio: `${bookingData.service} (con ${bookingData.workerName || 'Staff'})`,
-      fecha_inicio: bookingData.start,
-      fecha_fin: bookingData.end,
-      google_event_id: event.data.id,
-      estado: 'confirmado'
-    })
     const emailNormalizado = bookingData.clientEmail?.trim().toLowerCase();
 
     // A. Buscamos si este cliente ya tiene CUALQUIER registro (usamos ilike y limit 1)
