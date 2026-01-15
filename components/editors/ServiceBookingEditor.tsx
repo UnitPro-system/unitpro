@@ -308,7 +308,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.testimonios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
                         </button>
                     </div>
-
+                    {/* Toggle Equipo */}
                     <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
                         <span className="text-sm font-medium text-zinc-600">Equipo</span>
                         <button 
