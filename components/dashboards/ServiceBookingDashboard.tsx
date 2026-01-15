@@ -24,9 +24,10 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [resenas, setResenas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
 
-  // --- LÓGICA DE DATOS ESPECÍFICOS ---
+  // --- LÓGICA DE DATOS ESPECÍFICOS (CORREGIDA) ---
   useEffect(() => {
     async function cargarDatosEspecificos() {
       setLoading(true);
@@ -34,12 +35,45 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
       // Si viene redirigido de Google, vamos directo al Calendario
       if (searchParams.get('google_connected') === 'true') {
         setActiveTab("calendario"); 
-        // Limpiamos la URL sin recargar
         router.replace(window.location.pathname, { scroll: false });
       }
 
+      // 1. CARGAMOS LA TABLA ÚNICA (TURNOS)
+      // Traemos TODO el historial ordenado por fecha (el más nuevo primero)
+      const { data: datosTurnos } = await supabase
+        .from("turnos")
+        .select("*")
+        .eq("negocio_id", negocio.id)
+        .order('fecha_inicio', { ascending: false }); // IMPORTANTE: Descendente
+        
+      if (datosTurnos) {
+        // A. Para el CALENDARIO: Guardamos todo el historial
+        setTurnos(datosTurnos);
 
-      // 2. Cargar Reseñas
+        // B. Para la PESTAÑA CLIENTES: Filtramos para tener únicos
+        // Este filtro mágico elimina los duplicados basándose en el email
+        const clientesUnicos = datosTurnos.filter((obj: any, index: number, self: any[]) =>
+            index === self.findIndex((t: any) => (
+                // Agregamos .trim() para evitar que "pepito " y "pepito" cuenten como dos distintos
+                t.cliente_email?.trim().toLowerCase() === obj.cliente_email?.trim().toLowerCase() && t.cliente_email
+            ))
+        );
+
+        // C. Adaptamos los datos para la tabla visual (Mapeo de columnas)
+        // La tabla 'ClientesTable' espera 'nombre_cliente', pero 'turnos' tiene 'cliente_nombre'
+        const clientesFormateados = clientesUnicos.map(c => ({
+            ...c,
+            id: c.id,
+            nombre_cliente: c.cliente_nombre, // Mapeamos el nombre
+            // Como 'turnos' no suele guardar teléfono, mostramos el email o el servicio en su lugar
+            telefono_cliente: c.cliente_email || "Sin contacto", 
+            created_at: c.fecha_inicio
+        }));
+
+        setLeads(clientesFormateados);
+      }
+
+      // 2. Cargar Reseñas (Se mantiene igual)
       const { data: datosResenas } = await supabase
         .from("resenas")
         .select("*")
@@ -47,16 +81,6 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
         .order('created_at', { ascending: false });
       if (datosResenas) setResenas(datosResenas);
 
-      // 3. CARGAR TURNOS (Específico de Service Booking)
-      const { data: datosTurnos } = await supabase
-        .from("turnos")
-        .select("*")
-        .eq("negocio_id", negocio.id)
-        .gte("fecha_inicio", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) 
-        .order('fecha_inicio', { ascending: true });
-        
-      if (datosTurnos) setTurnos(datosTurnos);
-      
       setLoading(false);
     }
     cargarDatosEspecificos();
