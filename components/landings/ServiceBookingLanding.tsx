@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Globe } from "lucide-react";
+import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Users, Globe } from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
@@ -30,6 +30,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   service: any | null; // Cambiamos string por el objeto completo o null
   date: string;
   time: string;
+  worker: any | null;
   clientName: string;
   clientPhone: string;
   clientEmail: string;
@@ -39,7 +40,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   time: "", 
   clientName: "", 
   clientPhone: "", 
-  clientEmail: ""
+  clientEmail: "",
+  worker: null,
 });
   const [busySlots, setBusySlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -116,7 +118,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     setLoadingSlots(true);
     
     try {
-        const res = await checkAvailability(negocio.slug, date);
+        const res = await checkAvailability(negocio.slug, date, bookingData.worker?.calendarId);
         if (res.success && res.busy) {
             setBusySlots(res.busy);
         }
@@ -183,7 +185,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         clientPhone: bookingData.clientPhone,
         clientEmail: bookingData.clientEmail,
         start: slotStart.toISOString(),
-        end: slotEnd.toISOString()
+        end: slotEnd.toISOString(),
+        calendarId: bookingData.worker?.calendarId, // Para backend
+        workerName: bookingData.worker?.nombre,
     };
     
     const res = await createAppointment(negocio.slug, payload);
@@ -194,7 +198,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         if ((res as any).eventLink) setEventLink((res as any).eventLink); 
         setMostrarGracias(true);
         setBookingStep(1);
-        setBookingData({ service: "", date: "", time: "", clientName: "", clientPhone: "", clientEmail: "" });
+        setBookingData({ service: null, date: "", time: "", clientName: "", clientPhone: "", clientEmail: "", worker: null });
     } else {
         alert("Error: " + res.error);
     }
@@ -443,6 +447,31 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 </div>
             </div>
           </section>
+      )}
+      {/* --- NUEVA SECCIÓN: EQUIPO --- */}
+      {config.equipo?.mostrar && (
+        <section id="equipo" className="py-24 px-6 bg-zinc-50 border-t border-zinc-200">
+            <div className="max-w-7xl mx-auto text-center mb-12">
+                 <span className="text-sm font-bold uppercase tracking-wider opacity-60">Nuestro Equipo</span>
+                 <h2 className="text-3xl font-bold mt-2 mb-4" style={{ color: textColor }}>{config.equipo.titulo}</h2>
+                 {config.equipo.subtitulo && <p className="text-zinc-500 max-w-2xl mx-auto">{config.equipo.subtitulo}</p>}
+            </div>
+            <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
+                {config.equipo.items?.map((item: any, i: number) => (
+                    <div key={i} className="flex flex-col items-center text-center p-6 bg-white rounded-2xl shadow-sm border border-zinc-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                        <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-zinc-100 border-2 border-white shadow-md">
+                             {item.imagenUrl ? (
+                                <img src={item.imagenUrl} className="w-full h-full object-cover" alt={item.nombre}/>
+                             ) : (
+                                <Users className="w-full h-full p-6 text-zinc-300"/>
+                             )}
+                        </div>
+                        <h3 className="font-bold text-lg" style={{ color: textColor }}>{item.nombre}</h3>
+                        <p className="text-sm text-zinc-500 uppercase tracking-wide font-medium">{item.cargo}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
       )}
       {/* --- SECCIÓN FEEDBACK (SOLO BOTÓN) --- */}
       {/* --- SECCIÓN TESTIMONIOS/RESEÑAS --- */}
@@ -761,7 +790,48 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     )}
                 </div>
             )}
-            {/* PASO 2 */}
+            {bookingStep === 2 && (
+                <div className="space-y-4">
+                        <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
+                        <h4 className="font-bold text-lg">¿Con quién te quieres atender?</h4>
+                        
+                        // SI HAY EQUIPO CONFIGURADO
+                        {config.equipo?.mostrar && config.equipo?.items?.length > 0 ? (
+                            <div className="grid gap-3">
+                                <button 
+                                    onClick={() => { setBookingData({...bookingData, worker: null}); setBookingStep(3); }}
+                                    className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-zinc-50 flex items-center gap-3"
+                                >
+                                    <div className="bg-zinc-100 p-2 rounded-full"><Users size={20}/></div>
+                                    <div>
+                                        <span className="font-bold block text-zinc-900">Cualquiera disponible</span>
+                                        <span className="text-xs text-zinc-500">Máxima disponibilidad</span>
+                                    </div>
+                                </button>
+                                {config.equipo.items.map((worker: any) => (
+                                    <button 
+                                        key={worker.id}
+                                        onClick={() => { setBookingData({...bookingData, worker: worker}); setBookingStep(3); }}
+                                        className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-indigo-50 hover:border-indigo-200 flex items-center gap-3"
+                                    >
+                                        <img src={worker.imagenUrl || "/default-avatar.png"} className="w-10 h-10 rounded-full object-cover bg-zinc-200"/>
+                                        <div>
+                                            <span className="font-bold block text-zinc-900">{worker.nombre}</span>
+                                            <span className="text-xs text-zinc-500">{worker.cargo}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            // SI NO HAY EQUIPO, SALTAMOS AUTOMÁTICAMENTE
+                            <div className="text-center py-4">
+                                <p className="text-zinc-500">No hay profesionales específicos.</p>
+                                <button onClick={() => setBookingStep(3)} className="mt-2 text-blue-600 font-bold">Continuar</button>
+                            </div>
+                        )}
+                </div>
+            )}
+            {/* PASO 3 */}
             {bookingStep === 2 && (
                 <div className="space-y-4">
                      <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
@@ -776,7 +846,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                      )}
                 </div>
             )}
-            {/* PASO 3 */}
+            {/* PASO 4 */}
             {bookingStep === 3 && (
                 <form onSubmit={handleConfirmBooking} className="space-y-4">
                      <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
