@@ -20,14 +20,18 @@ export async function createAppointment(slug: string, bookingData: any) {
     const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
     auth.setCredentials({ refresh_token: negocio.google_refresh_token })
     const calendar = google.calendar({ version: 'v3', auth })
+    const targetCalendarId = bookingData.calendarId || 'primary';
+    const description = `Servicio: ${bookingData.service}\n` +
+                        `Profesional: ${bookingData.workerName || 'Cualquiera'}\n` + // <--- NUEVO
+                        `Cliente: ${bookingData.clientName}\nTel: ${bookingData.clientPhone}`;
 
     // 3. Crear Evento (Tu lógica original estaba bien, la mantenemos)
     // NOTA: Asumimos que bookingData.start ya viene en formato ISO correcto desde el frontend
     const event = await calendar.events.insert({
-      calendarId: 'primary',
+      calendarId: targetCalendarId,
       requestBody: {
         summary: `Turno: ${bookingData.clientName}`,
-        description: `Servicio: ${bookingData.service}\nCliente: ${bookingData.clientName}\nTel: ${bookingData.clientPhone}`,
+        description: description,
         start: { dateTime: bookingData.start, timeZone: 'America/Argentina/Buenos_Aires' },
         end: { dateTime: bookingData.end, timeZone: 'America/Argentina/Buenos_Aires' },
         attendees: bookingData.clientEmail ? [{ email: bookingData.clientEmail }] : [],
@@ -43,29 +47,34 @@ export async function createAppointment(slug: string, bookingData: any) {
       negocio_id: negocio.id,
       cliente_nombre: bookingData.clientName,
       cliente_email: bookingData.clientEmail,
-      servicio: bookingData.service,
+      servicio: `${bookingData.service} (con ${bookingData.workerName || 'Staff'})`,
       fecha_inicio: bookingData.start,
       fecha_fin: bookingData.end,
       google_event_id: event.data.id,
       estado: 'confirmado'
     })
-    const { data: turnoExistente } = await supabase
+    const emailNormalizado = bookingData.clientEmail?.trim().toLowerCase();
+
+    // A. Buscamos si este cliente ya tiene CUALQUIER registro (usamos ilike y limit 1)
+    const { data: turnosExistentes } = await supabase
       .from('turnos')
       .select('id')
       .eq('negocio_id', negocio.id)
-      .eq('cliente_email', bookingData.clientEmail)
-      .maybeSingle() // Usamos maybeSingle para no lanzar error si no existe
+      .ilike('cliente_email', emailNormalizado) // ilike ignora mayúsculas/minúsculas
+      .limit(1) // IMPORTANTE: Si hay duplicados, agarramos solo uno para evitar errores
+
+    const turnoExistente = turnosExistentes && turnosExistentes.length > 0 ? turnosExistentes[0] : null;
 
     if (turnoExistente) {
-      // B. EXISTE: Sobreescribimos con el turno más nuevo
+      // B. EXISTE: Sobreescribimos ese registro con los datos nuevos
       const { error } = await supabase
         .from('turnos')
         .update({
           cliente_nombre: bookingData.clientName,
           servicio: bookingData.service,
-          fecha_inicio: bookingData.start, // Se actualiza a la nueva fecha
+          fecha_inicio: bookingData.start,
           fecha_fin: bookingData.end,
-          google_event_id: event.data.id,  // Actualizamos el ID del evento de Google
+          google_event_id: event.data.id,
           estado: 'confirmado'
         })
         .eq('id', turnoExistente.id)
@@ -77,7 +86,7 @@ export async function createAppointment(slug: string, bookingData: any) {
       const { error } = await supabase.from('turnos').insert({
         negocio_id: negocio.id,
         cliente_nombre: bookingData.clientName,
-        cliente_email: bookingData.clientEmail,
+        cliente_email: bookingData.clientEmail, // Guardamos el original
         servicio: bookingData.service,
         fecha_inicio: bookingData.start,
         fecha_fin: bookingData.end,
@@ -87,8 +96,6 @@ export async function createAppointment(slug: string, bookingData: any) {
 
       if (error) throw error
     }
-
-    if (error) throw error
 
     // 5. Revalidate
     revalidatePath('/dashboard') // O la ruta que corresponda

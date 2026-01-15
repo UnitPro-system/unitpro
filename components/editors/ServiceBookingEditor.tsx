@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown} from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users} from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
@@ -29,6 +29,12 @@ const DEFAULT_CONFIG = {
       { titulo: "Servicio 2", desc: "Descripción breve." },
       { titulo: "Servicio 3", desc: "Descripción breve." }
     ]
+  },
+  equipo: { 
+    mostrar: false, 
+    titulo: "Nuestro Equipo", 
+    subtitulo: "Profesionales expertos a tu disposición",
+    items: [] 
   },
   ubicacion: { mostrar: true },
   testimonios: { mostrar: false, titulo: "Opiniones", items: [] },
@@ -300,6 +306,16 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.testimonios?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.testimonios?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 hover:bg-zinc-50 rounded-lg transition-colors">
+                        <span className="text-sm font-medium text-zinc-600">Equipo</span>
+                        <button 
+                            onClick={() => updateConfigField('equipo', 'mostrar', !config.equipo?.mostrar)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.equipo?.mostrar ? 'bg-indigo-600' : 'bg-zinc-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.equipo?.mostrar ? 'translate-x-6' : 'translate-x-1'}`}/>
                         </button>
                     </div>
 
@@ -693,6 +709,96 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                                         className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
                                     >
                                         <PlusCircle size={18}/> Agregar Servicio
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                    if (sectionId === 'equipo') return (
+                        <div key="equipo" className={getSectionClass('equipo')}>
+                            <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
+                                <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span> Equipo
+                                </h3>
+                                <button onClick={() => updateConfigField('equipo', 'mostrar', !config.equipo?.mostrar)} className="text-zinc-400 hover:text-blue-600">
+                                    {config.equipo?.mostrar ? <Eye size={16}/> : <EyeOff size={16}/>}
+                                </button>
+                            </div>
+                            
+                            {config.equipo?.mostrar && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <input 
+                                        value={config.equipo.titulo} 
+                                        onChange={(e) => updateConfigField('equipo', 'titulo', e.target.value)} 
+                                        className="w-full p-2 border rounded-lg text-sm font-bold bg-zinc-50"
+                                        placeholder="Título (Ej: Nuestro Equipo)"
+                                    />
+                                    <input 
+                                        value={config.equipo.subtitulo || ''} 
+                                        onChange={(e) => updateConfigField('equipo', 'subtitulo', e.target.value)} 
+                                        className="w-full p-2 border rounded-lg text-sm bg-zinc-50"
+                                        placeholder="Subtítulo (Opcional)"
+                                    />
+
+                                    <div className="space-y-3">
+                                        {config.equipo.items?.map((item: any, i: number) => (
+                                            <div key={i} className="p-3 border border-zinc-200 rounded-xl bg-white relative group">
+                                                <button 
+                                                    onClick={() => {
+                                                        const newItems = config.equipo.items.filter((_:any, idx:number) => idx !== i);
+                                                        updateConfigField('equipo', 'items', newItems);
+                                                    }}
+                                                    className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-red-500"
+                                                >
+                                                    <X size={16}/>
+                                                </button>
+
+                                                <div className="flex gap-3 items-start pr-6">
+                                                    <div className="w-12 h-12 shrink-0 bg-zinc-100 rounded-full overflow-hidden">
+                                                        {item.imagenUrl ? <img src={item.imagenUrl} className="w-full h-full object-cover"/> : <Users size={24} className="m-3 text-zinc-300"/>}
+                                                    </div>
+                                                    <div className="space-y-2 flex-1">
+                                                        <input 
+                                                            value={item.nombre} 
+                                                            onChange={(e) => updateArrayItem('equipo', i, 'nombre', e.target.value)} 
+                                                            className="w-full p-1.5 border rounded text-sm font-bold"
+                                                            placeholder="Nombre"
+                                                        />
+                                                        <input 
+                                                            value={item.cargo} 
+                                                            onChange={(e) => updateArrayItem('equipo', i, 'cargo', e.target.value)} 
+                                                            className="w-full p-1.5 border rounded text-xs text-zinc-500"
+                                                            placeholder="Cargo / Rol"
+                                                        />
+                                                        {/* OPCIONAL: ID CALENDARIO */}
+                                                        <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                                                            <label className="text-[9px] font-bold text-blue-800 uppercase block mb-1">ID Calendario (Opcional)</label>
+                                                            <input 
+                                                                value={item.calendarId || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'calendarId', e.target.value)} 
+                                                                className="w-full p-1 bg-white border border-blue-200 rounded text-[10px]"
+                                                                placeholder="Ej: juan@gmail.com o primary"
+                                                            />
+                                                            <p className="text-[9px] text-blue-600 mt-1 leading-tight">Si está vacío usa el calendario principal.</p>
+                                                        </div>
+                                                        <div className="mt-2">
+                                                            <ImageUpload label="Foto" value={item.imagenUrl} onChange={(url) => updateArrayItem('equipo', i, 'imagenUrl', url)} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <button 
+                                        onClick={() => {
+                                            const newItem = { id: Math.random().toString(36).substr(2, 9), nombre: "Nuevo Miembro", cargo: "Profesional", calendarId: "" };
+                                            const newItems = [...(config.equipo.items || []), newItem];
+                                            updateConfigField('equipo', 'items', newItems);
+                                        }}
+                                        className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <PlusCircle size={18}/> Agregar Miembro
                                     </button>
                                 </div>
                             )}

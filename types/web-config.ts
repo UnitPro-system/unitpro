@@ -66,6 +66,20 @@ export interface GallerySection {
   imagenes: GalleryItem[];
 }
 
+export interface WorkerItem {
+  id: string;          // Identificador único (importante para la selección)
+  nombre: string;
+  cargo: string;
+  imagenUrl?: string;
+  calendarId?: string; // ID del calendario de Google específico (opcional)
+}
+
+export interface TeamSection {
+  mostrar: boolean;
+  titulo: string;
+  subtitulo?: string;
+  items: WorkerItem[];
+}
 // Union Type para las secciones personalizadas
 export type CustomSection = AboutSection | GallerySection;
 // --- BLOQUE: FOOTER (PIE DE PÁGINA) ---
@@ -106,6 +120,7 @@ export interface WebConfig {
   // Secciones de la Landing Page
   hero: HeroSection;
   servicios?: ServicesSection;
+  equipo?: TeamSection;
   ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
   footer?: FooterSection;            // Opcional

@@ -8,7 +8,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function checkAvailability(slug: string, dateStr: string) {
+export async function checkAvailability(slug: string, dateStr: string, calendarId?: string) {
   try {
     // 1. Obtener credenciales y configuración del negocio
     const { data: negocio } = await supabase
@@ -39,22 +39,23 @@ export async function checkAvailability(slug: string, dateStr: string) {
     auth.setCredentials({ refresh_token: negocio.google_refresh_token })
     const calendar = google.calendar({ version: 'v3', auth })
 
-    // 4. API Call: FreeBusy (La forma correcta de ver disponibilidad)
+    const targetCalendarId = calendarId || 'primary';
+
     const response = await calendar.freebusy.query({
       requestBody: {
         timeMin,
         timeMax,
         timeZone, 
-        items: [{ id: 'primary' }] // Miramos el calendario principal del dueño
+        items: [{ id: targetCalendarId }] // <--- USAR ID DINÁMICO
       }
     })
 
-    const busyIntervals = response.data.calendars?.['primary']?.busy || []
+    const busyIntervals = response.data.calendars?.[targetCalendarId]?.busy || [] // <--- BUSCAR EN LA KEY CORRECTA
 
     return { success: true, busy: busyIntervals, timeZone }
-
   } catch (error: any) {
     console.error('Error checking availability:', error)
     return { success: false, error: error.message }
   }
 }
+  
