@@ -159,12 +159,12 @@ export async function cancelAppointment(appointmentId: string) {
         }
 
     // 4. Actualizar estado en Supabase
-    const { error: updateError } = await supabase
+    const { error: deleteError } = await supabase
       .from('turnos')
-      .update({ estado: 'cancelado' })
+      .delete() 
       .eq('id', appointmentId)
 
-    if (updateError) throw updateError
+    if (deleteError) throw deleteError
 
     // 5. Revalidar UI
     revalidatePath('/dashboard') 
