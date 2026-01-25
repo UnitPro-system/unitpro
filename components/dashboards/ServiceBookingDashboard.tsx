@@ -250,7 +250,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
             )}
 
             {/* --- OTRAS TABS --- */}
-            {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} /></div>}
+            {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} setContactModal={setContactModal} /></div>}
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
@@ -457,7 +457,10 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
 
                                             {/* AQUÍ PEGAS EL BOTÓN */}
                                             <div onClick={(e) => e.stopPropagation()}>
-                                                <BotonCancelar idTurno={t.id} />
+                                                <BotonCancelar
+                                                    idTurno={t.id}
+                                                    onCancel={() => onCancel(t.id)} 
+                                                />
                                             </div>
                                         </div>
 
