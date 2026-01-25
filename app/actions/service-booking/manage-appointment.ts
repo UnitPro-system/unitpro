@@ -21,6 +21,8 @@ export async function createAppointment(slug: string, bookingData: any) {
     auth.setCredentials({ refresh_token: negocio.google_refresh_token })
     const calendar = google.calendar({ version: 'v3', auth })
     const targetCalendarId = bookingData.calendarId || 'primary';
+    const startDateTime = bookingData.start.replace('Z', '');
+    const endDateTime = bookingData.end.replace('Z', '');
     const description = `Servicio: ${bookingData.service}\n` +
                         `Profesional: ${bookingData.workerName || 'Cualquiera'}\n` + // <--- NUEVO
                         `Cliente: ${bookingData.clientName}\nTel: ${bookingData.clientPhone}`;
@@ -28,13 +30,20 @@ export async function createAppointment(slug: string, bookingData: any) {
     // 3. Crear Evento (Tu lógica original estaba bien, la mantenemos)
     // NOTA: Asumimos que bookingData.start ya viene en formato ISO correcto desde el frontend
     const event = await calendar.events.insert({
-      calendarId: targetCalendarId,
+      calendarId: 'primary',
       requestBody: {
-        summary: `Turno: ${bookingData.clientName}`,
+        summary: `Turno: ${bookingData.clientName} (${bookingData.workerName || 'General'})`,
         description: description,
         start: { dateTime: bookingData.start, timeZone: 'America/Argentina/Buenos_Aires' },
         end: { dateTime: bookingData.end, timeZone: 'America/Argentina/Buenos_Aires' },
         attendees: bookingData.clientEmail ? [{ email: bookingData.clientEmail }] : [],
+        extendedProperties: {
+          shared: {
+            saas_worker_id: bookingData.workerId || '',
+            saas_service_type: 'service_booking'
+          }
+        },
+
         reminders: {
           useDefault: false,
           overrides: [{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 1440 }]
@@ -53,40 +62,63 @@ export async function createAppointment(slug: string, bookingData: any) {
       .ilike('cliente_email', emailNormalizado) // ilike ignora mayúsculas/minúsculas
       .limit(1) // IMPORTANTE: Si hay duplicados, agarramos solo uno para evitar errores
 
+
+    
     const turnoExistente = turnosExistentes && turnosExistentes.length > 0 ? turnosExistentes[0] : null;
-
-    if (turnoExistente) {
-      // B. EXISTE: Sobreescribimos ese registro con los datos nuevos
-      const { error } = await supabase
-        .from('turnos')
-        .update({
-          cliente_nombre: bookingData.clientName,
-          servicio: bookingData.service,
-          fecha_inicio: bookingData.start,
-          fecha_fin: bookingData.end,
-          google_event_id: event.data.id,
-          estado: 'confirmado'
-        })
-        .eq('id', turnoExistente.id)
-      
-      if (error) throw error
-
-    } else {
-      // C. NO EXISTE: Creamos el primer registro
-      const { error } = await supabase.from('turnos').insert({
+    const turnoData = {
         negocio_id: negocio.id,
         cliente_nombre: bookingData.clientName,
-        cliente_email: bookingData.clientEmail, // Guardamos el original
+        cliente_telefono: bookingData.clientPhone,
+        cliente_email: bookingData.clientEmail,
         servicio: bookingData.service,
         fecha_inicio: bookingData.start,
         fecha_fin: bookingData.end,
         google_event_id: event.data.id,
-        estado: 'confirmado'
-      })
+        estado: 'confirmado',
+        // Podrías agregar una columna 'worker_id' en tu tabla turnos si quieres, pero no es estrictamente necesario si ya está en Google
+    };
 
-      if (error) throw error
-    }
 
+
+    const servicioConProfesional = `${bookingData.service} - ${bookingData.workerName || 'Cualquiera'}`;
+    if (turnoExistente) {
+  // B. EXISTE: Sobreescribimos ese registro con los datos nuevos
+
+
+  const { error } = await supabase
+    .from('turnos')
+    .update({
+      cliente_nombre: bookingData.clientName,
+      cliente_telefono: bookingData.clientPhone,
+      servicio: servicioConProfesional,
+      fecha_inicio: bookingData.start,
+      fecha_fin: bookingData.end,
+      google_event_id: event.data.id,
+      estado: 'confirmado',
+      recordatorio_enviado: false // <--- ¡AGREGA ESTA LÍNEA!
+    })
+    .eq('id', turnoExistente.id)
+  
+  if (error) throw error
+
+} else {
+  // C. NO EXISTE: Creamos el primer registro
+  const { error } = await supabase.from('turnos').insert({
+    negocio_id: negocio.id,
+    cliente_nombre: bookingData.clientName,
+    cliente_telefono: bookingData.clientPhone,
+    cliente_email: bookingData.clientEmail,
+    servicio: servicioConProfesional,
+    fecha_inicio: bookingData.start,
+    fecha_fin: bookingData.end,
+    google_event_id: event.data.id,
+    estado: 'confirmado',
+    recordatorio_enviado: false // <--- Buena práctica: asegurarlo también aquí, aunque el default de la DB sea false.
+  })
+
+  if (error) throw error
+}
+    //aca va lo del gmail
     // 5. Revalidate
     revalidatePath('/dashboard') // O la ruta que corresponda
     return { success: true, eventLink: event.data.htmlLink }
