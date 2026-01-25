@@ -1,4 +1,3 @@
-// components/dashboards/ServiceBookingDashboard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,7 +7,9 @@ import {
   Users, LayoutDashboard, LogOut, Star, MessageCircle, 
   CreditCard, Settings, Link as LinkIcon, Check, 
   Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User, Eye, EyeOff,
-  Mail
+  Mail,
+  X,
+  Menu
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar"; 
 
@@ -20,7 +21,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [turnos, setTurnos] = useState<any[]>([]);
   const handleTurnoCancelado = (idEliminado: string) => {
     setTurnos((prev) => prev.filter((t) => t.id !== idEliminado));
@@ -78,7 +79,37 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
       setLoading(false);
     }
     cargarDatosEspecificos();
-  }, [negocio.id, searchParams, router]); 
+  }, [negocio.id, searchParams, router]);
+
+useEffect(() => {
+    const fetchReviews = async () => {
+        if (!negocio?.id) return;
+        
+        const { data, error } = await supabase
+            .from('resenas')
+            .select('*')
+            .eq('negocio_id', negocio.id)
+            .order('created_at', { ascending: false }); // Las más nuevas primero
+
+        if (data) {
+            setReviews(data);
+        }
+    };
+
+    fetchReviews();}, [negocio?.id]); // Se ejecuta cuando carga el negocio
+    const toggleVisibility = async (id: string, currentStatus: boolean) => {
+    // 1. Actualizar en Supabase
+    const { error } = await supabase
+        .from('resenas')
+        .update({ visible: !currentStatus })
+        .eq('id', id);
+
+    // 2. Actualizar visualmente en local (para que sea instantáneo)
+    if (!error) {
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, visible: !currentStatus } : r));
+    } else {
+        alert("Error al actualizar: " + error.message);}};
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -117,35 +148,33 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
     window.location.href = `/api/google/auth?slug=${negocio.slug}`;
   };
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-        if (!negocio?.id) return;
-        
-        const { data, error } = await supabase
-            .from('resenas')
-            .select('*')
-            .eq('negocio_id', negocio.id)
-            .order('created_at', { ascending: false }); // Las más nuevas primero
+  const menuItems = [
+    { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
+    { 
+      id: "calendario", 
+      label: "Calendario", 
+      icon: <CalendarIcon size={18} />, 
+      badge: !negocio.google_calendar_connected ? "!" : undefined 
+    },
+    { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
+    { 
+      id: "resenas", 
+      label: "Reseñas", 
+      icon: <MessageCircle size={18} />, 
+      badge: resenas.length > 0 ? resenas.length : undefined 
+    },
+    { id: "suscripcion", label: "Suscripción", icon: <CreditCard size={18} /> },
+    { id: "configuracion", label: "Configuración", icon: <Settings size={18} /> },
+    { id: "marketing", label: "Marketing", icon: <LinkIcon size={18} /> },
+  ];
 
-        if (data) {
-            setReviews(data);
-        }
-    };
-
-    fetchReviews();}, [negocio?.id]); // Se ejecuta cuando carga el negocio
-    const toggleVisibility = async (id: string, currentStatus: boolean) => {
-    // 1. Actualizar en Supabase
-    const { error } = await supabase
-        .from('resenas')
-        .update({ visible: !currentStatus })
-        .eq('id', id);
-
-    // 2. Actualizar visualmente en local (para que sea instantáneo)
-    if (!error) {
-        setReviews(prev => prev.map(r => r.id === id ? { ...r, visible: !currentStatus } : r));
-    } else {
-        alert("Error al actualizar: " + error.message);}};
-
+  if (loading) return (
+    <div className="h-full w-full flex items-center justify-center bg-white min-h-[500px]">
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"/>
+        </div>
+    </div>
+  );
 
   // CÁLCULOS ESTADÍSTICOS
   const promedio = resenas.length > 0
@@ -168,7 +197,57 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
       
-      {/* SIDEBAR */}
+      {/* --- 2. NAVBAR MÓVIL (Solo visible en md:hidden) --- */}
+      {/* Usamos h-16 (64px) fijo para poder calcular el top del menú después */}
+      <div className="md:hidden bg-white border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
+         <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center text-white font-bold text-sm">
+                {negocio.nombre ? negocio.nombre.substring(0,1) : "N"}
+            </div>
+            <span className="font-bold tracking-tight text-sm truncate max-w-[150px]">{negocio.nombre}</span>
+         </div>
+         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-lg active:scale-95 transition-transform">
+            {mobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
+         </button>
+      </div>
+
+      {/* --- 3. MENÚ DESPLEGABLE MÓVIL (Overlay) --- */}
+      {/* Se posiciona 'fixed' justo debajo del navbar (top-16) */}
+      {mobileMenuOpen && (
+        <>
+            {/* Fondo oscuro transparente para cerrar al hacer click fuera */}
+            <div className="md:hidden fixed inset-0 z-30 bg-black/20 backdrop-blur-sm top-16" onClick={() => setMobileMenuOpen(false)} />
+            
+            {/* El menú en sí */}
+            <div className="md:hidden fixed top-16 left-0 w-full bg-white z-40 border-b border-zinc-200 shadow-2xl p-2 flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
+                {menuItems.map((item) => (
+                    <button 
+                        key={item.id}
+                        onClick={() => {
+                            setActiveTab(item.id as any);
+                            setMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                    >
+                        {/* Clonamos icono para forzar color si está activo */}
+                        {activeTab === item.id ? <div className="text-white">{item.icon}</div> : item.icon}
+                        <span>{item.label}</span>
+                        {item.badge && (
+                        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${item.badge === '!' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
+                            {item.badge}
+                        </span>
+                        )}
+                    </button>
+                ))}
+                <div className="h-px bg-zinc-100 my-1"></div>
+                <button onClick={handleLogout} className="flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium w-full text-left">
+                    <LogOut size={18}/> Cerrar Sesión
+                </button>
+            </div>
+        </>
+      )}
+
+      {/* --- SIDEBAR DE ESCRITORIO (MODIFICADO PARA USAR menuItems) --- */}
       <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">
@@ -179,20 +258,17 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
           </div>
 
           <nav className="space-y-1">
-            <SidebarItem icon={<LayoutDashboard size={18} />} label="General" active={activeTab === "resumen"} onClick={() => setActiveTab("resumen")} />
-            
-            <SidebarItem 
-                icon={<CalendarIcon size={18} />} 
-                label="Calendario" 
-                active={activeTab === "calendario"} 
-                onClick={() => setActiveTab("calendario")}
-                badge={!negocio.google_calendar_connected ? "!" : undefined} 
-            />
-            
-            <SidebarItem icon={<UserCheck size={18} />} label="Clientes" active={activeTab === "clientes"} onClick={() => setActiveTab("clientes")} />
-            <SidebarItem icon={<MessageCircle size={18} />} label="Reseñas" active={activeTab === "resenas"} onClick={() => setActiveTab("resenas")} badge={resenas.length} />
-            <SidebarItem icon={<CreditCard size={18} />} label="Suscripción" active={activeTab === "suscripcion"} onClick={() => setActiveTab("suscripcion")} />
-            <SidebarItem icon={<Settings size={18} />} label="Configuración" active={activeTab === "configuracion"} onClick={() => setActiveTab("configuracion")} />
+            {/* Mapeamos los mismos items para el escritorio */}
+            {menuItems.map((item) => (
+                <SidebarItem 
+                    key={item.id}
+                    icon={item.icon} 
+                    label={item.label} 
+                    active={activeTab === item.id} 
+                    onClick={() => setActiveTab(item.id as any)} 
+                    badge={item.badge}
+                />
+            ))}
           </nav>
         </div>
 
@@ -464,8 +540,25 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                             </div>
                                         </div>
 
+                                        
                                         <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
-                                        <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
+
+                                        {/* LÓGICA PARA SEPARAR SERVICIO Y PROFESIONAL */}
+                                        {t.servicio && t.servicio.includes(" - ") ? (
+                                            <div className="flex flex-col mt-1">
+                                                {/* Línea 1: Servicio */}
+                                                <p className="text-xs font-medium text-zinc-700 truncate">
+                                                    {t.servicio.split(" - ")[0]}
+                                                </p>
+                                                {/* Línea 2: Profesional (con icono) */}
+                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
+                                                    <User size={10}/> {t.servicio.split(" - ")[1]}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            // Fallback por si es un turno viejo sin el formato nuevo
+                                            <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
