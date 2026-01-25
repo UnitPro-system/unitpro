@@ -22,7 +22,9 @@ export async function GET(request: Request) {
     access_type: "offline",
     scope: [
       "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/userinfo.email"
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/gmail.send"
+
     ],
     state: slug || "",
     prompt: "consent",
