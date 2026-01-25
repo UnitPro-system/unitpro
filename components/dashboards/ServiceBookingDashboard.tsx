@@ -61,6 +61,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
         .from("turnos")
         .select("*")
         .eq("negocio_id", negocio.id)
+        .neq('estado', 'cancelado')
         .order('fecha_inicio', { ascending: false }); // IMPORTANTE: Del más nuevo al más viejo
         
       if (datosTurnos) {

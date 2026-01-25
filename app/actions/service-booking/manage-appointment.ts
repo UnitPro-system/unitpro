@@ -161,7 +161,7 @@ export async function cancelAppointment(appointmentId: string) {
     // 4. Actualizar estado en Supabase
     const { error: deleteError } = await supabase
       .from('turnos')
-      .delete() 
+      .update({ estado: 'cancelado' }) 
       .eq('id', appointmentId)
 
     if (deleteError) throw deleteError
