@@ -10,7 +10,6 @@ export interface HeroSection {
   ctaTexto: string;
   imagenUrl?: string; // URL de la imagen de fondo (desde Supabase Storage)
   
-  // --- NUEVOS CAMPOS (Solución al error) ---
   layout?: 'split' | 'full';  // Define si es dividido o pantalla completa
   parallax?: boolean;         // Activa el efecto de movimiento
   overlayOpacity?: number;    // Opacidad del fondo oscuro (0-100)
@@ -31,6 +30,7 @@ export interface ServicesSection {
   items: ServiceItem[]; 
 }
 
+
 export interface ProjectItem {
   titulo: string;
   descripcion: string;
@@ -45,6 +45,7 @@ export interface ProjectsSection {
   subtitulo?: string;
   items: ProjectItem[];
 }
+
 
 // --- BLOQUE: TESTIMONIOS ---
 export interface TestimonialItem {
@@ -94,6 +95,7 @@ export interface TeamSection {
   titulo: string;
   subtitulo?: string;
   items: WorkerItem[];
+  availabilityMode?: 'global' | 'per_worker';
 }
 // Union Type para las secciones personalizadas
 export type CustomSection = AboutSection | GallerySection;

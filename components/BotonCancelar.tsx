@@ -9,6 +9,7 @@ import { Trash2 } from "lucide-react";
 import { cancelAppointment } from "@/app/actions/service-booking/manage-appointment"; 
 
 export function BotonCancelar({ idTurno, onCancel }: { idTurno: string, onCancel?: () => void }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {

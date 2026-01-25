@@ -150,7 +150,23 @@ export default function DashboardAgencia() {
                     items: [{titulo: "Atención Premium", desc: "Nos enfocamos en los detalles."}]
                 }
             };
-        } 
+        }
+        else if (newClientCategory === 'project_portfolio') {
+            initialConfigWeb = {
+                template: "modern",
+                hero: { 
+                    titulo: newClientData.nombre, 
+                    subtitulo: "Explora nuestro portafolio de proyectos.", 
+                    ctaTexto: "Ver Proyectos", 
+                    mostrar: true 
+                },
+                beneficios: { 
+                    mostrar: true, 
+                    titulo: "Por qué elegirnos", 
+                    items: [{titulo: "Experiencia", desc: "Proyectos exitosos en todo el país."}]
+                }
+            };
+        }
         // Aquí agregarás 'else if (newClientCategory === 'restaurant_menu')' en el futuro...
 
         // 2. Insertar en Base de Datos
@@ -297,6 +313,13 @@ export default function DashboardAgencia() {
                                 className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'service_booking' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
                             >
                                 <span></span> Citas / Servicios
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setNewClientCategory('project_portfolio')}
+                                className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'project_portfolio' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
+                            >
+                                <span></span> Project / Portfolio
                             </button>
                             
                         </div>
