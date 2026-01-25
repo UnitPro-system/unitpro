@@ -10,6 +10,10 @@ const ServiceBookingLanding = dynamic(() => import("@/components/landings/Servic
   loading: () => <LoadingScreen />,
 });
 
+const ProjectLanding = dynamic(() => import("@/components/landings/ProjectLanding"), {
+  loading: () => <LoadingScreen />,
+});
+
 // Futuro: const RestaurantLanding = dynamic(() => import("@/components/landings/RestaurantLanding"));
 
 export default function LandingFactory({ initialData }: { initialData: any }) {
@@ -21,8 +25,8 @@ export default function LandingFactory({ initialData }: { initialData: any }) {
     case 'service_booking':
       return <ServiceBookingLanding initialData={initialData} />;
     
-    case 'restaurant_menu':
-      return <div>Próximamente: Restaurante</div>; // <RestaurantLanding initialData={initialData} />
+    case 'project_portfolio':
+      return <ProjectLanding initialData={initialData} />;
       
     case 'retail_store':
       return <div>Próximamente: Tienda</div>;

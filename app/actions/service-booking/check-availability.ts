@@ -98,7 +98,7 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
                 // c) Bloqueo de OTRO Profesional
                 // El evento es de "Juan", yo busco a "Pedro". No me bloquea.
                 return false;
-              }
+            }
         })
         .map(event => ({
             start: event.start?.dateTime || event.start?.date,

@@ -1,5 +1,6 @@
 "use client";
-import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor"; // El archivo que acabas de renombrar
+import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor";
+import ProjectEditor from "@/components/editors/ProjectEditor"
 import { AlertTriangle } from "lucide-react";
 
 interface Props {
@@ -16,6 +17,9 @@ export default function WebEditorFactory({ negocio, onClose, onSave }: Props) {
     return <ServiceBookingEditor negocio={negocio} onClose={onClose} onSave={onSave} />;
   }
 
+  if (negocio.category === 'project_portfolio') {
+     return <ProjectEditor negocio={negocio} onClose={onClose} onSave={onSave} />;
+  }
   // 2. Si es cualquier otro tipo futuro, mostramos un aviso por ahora
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
