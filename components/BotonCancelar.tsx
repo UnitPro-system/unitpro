@@ -1,13 +1,15 @@
 "use client"; 
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react"; 
 
 // IMPORTANTE: Aquí corregimos la ruta roja. 
 // Asumiendo que tu archivo está en app/actions/agendar-turno.ts
 import { cancelAppointment } from "@/app/actions/service-booking/manage-appointment"; 
 
-export function BotonCancelar({ idTurno }: { idTurno: string }) {
+export function BotonCancelar({ idTurno, onCancel }: { idTurno: string, onCancel?: () => void }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
@@ -20,8 +22,10 @@ export function BotonCancelar({ idTurno }: { idTurno: string }) {
     if (!res.success) {
       alert("Error: " + res.error);
       setLoading(false);
+    } else {
+      if (onCancel) onCancel(); 
+      setLoading(false);
     }
-    // Si es exitoso, no hacemos nada más; revalidatePath refresca la lista solo.
   };
 
   return (

@@ -22,6 +22,9 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const supabase = createClient();
 
   const [turnos, setTurnos] = useState<any[]>([]);
+  const handleTurnoCancelado = (idEliminado: string) => {
+    setTurnos((prev) => prev.filter((t) => t.id !== idEliminado));
+    };
   const [resenas, setResenas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -241,7 +244,8 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
                 <CalendarTab 
                     negocio={negocio} 
                     turnos={turnos} 
-                    handleConnectGoogle={handleConnectGoogle} 
+                    handleConnectGoogle={handleConnectGoogle}
+                    onCancel={handleTurnoCancelado} 
                 />
             )}
 
@@ -302,8 +306,36 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
 // Para ahorrar espacio en la respuesta, asumo que copiarás las funciones auxiliares al final de este archivo.
 // Asegúrate de exportar o definir CalendarTab, ClientesTable, etc. aquí dentro.
 
-function CalendarTab({ negocio, turnos, handleConnectGoogle }: any) {
+function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const supabase = createClient(); 
+    const router = useRouter();
+
+    const handleDisconnect = async () => {
+        const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
+        
+        if (!confirmacion) return;
+
+        try {
+            // Limpiamos los tokens y el estado en Supabase
+            const { error } = await supabase
+                .from('negocios')
+                .update({
+                    google_calendar_connected: false,
+                    google_access_token: null,
+                    google_refresh_token: null,
+                    // google_watch_id: null // Descomenta si usas webhooks
+                })
+                .eq('id', negocio.id);
+
+            if (error) throw error;
+
+            // Recargamos la página para actualizar el estado visual
+            window.location.reload(); 
+        } catch (error: any) {
+            alert("Error al desconectar: " + error.message);
+        }
+    };
 
     if (!negocio.google_calendar_connected) {
         return (
@@ -601,7 +633,34 @@ function ReviewsTab({ resenas, onToggle }: any) {
 function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
     return (<div className="p-6 text-center text-zinc-400 bg-white rounded-2xl border border-zinc-200">Panel de Suscripción (simplificado)</div>);
 }
-function ConfigTab({ negocio, handleConnectGoogle }: any) { 
+function ConfigTab({ negocio, handleConnectGoogle }: any) {
+    const supabase = createClient();
+
+    const handleDisconnect = async () => {
+        const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
+        
+        if (!confirmacion) return;
+
+        try {
+            // Limpiamos los tokens y el estado en Supabase
+            const { error } = await supabase
+                .from('negocios')
+                .update({
+                    google_calendar_connected: false,
+                    google_access_token: null,
+                    google_refresh_token: null,
+                    // google_watch_id: null // Descomenta si usas webhooks
+                })
+                .eq('id', negocio.id);
+
+            if (error) throw error;
+
+            // Recargamos la página para actualizar el estado visual
+            window.location.reload(); 
+        } catch (error: any) {
+            alert("Error al desconectar: " + error.message);
+        }
+    }; 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
             <header className="mb-8"><h1 className="text-2xl font-bold">Integraciones</h1></header>
@@ -616,6 +675,12 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                 </div>
                 <button onClick={handleConnectGoogle} disabled={negocio.google_calendar_connected} className={`px-4 py-2 rounded-lg text-sm font-bold ${negocio.google_calendar_connected ? "bg-zinc-100 text-zinc-400" : "bg-blue-600 text-white"}`}>
                     {negocio.google_calendar_connected ? "Listo" : "Conectar"}
+                </button>
+                <button 
+                            onClick={handleDisconnect}
+                            className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                        >
+                             (Desconectar)
                 </button>
             </div>
         </div>
