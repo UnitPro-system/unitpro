@@ -2,71 +2,36 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu,Maximize2 } from "lucide-react";
+import { 
+  X, Star, MessageCircle, ArrowRight, Loader2, 
+  Menu, Maximize2, ExternalLink, Github, Linkedin, Mail, CheckCircle, ArrowDown 
+} from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
 import type { WebConfig } from "@/types/web-config";
-import { checkAvailability } from "@/app/actions/service-booking/check-availability"; 
-import { createAppointment } from "@/app/actions/service-booking/manage-appointment"; 
 
-export default function LandingCliente({ initialData }: { initialData: any }) {
+interface ProjectItem {
+  titulo: string; descripcion: string; imagenUrl: string; tags?: string[]; linkVerMas?: string;
+}
+
+export default function PortfolioLanding({ initialData }: { initialData: any }) {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const isEditorMode = searchParams.get('editor') === 'true';
 
   const [negocio, setNegocio] = useState<any>(initialData);
-  const [eventLink, setEventLink] = useState(""); 
-  
-  // --- MODALES ---
-  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
 
-  // --- ESTADO WIZARD (AGENDAMIENTO) ---
-  const [bookingStep, setBookingStep] = useState(1);
-  const [bookingData, setBookingData] = useState<{
-  service: any | null; // Cambiamos string por el objeto completo o null
-  date: string;
-  time: string;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
-}>({
-  service: null, 
-  date: "", 
-  time: "", 
-  clientName: "", 
-  clientPhone: "", 
-  clientEmail: ""
-});
-  const [busySlots, setBusySlots] = useState<any[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  
-  // --- ESTADOS GENERALES ---
+  // --- MODALES ---
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // --- ESTADOS FORMULARIO ---
   const [nombreCliente, setNombreCliente] = useState(""); 
-  const [feedbackComentario, setFeedbackComentario] = useState("");
-  const [ratingSeleccionado, setRatingSeleccionado] = useState(0);
+  const [mensajeCliente, setMensajeCliente] = useState("");
+  const [emailCliente, setEmailCliente] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [mostrarGracias, setMostrarGracias] = useState(false);
-  const [reviews, setReviews] = useState<any[]>([]);
-  
-  // Mostrar valoraciones
-  useEffect(() => {
-    const fetchReviews = async () => {
-        if (!negocio?.id) return;
-        const { data } = await supabase
-            .from('resenas')
-            .select('*')
-            .eq('negocio_id', negocio.id)
-            .eq('visible', true) // <--- AGREGAR ESTA LÍNEA
-            .order('created_at', { ascending: false });
-        
-        if (data) setReviews(data);
-    };
-    fetchReviews();
-  }, [negocio?.id]);
 
   // --- LISTENER DEL EDITOR ---
   useEffect(() => {
@@ -82,169 +47,44 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  // --- LÓGICA DE HORARIOS ---
-  const getBusinessHours = () => {
-    if (!negocio.horarios) return { start: 9, end: 18 }; 
-    try {
-        const times = negocio.horarios.match(/(\d{2}):(\d{2})/g);
-        if (times && times.length >= 2) {
-            const startHour = parseInt(times[0].split(':')[0]);
-            const endHour = parseInt(times[1].split(':')[0]);
-            return { start: startHour, end: endHour };
-        }
-    } catch(e) {}
-    return { start: 9, end: 18 }; 
-  };
-
-  const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value;
-    setBookingData({...bookingData, date, time: ""}); 
-    setBusySlots([]); 
-    setLoadingSlots(true);
-    
-    try {
-        const res = await checkAvailability(negocio.slug, date);
-        if (res.success && res.busy) {
-            setBusySlots(res.busy);
-        }
-    } catch (error) {
-        console.error("Error:", error);
-    } finally {
-        setLoadingSlots(false);
-    }
-  };
-
-  const generateTimeSlots = () => {
-    const { start, end } = getBusinessHours();
-    const slots = [];
-    
-    // USAMOS LA DURACIÓN DEL SERVICIO SELECCIONADO (o 60 min por defecto)
-    const serviceDuration = bookingData.service?.duracion || 60; 
-    
-    // Intervalo entre turnos (puedes dejarlo fijo en 30 o 60, o igual a la duración)
-    // Para mayor flexibilidad, sugiero intervalos de 30 min aunque el turno dure 60.
-    const INTERVAL_STEP = 30; 
-
-    for (let hour = start; hour < end; hour++) {
-        // Generamos slots cada 30 min (o lo que definas en INTERVAL_STEP)
-        for (let min = 0; min < 60; min += INTERVAL_STEP) {
-            
-            const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-            
-            // Calculamos INICIO y FIN basados en la duración del servicio
-            const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
-            const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
-
-            // Verificamos si choca con algún turno ocupado (busySlots)
-            const isBusy = busySlots.some((busy: any) => {
-                const busyStart = new Date(busy.start);
-                const busyEnd = new Date(busy.end);
-                // Lógica de colisión de rangos
-                return (slotStart < busyEnd && slotEnd > busyStart);
-            });
-            
-            // Verificar que el turno no termine después de la hora de cierre
-            const closingTime = new Date(`${bookingData.date}T${end}:00:00`);
-            
-            if (!isBusy && slotEnd <= closingTime) {
-                slots.push({ time: timeString, available: true });
-            }
-        }
-    }
-    return slots;
-  };
-
-  const handleConfirmBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // --- LÓGICA CONTACTO ---
+  const handleContactar = async (e: React.FormEvent) => {
+    e.preventDefault(); 
     setEnviando(true);
     
-    const serviceDuration = bookingData.service?.duracion || 60;
-    const slotStart = new Date(`${bookingData.date}T${bookingData.time}:00`);
-    const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
-
-    const payload = {
-        service: bookingData.service?.titulo, // Enviamos el nombre string al backend
-        date: bookingData.date,
-        time: bookingData.time,
-        clientName: bookingData.clientName,
-        clientPhone: bookingData.clientPhone,
-        clientEmail: bookingData.clientEmail,
-        start: slotStart.toISOString(),
-        end: slotEnd.toISOString()
-    };
-    
-    const res = await createAppointment(negocio.slug, payload);
-    
-    setEnviando(false);
-    if (res.success) {
-        setIsBookingModalOpen(false);
-        if ((res as any).eventLink) setEventLink((res as any).eventLink); 
-        setMostrarGracias(true);
-        setBookingStep(1);
-        setBookingData({ service: "", date: "", time: "", clientName: "", clientPhone: "", clientEmail: "" });
-    } else {
-        alert("Error: " + res.error);
-    }
-  };
-
-  // --- LÓGICA FEEDBACK / LEAD ---
-  const handleEnviarFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (ratingSeleccionado === 0) return alert("Por favor, selecciona una puntuación.");
-    setEnviando(true);
-
-    // 1. Guardamos SIEMPRE en tu base de datos (para tu control interno)
-    const { error } = await supabase.from("resenas").insert([{
-        negocio_id: negocio.id,
-        puntuacion: ratingSeleccionado,
-        comentario: feedbackComentario,
-        nombre_cliente: nombreCliente || "Anónimo"
+    const { error } = await supabase.from("leads").insert([{ 
+        negocio_id: negocio.id, 
+        nombre_cliente: nombreCliente, 
+        email_cliente: emailCliente,
+        mensaje: mensajeCliente,
+        estado: "nuevo",
+        origen: "portfolio_contact"
     }]);
 
     setEnviando(false);
-    
+
     if (!error) {
-        setIsFeedbackModalOpen(false); // Cerramos modal
-        
-        // 2. LÓGICA DE REDIRECCIÓN INTELIGENTE
-        if (ratingSeleccionado >= 4 && negocio.google_maps_link) {
-            // Clientes felices (4 o 5) -> Los invitamos a Google Maps
-            const irAGoogle = window.confirm("¡Muchas gracias por tu calificación!\n\n¿Te gustaría ayudarnos publicando esto mismo en Google Maps?");
-            if(irAGoogle) {
-                 window.open(negocio.google_maps_link, '_blank');
-            }
-        } else {
-            // Clientes insatisfechos (1, 2 o 3) -> Solo agradecemos (feedback privado)
-            alert("Gracias por tu opinión. Trabajaremos para mejorar nuestro servicio.");
+        const text = `Hola, vi tu portfolio y me interesa un proyecto. Soy ${nombreCliente}. ${mensajeCliente}`;
+        // Abrir WhatsApp en pestaña nueva
+        if (negocio.whatsapp) {
+            window.open(`https://wa.me/${negocio.whatsapp}?text=${encodeURIComponent(text)}`, '_blank');
         }
-
-        // Limpiamos el formulario
-        setFeedbackComentario(""); 
-        setRatingSeleccionado(0); 
-        setNombreCliente("");
+        
+        setIsContactModalOpen(false);
+        setNombreCliente(""); setEmailCliente(""); setMensajeCliente("");
+        alert("¡Mensaje enviado correctamente!");
     } else {
-        alert("Hubo un error al guardar. Intenta nuevamente.");
+        alert("Error al enviar. Por favor intenta contactarme directamente.");
     }
-  };
-
-  const handleConsultar = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setEnviando(true);
-    await supabase.from("leads").insert([{ negocio_id: negocio.id, nombre_cliente: nombreCliente, telefono_cliente: "No especificado", estado: "nuevo" }]);
-    window.open(`https://wa.me/${negocio.whatsapp}?text=${encodeURIComponent(`Hola, soy ${nombreCliente}, consulta...`)}`, '_blank');
-    setEnviando(false); setIsLeadModalOpen(false); setNombreCliente("");
   };
 
   // --- UX HELPERS ---
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
     const element = document.getElementById(id);
-    if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
-  // --- CONFIG VISUAL ---
   const handleEditClick = (e: React.MouseEvent, sectionName: string) => {
     if (!isEditorMode) return; 
     e.preventDefault(); e.stopPropagation();
@@ -252,62 +92,39 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   };
   
   const editableClass = isEditorMode ? "cursor-pointer hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2 transition-all duration-200 rounded-lg relative z-50" : "";
+  
+  // --- CONFIGURACIÓN VISUAL ---
   const rawConfig = negocio?.config_web || {};
   const appearance = rawConfig.appearance || { font: 'sans', radius: 'medium' };
   
-  // Tailwind dinámico
   const fontClass = { 'sans': 'font-sans', 'serif': 'font-serif', 'mono': 'font-mono' }[appearance.font as string] || 'font-sans';
   const radiusClass = { 'none': 'rounded-none', 'medium': 'rounded-2xl', 'full': 'rounded-[2.5rem]' }[appearance.radius as string] || 'rounded-2xl';
   const btnRadius = { 'none': 'rounded-none', 'medium': 'rounded-xl', 'full': 'rounded-full' }[appearance.radius as string] || 'rounded-xl';
-  const cardRadius = { 'none': 'rounded-none', 'medium': 'rounded-2xl', 'full': 'rounded-[2.5rem]' }[appearance.radius as string] || 'rounded-2xl';
-  const buttonRadius = { 'none': 'rounded-none', 'medium': 'rounded-xl', 'full': 'rounded-full' }[appearance.radius as string] || 'rounded-xl';
+  
   const config: WebConfig = {
     logoUrl: rawConfig.logoUrl || negocio.logo_url,
     template: rawConfig.template || "modern",
     colors: { primary: negocio?.color_principal || "#000000", ...rawConfig.colors },
-    hero: { mostrar: true, layout: 'split', ...rawConfig.hero },
-    servicios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.servicios },
-    testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
-    ubicacion: { mostrar: true, ...rawConfig.ubicacion },
-    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright,
-        redesSociales: {
-            instagram: negocio.instagram, 
-            facebook: negocio.facebook,   
-            linkedin: negocio.linkedin,  
-            whatsapp: negocio.whatsapp}, ...rawConfig.footer },
+    hero: { mostrar: true, layout: 'full', overlayOpacity: 50, ...rawConfig.hero },
+    proyectos: { mostrar: true, titulo: "Proyectos Destacados", items: [], ...rawConfig.proyectos },
+    testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Testimonios", items: [] },
+    footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright, redesSociales: { ...rawConfig.footer?.redesSociales, whatsapp: negocio.whatsapp } },
     customSections: rawConfig.customSections || [],
     sectionOrder: rawConfig.sectionOrder
   };
 
-  const defaultOrder = [
-      'hero', 
-      'servicios', 
-      ...(config.customSections?.map((s:any) => s.id) || []), 
-      'testimonios',
-      'ubicacion'
-  ];
-
-  // Este es el array final que usaremos para pintar
-  const activeOrder = config.sectionOrder && config.sectionOrder.length > 0 
-      ? config.sectionOrder 
-      : defaultOrder;
-  
   const brandColor = config.colors.primary;
-  const secondaryColor = config.colors.secondary || "#ffffff"; // Color de Fondo
+  const secondaryColor = config.colors.secondary || "#ffffff";
   const textColor = config.colors.text || "#1f2937";
-  const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200";
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  
+  const heroImage = config.hero.imagenUrl || negocio.imagen_url || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1920";
+
   return (
-    <div 
-    className={`min-h-screen pb-0 overflow-x-hidden ${fontClass}`}
-    style={{ backgroundColor: secondaryColor, color: textColor }}>
+    <div className={`min-h-screen pb-0 overflow-x-hidden ${fontClass}`} style={{ backgroundColor: secondaryColor, color: textColor }}>
       
-      {/* --- NAVBAR DE NAVEGACIÓN --- */}
-      <nav className="fixed top-0 left-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100 transition-all duration-300">
+      {/* --- NAVBAR --- */}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-zinc-100 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
             
-            {/* Logo o Nombre (Izquierda) */}
             <div onClick={(e) => handleEditClick(e, 'identity')} className={`cursor-pointer ${editableClass}`}>
                 {config.logoUrl ? (
                     <img src={config.logoUrl} alt="Logo" className="h-10 object-contain" />
@@ -316,228 +133,173 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 )}
             </div>
 
-            {/* Menú Desktop */}
             <div className="hidden md:flex items-center gap-8">
                 <button onClick={() => scrollToSection('inicio')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Inicio</button>
-                {config.servicios?.mostrar && (
-                <button onClick={() => scrollToSection('servicios')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Servicios</button>
+                {config.proyectos?.mostrar && (
+                    <button onClick={() => scrollToSection('proyectos')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Portafolio</button>
                 )}
-                {config.ubicacion?.mostrar && (
-                <button onClick={() => scrollToSection('ubicacion')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Dónde estamos</button>
-                )}
-                <button onClick={() => scrollToSection('contacto')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Contacto</button>
-                
+                {/* Botón CTA Navbar */}
                 <button 
-                    onClick={() => setIsBookingModalOpen(true)} 
-                    className={`px-5 py-2.5 text-white font-bold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all ${btnRadius}`}
+                    onClick={() => setIsContactModalOpen(true)} 
+                    className={`px-6 py-2.5 text-white font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all ${btnRadius}`} 
                     style={{ backgroundColor: brandColor }}
                 >
-                    Reservar Turno
+                    Contactar
                 </button>
             </div>
 
-            {/* Menú Móvil Toggle */}
             <button className="md:hidden p-2 text-zinc-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X/> : <Menu/>}
             </button>
         </div>
-
-        {/* Menú Móvil Dropdown */}
+        
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-zinc-100 p-6 flex flex-col gap-4 shadow-xl">
-                <button onClick={() => scrollToSection('inicio')} className="text-left font-medium text-zinc-600 py-2">Inicio</button>
-                {config.servicios?.mostrar && (
-                <button onClick={() => scrollToSection('servicios')} className="text-left font-medium text-zinc-600 py-2">Servicios</button>
-                )}
-                {config.ubicacion?.mostrar && (
-                <button onClick={() => scrollToSection('ubicacion')} className="text-left font-medium text-zinc-600 py-2">Dónde estamos</button>
-                )}
-                <button onClick={() => scrollToSection('contacto')} className="text-left font-medium text-zinc-600 py-2">Contacto</button>
-                <button onClick={() => {setIsBookingModalOpen(true); setMobileMenuOpen(false)}} className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl mt-2">Reservar Turno</button>
+             <div className="md:hidden bg-white border-t p-6 flex flex-col gap-4 shadow-xl">
+                <button onClick={() => scrollToSection('inicio')} className="text-left font-medium p-2">Inicio</button>
+                <button onClick={() => scrollToSection('proyectos')} className="text-left font-medium p-2">Portafolio</button>
+                <button onClick={() => {setIsContactModalOpen(true); setMobileMenuOpen(false)}} className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl">Contactar</button>
             </div>
         )}
       </nav>
 
-      {/* --- HERO SECTION --- */}
+      {/* --- HERO SECTION (FULL SCREEN PROFESSIONAL) --- */}
       <header id="inicio" className="relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden" onClick={(e) => handleEditClick(e, 'hero')}>
          
-         {/* Fondo con Overlay */}
+         {/* Fondo Imagen Full */}
          <div className="absolute inset-0 w-full h-full z-0">
-            <img src={heroImage} className="w-full h-full object-cover" alt="Fondo"/>
-            <div className="absolute inset-0 bg-black transition-all duration-300" style={{ opacity: (config.hero.overlayOpacity || 50) / 100 }}></div>
+             <img src={heroImage} className="w-full h-full object-cover" alt="Hero Background"/>
+             {/* Overlay oscuro configurable */}
+             <div className="absolute inset-0 bg-black transition-all duration-300" style={{ opacity: (config.hero.overlayOpacity || 50) / 100 }}></div>
          </div>
 
-         {/* Contenido Central */}
-         <div className={`relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-6 ${editableClass}`}>
+         {/* Contenido Hero Glassmorphism */}
+         <div className={`relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-8 ${editableClass}`}>
             
-            {/* Logo en el Hero (Condicional si se desea repetir o si no está en nav) */}
-            {config.logoUrl && (
-                <div className="w-24 h-24 md:w-32 md:h-32 bg-white/10 backdrop-blur-md rounded-full p-4 mb-4 flex items-center justify-center shadow-2xl border border-white/20">
-                     <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-md"/>
-                </div>
-            )}
+            {/* Logo opcional en Hero para branding fuerte */}
+            {/* <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 mb-4 shadow-2xl">
+                <img src={config.logoUrl || "/file.svg"} className="w-10 h-10 invert opacity-90"/>
+            </div> */}
 
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-700">
-                <SafeHTML as="h1" html={config.hero.titulo} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 drop-shadow-lg" />
-                <SafeHTML as="p" html={config.hero.subtitulo} className="text-lg md:text-xl text-zinc-200 max-w-2xl mx-auto mb-8 leading-relaxed" />
+            <div className="animate-in slide-in-from-bottom-8 fade-in duration-700">
+                <SafeHTML as="h1" html={config.hero.titulo} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight drop-shadow-xl" />
+                <SafeHTML as="p" html={config.hero.subtitulo} className="text-lg md:text-xl text-zinc-200 max-w-2xl mx-auto mb-10 leading-relaxed font-light" />
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button 
-                        onClick={() => setIsBookingModalOpen(true)} 
-                        className={`w-full sm:w-auto px-8 py-4 text-white font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 ${btnRadius}`} 
-                        style={{ backgroundColor: brandColor }}
+                        onClick={() => scrollToSection('proyectos')} 
+                        className={`px-8 py-4 bg-white text-zinc-900 font-bold text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center gap-2 ${btnRadius}`}
                     >
-                        <CalendarIcon size={20}/> {config.hero.ctaTexto || "Reservar Turno"}
+                        Ver Proyectos <ArrowDown size={20}/>
                     </button>
-                    <button onClick={() => scrollToSection('servicios')} className="text-white hover:text-zinc-200 font-medium px-6 py-3 transition-colors">
-                        Ver Servicios
+                    <button 
+                        onClick={() => setIsContactModalOpen(true)} 
+                        className={`px-8 py-4 text-white border border-white/30 backdrop-blur-sm hover:bg-white/10 font-bold text-lg transition-all ${btnRadius}`}
+                    >
+                        {config.hero.ctaTexto || "Solicitar Presupuesto"}
                     </button>
                 </div>
             </div>
          </div>
+         
+         {/* Scroll Indicator */}
+         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 animate-bounce cursor-pointer" onClick={() => scrollToSection('proyectos')}>
+            <ArrowDown size={32} />
+         </div>
       </header>
 
-      {/* --- SERVICIOS --- */}
-      {config.servicios?.mostrar && (
-          // Quitamos bg-zinc-50 para que se vea tu color de fondo secundario
-          <section id="servicios" className="py-24 px-6" onClick={(e) => handleEditClick(e, 'servicios')}>
+      {/* --- SECCIÓN PROYECTOS (GRID ELEGANTE) --- */}
+      {config.proyectos?.mostrar && (
+          <section id="proyectos" className="py-28 px-6 bg-zinc-50" onClick={(e) => handleEditClick(e, 'proyectos')}>
             <div className={`max-w-7xl mx-auto ${editableClass}`}>
-                {config.servicios?.titulo && (
-                    <div className="text-center mb-16">
-                        <span className="text-sm font-bold uppercase tracking-wider opacity-60">Lo que hacemos</span>
-                        {/* Usamos 'inherit' en el color para respetar tu configuración */}
-                        <h2 className="text-3xl md:text-4xl font-bold mt-2" style={{ color: textColor }}>{config.servicios.titulo}</h2>
-                        <div className="w-20 h-1.5 mt-4 mx-auto rounded-full" style={{ backgroundColor: brandColor }}></div>
-                    </div>
-                )}
+                <div className="mb-20 text-center">
+                    <span className="text-sm font-bold uppercase tracking-wider opacity-60 block mb-3" style={{ color: brandColor }}>Nuestra Experiencia</span>
+                    <h2 className="text-4xl md:text-5xl font-bold" style={{ color: textColor }}>{config.proyectos.titulo}</h2>
+                    <div className="w-24 h-1.5 mx-auto mt-6 rounded-full" style={{ backgroundColor: brandColor }}></div>
+                </div>
                 
-                <div className="grid md:grid-cols-3 gap-8">
-                    {config.servicios?.items?.map((item:any, i:number) => (
-                        // Quitamos bg-white y agregamos un borde sutil con transparencia para que funcione en fondos oscuros y claros
-                        <div key={i} className={`p-8 border border-zinc-500/10 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                            <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: brandColor }}>
-                                <CheckCircle size={28}/>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    {config.proyectos?.items?.map((item: ProjectItem, i: number) => (
+                        <div key={i} className={`group bg-white shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col overflow-hidden border border-zinc-100 ${radiusClass}`}>
+                            {/* Imagen con Overlay al Hover */}
+                            <div 
+                                className="relative aspect-[4/3] overflow-hidden cursor-pointer"
+                                onClick={() => setSelectedImage(item.imagenUrl)}
+                            >
+                                <img src={item.imagenUrl} alt={item.titulo} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                    <span className="text-white font-medium flex items-center gap-2 border border-white/50 px-4 py-2 rounded-full hover:bg-white hover:text-black transition-colors">
+                                        <Maximize2 size={16}/> Ampliar
+                                    </span>
+                                </div>
                             </div>
-                            <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
-                            <p className="leading-relaxed opacity-70">{item.precio}</p>
-                            <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400">
-                                    <Clock size={12} />
-                                    <span>{item.duracion || "Indeterminado"} min</span>
-                                    </div>
-                            <p className="leading-relaxed opacity-70">{item.desc}</p>
+
+                            {/* Contenido Card */}
+                            <div className="p-8 flex flex-col flex-1">
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {item.tags?.map((tag, t) => (
+                                        <span key={t} className="text-[10px] uppercase tracking-wider font-bold px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full border border-zinc-200">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                                <h3 className="font-bold text-2xl mb-3 group-hover:text-indigo-600 transition-colors" style={{ color: textColor }}>{item.titulo}</h3>
+                                <p className="text-zinc-500 text-sm leading-relaxed mb-8 flex-1 border-t border-dashed border-zinc-100 pt-4">{item.descripcion}</p>
+                                
+                                {item.linkVerMas && (
+                                    <a 
+                                        href={item.linkVerMas} 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-2 text-sm font-bold hover:opacity-70 transition-opacity mt-auto"
+                                        style={{ color: brandColor }}
+                                    >
+                                        Ver Caso de Estudio <ArrowRight size={16}/>
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
           </section>
       )}
-      {/* --- SECCIÓN FEEDBACK (SOLO BOTÓN) --- */}
-      {/* --- SECCIÓN TESTIMONIOS/RESEÑAS --- */}
-      {config.testimonios?.mostrar && (
-      <section className="py-24 px-6 bg-zinc-50 border-y border-zinc-100">
-          <div className="max-w-7xl mx-auto">
-              <div className="text-center mb-12 max-w-3xl mx-auto">
-                <span className="text-sm font-bold uppercase tracking-wider opacity-60 block mb-2">Testimonios</span>
-                <h2 className="text-3xl font-bold mb-4" style={{ color: textColor }}>
-                    Lo que dicen nuestros clientes
-                </h2>
-                <p className="text-zinc-500 mb-8">
-                    La confianza de nuestros clientes es nuestra mejor carta de presentación.
-                </p>
-                <button 
-                    onClick={() => setIsFeedbackModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all text-sm"
-                    style={{ backgroundColor: brandColor }}
-                >
-                    <Star size={18} className="fill-current"/> Dejar mi valoración
-                </button>
-              </div>
 
-              {/* LISTA DE RESEÑAS */}
-              {reviews.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {reviews.map((review) => (
-                        <div key={review.id} className={`p-6 bg-white shadow-sm border border-zinc-100 flex flex-col h-full ${cardRadius}`}>
-                            {/* Estrellas */}
-                            <div className="flex gap-1 mb-4">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star 
-                                        key={i} 
-                                        size={16} 
-                                        className={i < review.puntuacion ? "text-yellow-400 fill-yellow-400" : "text-zinc-200"} 
-                                    />
-                                ))}
-                            </div>
-                            
-                            {/* Comentario */}
-                            <div className="flex-1">
-                                <p className="text-zinc-600 mb-6 italic text-sm leading-relaxed">"{review.comentario}"</p>
-                            </div>
-
-                            {/* Autor */}
-                            <div className="flex items-center gap-3 pt-4 border-t border-zinc-50 mt-auto">
-                                <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-400 text-xs uppercase">
-                                    {review.nombre_cliente?.charAt(0) || "A"}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-sm text-zinc-900">{review.nombre_cliente || "Anónimo"}</p>
-                                    <p className="text-[10px] text-zinc-400 uppercase font-medium">{new Date(review.created_at).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center text-zinc-400 py-10 italic bg-white rounded-2xl border border-dashed border-zinc-200">
-                    Aún no hay reseñas visibles. ¡Sé el primero en opinar!
-                </div>
-              )}
-          </div>
-      </section>
-      )}
-      {/* --- SECCIONES DINÁMICAS (Nuevo Bloque) --- */}
+      {/* --- SECCIONES CUSTOM --- */}
       {config.customSections?.map((section: any) => (
-        <section key={section.id} className="py-20 px-6 max-w-7xl mx-auto">
-            
-            {/* Si es QUIENES SOMOS */}
+        <section key={section.id} className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
             {section.type === 'about' && (
-                <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="grid md:grid-cols-2 gap-16 items-center">
                     <div className={section.imagenUrl ? 'order-1' : ''}>
                         <h2 className="text-3xl font-bold mb-6 text-zinc-900">{section.titulo}</h2>
-                        {/* Usamos SafeHTML para que respete saltos de línea */}
                         <SafeHTML as="div" html={section.texto} className="text-lg text-zinc-600 leading-relaxed whitespace-pre-line" />
+                        
+                        {/* Firma o Call to Action secundario en About */}
+                        <div className="mt-8 pt-8 border-t border-zinc-100">
+                             <button onClick={() => setIsContactModalOpen(true)} className="text-sm font-bold underline" style={{ color: brandColor }}>Trabaja con nosotros</button>
+                        </div>
                     </div>
                     {section.imagenUrl && (
-                        <div className={`overflow-hidden shadow-xl h-[400px] ${cardRadius}`}>
+                        <div className={`overflow-hidden shadow-2xl h-[500px] relative ${radiusClass}`}>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                             <img src={section.imagenUrl} alt={section.titulo} className="w-full h-full object-cover"/>
                         </div>
                     )}
                 </div>
             )}
-
-            {/* Si es GALERÍA */}
-            {section.type === 'gallery' && (
+             {/* Si es GALERÍA */}
+             {section.type === 'gallery' && (
                 <div>
                     <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
                         {section.imagenes?.map((img: any, i: number) => (
                             <div 
                                 key={i} 
-                                onClick={() => setSelectedImage(img.url)} // <--- ESTO ES NUEVO
-                                className={`group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`} // <--- cursor-zoom-in AGREGADO
+                                onClick={() => setSelectedImage(img.url)} 
+                                className={`group relative break-inside-avoid overflow-hidden bg-zinc-100 cursor-zoom-in ${radiusClass}`} 
                             >
-                                <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
-                                
-                                {/* --- OVERLAY NUEVO (Icono al pasar mouse) --- */}
-                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                     <Maximize2 className="text-white drop-shadow-md" size={24} />
-                                </div>
-
-                                {img.descripcion && (
-                                    <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {img.descripcion}
-                                    </div>
-                                )}
+                                <img src={img.url} alt={img.descripcion} className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"/>
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             </div>
                         ))}
                     </div>
@@ -546,197 +308,55 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         </section>
       ))}
 
-      {/* --- UBICACIÓN (NUEVA SECCIÓN) --- */}
-      {config.ubicacion?.mostrar && (
-      <section id="ubicacion" className="py-24 px-6 relative overflow-hidden" onClick={(e) => handleEditClick(e, 'contact')}>
-          <div className={`max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center ${editableClass}`}>
-              <div>
-                  <span className="text-sm font-bold uppercase tracking-wider opacity-60">Dónde estamos</span>
-                  <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-6" style={{ color: textColor }}>Visítanos en nuestra sucursal</h2>
-                  <p className="mb-8 text-lg opacity-70">Estamos listos para atenderte con la mejor calidad y servicio. Agenda tu cita o ven directamente.</p>
-                  
-                  <div className="space-y-6">
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><MapPin size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Dirección</h4>
-                              <p className="opacity-70">{negocio.direccion || "Dirección no configurada"}</p>
-                              {negocio.google_maps_link && (
-                                  <a href={negocio.google_maps_link} target="_blank" className="text-sm font-bold mt-1 inline-flex items-center gap-1 hover:underline" style={{ color: brandColor }}>Ver en Google Maps <ArrowRight size={14}/></a>
-                              )}
-                          </div>
-                      </div>
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Clock size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Horarios de Atención</h4>
-                              <p className="opacity-70">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
-                          </div>
-                      </div>
-                      <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Phone size={20}/></div>
-                          <div>
-                              <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
-                              <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
-                              <p className="opacity-70">{negocio.instagram || "No especificado"}</p>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              
-              {/* Mapa o Imagen Representativa */}
-              <div className={`h-[400px] bg-zinc-100 overflow-hidden shadow-2xl relative ${radiusClass}`}>
-                  {/* Si tuvieras una API Key de Maps real podrías usar un iframe, por ahora simulamos con imagen o el link */}
-                  <div className="absolute inset-0 bg-zinc-200 flex items-center justify-center text-zinc-400">
-                      {negocio.google_maps_link ? (
-                           <iframe width="100%" height="100%" src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`} title="Mapa"></iframe>
-                      ) : (
-                           <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50"/>Mapa no disponible</div>
-                      )}
-                  </div>
-              </div>
-          </div>
-      </section>
-      )}
-      
+      {/* --- FOOTER --- */}
+      <Footer data={config.footer || { mostrar: true, textoCopyright: "", redesSociales: {} }} negocioNombre={negocio.nombre} />
 
-
-      {/* --- FOOTER / CONTACTO --- */}
-      <div id="contacto">
-        {config.footer?.mostrar && <Footer data={config.footer} negocioNombre={negocio.nombre} />}
-      </div>
-      {/* --- LIGHTBOX (MODAL DE IMAGEN) --- */}
+      {/* --- LIGHTBOX IMAGEN --- */}
       {selectedImage && (
-        <div 
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
-            onClick={() => setSelectedImage(null)}
-        >
-            <button 
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 p-3 bg-white/10 text-white hover:bg-white/20 rounded-full transition-colors z-50"
-            >
-                <X size={24} />
-            </button>
-            <img 
-                src={selectedImage} 
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" 
-                onClick={(e) => e.stopPropagation()} 
-                alt="Vista completa"
-            />
-        </div>
-      )}
-      {/* --- MODALES (NO CAMBIADOS, SE MANTIENEN IGUAL) --- */}
-      {isBookingModalOpen && (
-        <Modal onClose={() => setIsBookingModalOpen(false)} radiusClass={radiusClass}>
-            {/* ... (Todo el contenido del modal de agendamiento igual que tu archivo original) ... */}
-            {/* He resumido esta parte por brevedad, pero en tu código debes pegar el contenido exacto del modal original */}
-             <div className="mb-6">
-                <h3 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
-                    <CalendarIcon className="text-blue-600"/> Agendar Turno
-                </h3>
-                <p className="text-zinc-500 text-sm">Paso {bookingStep} de 3</p>
-                <div className="h-1 bg-zinc-100 rounded-full mt-2 w-full overflow-hidden">
-                    <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(bookingStep / 3) * 100}%` }}></div>
-                </div>
-            </div>
-            {/* PASO 1 */}
-            {bookingStep === 1 && (
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    <p className="font-bold text-zinc-700 mb-2">Selecciona un servicio:</p>
-                    
-                    {/* Iteramos sobre los servicios reales del config */}
-                    {(config.servicios?.items?.length ?? 0) > 0 ? (
-                        config.servicios?.items?.map((item: any, i: number) => (
-                            <button 
-                                key={i}
-                                onClick={() => { 
-                                    setBookingData({...bookingData, service: item}); // Guardamos el objeto item 
-                                    setBookingStep(2); 
-                                }} 
-                                className="w-full p-4 border border-zinc-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-500 text-left transition-all group"
-                            >
-                                <div className="flex justify-between items-center w-full">
-                                    <span className="font-bold text-zinc-900 group-hover:text-indigo-700">{item.titulo}</span>
-                                    {item.precio && <span className="font-semibold text-zinc-900 bg-zinc-100 px-2 py-1 rounded text-sm group-hover:bg-indigo-100 group-hover:text-indigo-700">{item.precio}</span>}
-                                </div>
-                                <div className="flex justify-between items-center mt-1">
-                                    <span className="text-xs text-zinc-500 truncate max-w-[70%]">{item.desc}</span>
-                                    <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                        <Clock size={12}/> {item.duracion || 60} min
-                                    </span>
-                                </div>
-                            </button>
-                        ))
-                    ) : (
-                        <p className="text-center text-zinc-400 text-sm py-4">No hay servicios configurados.</p>
-                    )}
-                </div>
-            )}
-            {/* PASO 2 */}
-            {bookingStep === 2 && (
-                <div className="space-y-4">
-                     <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
-                     <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full p-3 border rounded-xl" onChange={handleDateChange}/>
-                     {bookingData.date && (
-                         loadingSlots ? <Loader2 className="animate-spin mx-auto"/> : 
-                         <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                            {generateTimeSlots().map((slot) => (
-                                <button key={slot.time} disabled={!slot.available} onClick={() => { setBookingData({...bookingData, time: slot.time}); setBookingStep(3); }} className={`py-2 text-sm rounded-lg border ${slot.available ? 'hover:bg-blue-50 border-zinc-200' : 'bg-zinc-100 text-zinc-300'}`}>{slot.time}</button>
-                            ))}
-                         </div>
-                     )}
-                </div>
-            )}
-            {/* PASO 3 */}
-            {bookingStep === 3 && (
-                <form onSubmit={handleConfirmBooking} className="space-y-4">
-                     <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
-                     <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">
-                        Turno: {new Date(bookingData.date).toLocaleDateString()} - {bookingData.time}hs
-                     </div>
-                     <input required placeholder="Tu Nombre" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientName: e.target.value})}/>
-                     <input required placeholder="Teléfono" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}/>
-                     <input required placeholder="Email" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientEmail: e.target.value})}/>
-                     <button type="submit" disabled={enviando} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2">{enviando ? <Loader2 className="animate-spin"/> : "Confirmar"}</button>
-                </form>
-            )}
-        </Modal>
-      )}
-
-      {/* MODAL EXITO */}
-      {mostrarGracias && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-md">
-            <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm">
-                <CheckCircle size={48} className="mx-auto text-emerald-500 mb-4"/>
-                <h3 className="text-2xl font-bold">¡Turno Confirmado!</h3>
-                {eventLink && <a href={eventLink} target="_blank" className="block w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-4">Ver en Calendar</a>}
-                <button onClick={() => setMostrarGracias(false)} className="mt-4 text-sm text-zinc-500">Cerrar</button>
-            </div>
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in" onClick={() => setSelectedImage(null)}>
+            <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2 transition-colors"><X size={32}/></button>
+            <img src={selectedImage} className="max-w-full max-h-[90vh] rounded shadow-2xl animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}/>
         </div>
       )}
 
-      {/* LEAD MODAL Y FEEDBACK MODAL (Mantener igual que original) */}
-      {isLeadModalOpen && (
-          <Modal onClose={() => setIsLeadModalOpen(false)} radiusClass={radiusClass}>
-             <h3 className="text-2xl font-bold mb-4">Solicitar Presupuesto</h3>
-             <form onSubmit={handleConsultar} className="space-y-4">
-                <input required placeholder="Tu Nombre" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)} className="w-full p-3 border rounded-xl"/>
-                <button type="submit" disabled={enviando} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2"><MessageCircle/> Contactar WhatsApp</button>
-             </form>
-          </Modal>
-      )}
+      {/* --- MODAL DE CONTACTO --- */}
+      {isContactModalOpen && (
+        <Modal onClose={() => setIsContactModalOpen(false)} radiusClass={radiusClass}>
+            <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-zinc-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm border border-zinc-100">
+                    <Mail size={28} style={{ color: brandColor }}/>
+                </div>
+                <h3 className="text-2xl font-bold text-zinc-900">Iniciemos una conversación</h3>
+                <p className="text-zinc-500 text-sm mt-2 max-w-xs mx-auto">Cuéntanos sobre tu proyecto. Te responderemos en menos de 24hs.</p>
+            </div>
 
-      {isFeedbackModalOpen && (
-        <Modal onClose={() => setIsFeedbackModalOpen(false)} radiusClass={radiusClass}>
-             <h3 className="text-2xl font-bold mb-4 text-center">Tu opinión</h3>
-             <form onSubmit={handleEnviarFeedback} className="space-y-4">
-                 <div className="flex justify-center gap-2">
-                     {[1,2,3,4,5].map(s => <button key={s} type="button" onClick={() => setRatingSeleccionado(s)}><Star size={32} className={s <= ratingSeleccionado ? "fill-yellow-400 text-yellow-400" : "text-zinc-300"}/></button>)}
-                 </div>
-                 <input required placeholder="Tu Nombre" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)} className="w-full p-3 border rounded-xl"/>
-                 <textarea placeholder="Comentario..." value={feedbackComentario} onChange={e => setFeedbackComentario(e.target.value)} className="w-full p-3 border rounded-xl"/>
-                 <button type="submit" disabled={enviando} className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl">{enviando ? <Loader2 className="animate-spin"/> : "Enviar"}</button>
-             </form>
+            <form onSubmit={handleContactar} className="space-y-5">
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-1 block">Nombre</label>
+                        <input required className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" 
+                            value={nombreCliente} onChange={e => setNombreCliente(e.target.value)} placeholder="Tu nombre"/>
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-1 block">Email</label>
+                        <input required type="email" className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all" 
+                            value={emailCliente} onChange={e => setEmailCliente(e.target.value)} placeholder="tu@email.com"/>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase ml-1 mb-1 block">Detalles del Proyecto</label>
+                    <textarea required rows={4} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none" 
+                        value={mensajeCliente} onChange={e => setMensajeCliente(e.target.value)} placeholder="Estoy buscando..."/>
+                </div>
+
+                <button type="submit" disabled={enviando} className={`w-full text-white font-bold py-4 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 ${btnRadius}`} style={{ backgroundColor: brandColor }}>
+                    {enviando ? <Loader2 className="animate-spin"/> : "Enviar Consulta"}
+                </button>
+                
+                <p className="text-center text-xs text-zinc-400 mt-4">
+                    Al enviar, aceptas ser contactado para recibir información sobre tu presupuesto.
+                </p>
+            </form>
         </Modal>
       )}
 
@@ -744,12 +364,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   );
 }
 
-// COMPONENTE AUXILIAR MODAL
+// Modal Helper
 function Modal({ children, onClose, radiusClass }: any) {
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-md animate-in fade-in">
-          <div className={`bg-white shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 ${radiusClass}`}>
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-zinc-600"><X size={20} /></button>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-md animate-in fade-in">
+          <div className={`bg-white shadow-2xl w-full max-w-lg p-8 relative animate-in zoom-in-95 ${radiusClass}`}>
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-zinc-600 transition-colors"><X size={20} /></button>
             {children}
           </div>
         </div>
