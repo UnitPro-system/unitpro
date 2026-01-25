@@ -93,7 +93,9 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
 
                 // b) Bloqueo del MISMO Profesional
                 // Si el usuario pidió un profesional (workerIdArg) y coincide con el evento -> Bloqueado.
-                if (workerIdArg && String(eventWorkerId) === String(workerIdArg)) return true;
+                if (workerIdArg && String(eventWorkerId) === String(workerIdArg)) {
+                    return true; // Aquí es donde se genera el bloqueo real
+                }
 
                 // c) Bloqueo de OTRO Profesional
                 // El evento es de "Juan", yo busco a "Pedro". No me bloquea.
