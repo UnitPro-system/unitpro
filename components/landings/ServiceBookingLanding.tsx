@@ -169,6 +169,14 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     return slots;
   };
 
+  const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleConfirmBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true);
@@ -285,6 +293,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     colors: { primary: negocio?.color_principal || "#000000", ...rawConfig.colors },
     hero: { mostrar: true, layout: 'split', ...rawConfig.hero },
     servicios: { mostrar: true, titulo: "Nuestros Servicios", items: [], ...rawConfig.servicios },
+    equipo: { mostrar: false, items: [], ...rawConfig.equipo },
     testimonios: { mostrar: rawConfig.testimonios?.mostrar ?? false, titulo: "Opiniones", items: [] },
     ubicacion: { mostrar: true, ...rawConfig.ubicacion },
     footer: { mostrar: true, textoCopyright: rawConfig.footer?.textoCopyright,
@@ -468,7 +477,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                              )}
                         </div>
                         <h3 className="font-bold text-lg" style={{ color: textColor }}>{item.nombre}</h3>
-                        <p className="text-sm text-zinc-500 uppercase tracking-wide font-medium">{item.cargo}</p>
+                        <p className="text-zinc-500 max-w-2xl mx-auto">{item.cargo}</p>
                     </div>
                 ))}
             </div>
@@ -753,9 +762,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 <h3 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
                     <CalendarIcon className="text-blue-600"/> Agendar Turno
                 </h3>
-                <p className="text-zinc-500 text-sm">Paso {bookingStep} de 3</p>
+                <p className="text-zinc-500 text-sm">Paso {bookingStep} de 4</p>
                 <div className="h-1 bg-zinc-100 rounded-full mt-2 w-full overflow-hidden">
-                    <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(bookingStep / 3) * 100}%` }}></div>
+                    <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(bookingStep / 4) * 100}%` }}></div>
                 </div>
             </div>
             {/* PASO 1 */}
@@ -834,13 +843,31 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {/* PASO 3 */}
             {bookingStep === 3 && (
                 <div className="space-y-4">
-                     <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
-                     <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full p-3 border rounded-xl" onChange={handleDateChange}/>
+                     {/* El botón de volver debería llevar al paso 2, no al 1, si viniste de elegir profesional */}
+                     <button onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
+                     
+                    <input 
+                        type="date" 
+                        min={getLocalDateString()} 
+                        className="w-full p-3 border rounded-xl" 
+                        onChange={handleDateChange}
+                    />
+                     
                      {bookingData.date && (
                          loadingSlots ? <Loader2 className="animate-spin mx-auto"/> : 
                          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                             {generateTimeSlots().map((slot) => (
-                                <button key={slot.time} disabled={!slot.available} onClick={() => { setBookingData({...bookingData, time: slot.time}); setBookingStep(3); }} className={`py-2 text-sm rounded-lg border ${slot.available ? 'hover:bg-blue-50 border-zinc-200' : 'bg-zinc-100 text-zinc-300'}`}>{slot.time}</button>
+                                <button 
+                                    key={slot.time} 
+                                    disabled={!slot.available} 
+                                    onClick={() => { 
+                                        setBookingData({...bookingData, time: slot.time}); 
+                                        setBookingStep(4); // <--- CORRECCIÓN AQUÍ (Antes decía 3)
+                                    }} 
+                                    className={`py-2 text-sm rounded-lg border ${slot.available ? 'hover:bg-blue-50 border-zinc-200' : 'bg-zinc-100 text-zinc-300'}`}
+                                >
+                                    {slot.time}
+                                </button>
                             ))}
                          </div>
                      )}
@@ -851,9 +878,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 <form onSubmit={handleConfirmBooking} className="space-y-4">
                      <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
                      <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">
-                        Turno: {new Date(bookingData.date).toLocaleDateString()} - {bookingData.time}hs
-                     </div>
-                     <input required placeholder="Tu Nombre" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientName: e.target.value})}/>
+                        Turno: {new Date(bookingData.date + 'T00:00:00').toLocaleDateString()} - {bookingData.time}hs
+                        </div>
+                     <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientName: e.target.value})}/>
                      <input required placeholder="Teléfono" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}/>
                      <input required placeholder="Email" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientEmail: e.target.value})}/>
                      <button type="submit" disabled={enviando} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2">{enviando ? <Loader2 className="animate-spin"/> : "Confirmar"}</button>
@@ -868,7 +895,6 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm">
                 <CheckCircle size={48} className="mx-auto text-emerald-500 mb-4"/>
                 <h3 className="text-2xl font-bold">¡Turno Confirmado!</h3>
-                {eventLink && <a href={eventLink} target="_blank" className="block w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-4">Ver en Calendar</a>}
                 <button onClick={() => setMostrarGracias(false)} className="mt-4 text-sm text-zinc-500">Cerrar</button>
             </div>
         </div>
