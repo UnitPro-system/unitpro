@@ -196,7 +196,10 @@ useEffect(() => {
 
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
+    // 1. CONTENEDOR PRINCIPAL: 
+    // - En móvil: 'flex-col' (uno debajo del otro)
+    // - En escritorio: 'md:flex-row' (uno al lado del otro)
+    <div className="min-h-screen bg-zinc-50 flex flex-col md:flex-row font-sans text-zinc-900 overflow-hidden">
       
       {/* --- 2. NAVBAR MÓVIL (Solo visible en md:hidden) --- */}
       {/* Usamos h-16 (64px) fijo para poder calcular el top del menú después */}
