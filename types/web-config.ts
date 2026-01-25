@@ -31,6 +31,21 @@ export interface ServicesSection {
   items: ServiceItem[]; 
 }
 
+export interface ProjectItem {
+  titulo: string;
+  descripcion: string;
+  imagenUrl: string; // Fundamental en un portfolio
+  tags?: string[];   // Ej: ["React", "Diseño", "SEO"]
+  linkVerMas?: string; // Link al proyecto real o Behance
+}
+
+export interface ProjectsSection {
+  mostrar: boolean;
+  titulo: string;
+  subtitulo?: string;
+  items: ProjectItem[];
+}
+
 // --- BLOQUE: TESTIMONIOS ---
 export interface TestimonialItem {
   nombre: string;
@@ -119,6 +134,7 @@ export interface WebConfig {
 
   // Secciones de la Landing Page
   hero: HeroSection;
+  proyectos?: ProjectsSection;
   servicios?: ServicesSection;
   equipo?: TeamSection;
   ubicacion?: LocationSection;
