@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase";
 import { 
   Users, LayoutDashboard, LogOut, Star, MessageCircle, 
   CreditCard, Settings, Link as LinkIcon, Check, 
-  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User, Eye, EyeOff
+  Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User, Eye, EyeOff,
+  Mail
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar"; 
 
@@ -26,6 +27,11 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
+  const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
+  const [mailContent, setMailContent] = useState({ subject: '', message: '' });
+  const [isSending, setIsSending] = useState(false);
+
+
 
   // --- LÓGICA DE DATOS ESPECÍFICOS ---
   useEffect(() => {
@@ -77,6 +83,32 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
     router.refresh();
   };
 
+  const handleSendDirectEmail = async () => {
+    setIsSending(true);
+    try {
+        const res = await fetch('/api/google/send-email', {
+        method: 'POST',
+        body: JSON.stringify({
+            to: contactModal.clientEmail,
+            subject: mailContent.subject,
+            message: mailContent.message,
+            negocioId: initialData.id // ID del negocio dueño del dashboard
+        })
+        });
+        
+        if (res.ok) {
+        alert("Email enviado correctamente");
+        setContactModal({ ...contactModal, show: false });
+        } else {
+        alert("Error al enviar. ¿Tienes Gmail conectado?");
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsSending(false);
+    }
+  };
+
   const handleConnectGoogle = () => {
     if (!negocio?.slug) return;
     window.location.href = `/api/google/auth?slug=${negocio.slug}`;
@@ -126,6 +158,9 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
         </div>
     </div>
   );
+  
+
+
 
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans text-zinc-900">
@@ -217,6 +252,46 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
             
         </div>
+
+        {/* CONTACT MODAL */}
+        {contactModal.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+              <h3 className="text-lg font-bold mb-1">Enviar email a {contactModal.clientName}</h3>
+              <p className="text-sm text-gray-500 mb-4">Desde tu cuenta de Gmail conectada</p>
+              
+              <div className="space-y-4">
+                <input 
+                  placeholder="Asunto"
+                  className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={e => setMailContent({...mailContent, subject: e.target.value})}
+                />
+                <textarea 
+                  placeholder="Escribe tu mensaje..."
+                  rows={5}
+                  className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  onChange={e => setMailContent({...mailContent, message: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button 
+                  onClick={() => setContactModal({ ...contactModal, show: false })}
+                  className="flex-1 py-2 text-gray-600 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSendDirectEmail}
+                  disabled={isSending}
+                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-bold disabled:opacity-50"
+                >
+                  {isSending ? "Enviando..." : "Enviar Email"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -367,29 +442,31 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle }: any) {
     );
 }
 
-function ClientesTable({ turnos }: any) {
+function ClientesTable({ turnos, setContactModal }: any) {
     const formatearFecha = (isoString: string) => {
         if (!isoString) return "Sin fecha";
         try {
-            // Separamos fecha (YYYY-MM-DD) y hora (HH:mm:ss)
             const [fechaPart, horaPart] = isoString.split('T');
-            
-            // Damos vuelta la fecha: 2026-01-08 -> 08/01/2026
             const fecha = fechaPart.split('-').reverse().join('/');
-            
-            // Cortamos la hora para que sean solo HH:mm (quitamos segundos y zona horaria)
             const hora = horaPart ? horaPart.slice(0, 5) : "";
-            
             return `${fecha} - ${hora}`;
         } catch (e) {
-            return isoString; // Si falla, devolvemos el original
+            return isoString;
         }
     };
+
     return (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
             <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
-                    <tr><th className="px-6 py-4">Nombre</th><th className="px-6 py-4">Contacto</th><th className="px-6 py-4">Servicio</th><th className="px-6 py-4">Ultimo Turno</th></tr>
+                    <tr>
+                        <th className="px-6 py-4">Nombre</th>
+                        <th className="px-6 py-4">Contacto</th>
+                        <th className="px-6 py-4">Servicio</th>
+                        <th className="px-6 py-4">Ultimo Turno</th>
+                        {/* 1. Nueva columna para acciones */}
+                        <th className="px-6 py-4 text-right">Acciones</th>
+                    </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
                     {turnos.map((t: any) => (
@@ -399,6 +476,20 @@ function ClientesTable({ turnos }: any) {
                             <td className="px-6 py-4 text-zinc-500">{t.servicio || "General"}</td>
                             <td className="px-6 py-4 font-mono text-zinc-600">
                                 {formatearFecha(t.fecha_inicio)}
+                            </td>
+                            {/* 2. Celda con el botón de contacto */}
+                            <td className="px-6 py-4 text-right">
+                                <button 
+                                    onClick={() => setContactModal({ 
+                                        show: true, 
+                                        clientEmail: t.cliente_email, 
+                                        clientName: t.cliente_nombre 
+                                    })}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-bold text-xs"
+                                >
+                                    <Mail size={14} /> 
+                                    Contactar
+                                </button>
                             </td>
                         </tr>
                     ))}
