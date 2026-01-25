@@ -147,25 +147,16 @@ export async function cancelAppointment(appointmentId: string) {
     if (!refreshToken) throw new Error('No se pudo conectar con Google Calendar del negocio')
 
     // 2. Auth con Google
-    const auth = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
-    )
-    auth.setCredentials({ refresh_token: refreshToken })
-    const calendar = google.calendar({ version: 'v3', auth })
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
+        auth.setCredentials({ refresh_token: refreshToken })
+        const calendar = google.calendar({ version: 'v3', auth })
 
     // 3. Eliminar de Google Calendar (si tiene ID de evento)
     if (turno.google_event_id) {
-      try {
-        await calendar.events.delete({
-          calendarId: 'primary',
-          eventId: turno.google_event_id
-        })
-      } catch (gError) {
-        console.warn('El evento ya no existía en Google o falló el borrado:', gError)
-        // Continuamos para cancelar en la DB local de todos modos
-      }
-    }
+          try {
+            await calendar.events.delete({ calendarId: 'primary', eventId: turno.google_event_id })
+          } catch (gError) { console.warn('Evento ya borrado en Google', gError) }
+        }
 
     // 4. Actualizar estado en Supabase
     const { error: updateError } = await supabase

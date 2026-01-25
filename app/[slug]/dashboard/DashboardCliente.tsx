@@ -11,7 +11,9 @@ const ServiceBookingDashboard = dynamic(() => import("@/components/dashboards/Se
   loading: () => <LoadingScreen />,
 });
 
-// Futuro: const RestaurantDashboard = dynamic(() => import("@/components/dashboards/RestaurantDashboard"));
+const ProjectDashboard = dynamic(() => import("@/components/dashboards/ProjectDashboard"), {
+  loading: () => <LoadingScreen />,
+});
 
 export default function DashboardFactory() {
   const params = useParams();
@@ -64,12 +66,10 @@ export default function DashboardFactory() {
       // Le pasamos el objeto 'negocio' ya cargado para no pedirlo de nuevo
       return <ServiceBookingDashboard initialData={negocio} />;
     
-    case 'restaurant_menu':
-      return <div className="p-10 text-center">Próximamente: Panel de Restaurante</div>;
+    case 'project_portfolio':
+      return <ProjectDashboard negocio={negocio} />;
       
-    case 'retail_store':
-      return <div className="p-10 text-center">Próximamente: Panel de Tienda</div>;
-
+    
     default:
       return <div className="p-10 text-center text-red-500">Error: Categoría de negocio desconocida ({category}).</div>;
   }
