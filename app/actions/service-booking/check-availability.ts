@@ -8,12 +8,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function checkAvailability(slug: string, dateStr: string, calendarId?: string) {
+export async function checkAvailability(slug: string, dateStr: string, workerIdArg?: string) {
   try {
-    // 1. Obtener credenciales y configuración del negocio
+    // 1. Obtener credenciales y configuración
     const { data: negocio } = await supabase
       .from('negocios')
-      .select('id, google_refresh_token, config')
+      .select('id, google_refresh_token, config, config_web')
       .eq('slug', slug)
       .single()
 
@@ -21,41 +21,94 @@ export async function checkAvailability(slug: string, dateStr: string, calendarI
       return { success: false, error: 'Negocio no conectado a Google Calendar' }
     }
 
-    // Configuración por defecto si no existe en la DB
     const config = negocio.config || {}
     const timeZone = config.timezone || 'America/Argentina/Buenos_Aires'
     
-    // 2. Definir inicio y fin del día (Usando tu lógica de Offset si es necesaria, 
-    // pero con freebusy es mejor mandar ISO UTC y dejar que Google maneje la zona)
-    // Para simplificar, asumimos que dateStr viene como "2026-01-03"
-    const timeMin = new Date(`${dateStr}T00:00:00`).toISOString()
-    const timeMax = new Date(`${dateStr}T23:59:59`).toISOString()
+    // Modo: 'global' (Sala Única) o 'per_worker' (Simultáneo)
+    const teamConfig = negocio.config_web?.equipo || {};
+    const availabilityMode = teamConfig.availabilityMode || 'global'; 
 
-    // 3. Auth Google
-    const auth = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
-    )
+    // 2. Auth Google
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
     auth.setCredentials({ refresh_token: negocio.google_refresh_token })
     const calendar = google.calendar({ version: 'v3', auth })
 
-    const targetCalendarId = calendarId || 'primary';
+    // 3. OBTENER EVENTOS (Estrategia de Ventana Amplia)
+    // Pedimos desde ayer hasta mañana para evitar errores de borde por Timezone (UTC vs Local)
+    const startWindow = new Date(dateStr); 
+    startWindow.setDate(startWindow.getDate() - 1); // -1 día
+    const endWindow = new Date(dateStr);
+    endWindow.setDate(endWindow.getDate() + 2); // +2 días (margen seguro)
 
-    const response = await calendar.freebusy.query({
-      requestBody: {
-        timeMin,
-        timeMax,
-        timeZone, 
-        items: [{ id: targetCalendarId }] // <--- USAR ID DINÁMICO
-      }
-    })
+    const eventsResponse = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: startWindow.toISOString(),
+        timeMax: endWindow.toISOString(),
+        singleEvents: true, // Expande recurrentes
+        timeZone: timeZone  // Pide a Google que devuelva los tiempos en la zona del negocio
+    });
 
-    const busyIntervals = response.data.calendars?.[targetCalendarId]?.busy || [] // <--- BUSCAR EN LA KEY CORRECTA
+    const events = eventsResponse.data.items || [];
+    
+    // Helper: Verifica si un evento cae en el día objetivo (en la zona horaria correcta)
+    const isEventOnTargetDay = (event: any) => {
+        const start = event.start?.dateTime || event.start?.date;
+        if (!start) return false;
 
-    return { success: true, busy: busyIntervals, timeZone }
+        // Formateamos la fecha del evento a "YYYY-MM-DD" usando la TimeZone del negocio
+        const eventDateString = new Intl.DateTimeFormat('en-CA', { // en-CA usa formato ISO YYYY-MM-DD
+            timeZone: timeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date(start));
+
+        return eventDateString === dateStr;
+    };
+
+    // 4. FILTRADO LÓGICO
+    const busyIntervals = events
+        .filter(event => {
+            // A. Ignorar transparentes y cancelados
+            if (event.transparency === 'transparent') return false;
+            if (event.status === 'cancelled') return false;
+
+            // B. Verificar FECHA EXACTA (Usando la lógica robusta de arriba)
+            if (!isEventOnTargetDay(event)) return false;
+
+            // --- LÓGICA DE NEGOCIO ---
+            const eventWorkerId = event.extendedProperties?.shared?.saas_worker_id;
+
+            // CASO 1: SALA ÚNICA (Global)
+            // Cualquier evento bloquea todo.
+            if (availabilityMode === 'global') {
+                return true; 
+            }
+
+            // CASO 2: SIMULTÁNEO (Por profesional)
+            else {
+                // a) Bloqueo EXTERNO (Sin ID de worker)
+                // Ej: Feriado, Almuerzo, Turno manual desde GCal. Bloquea a TODOS.
+                if (!eventWorkerId) return true;
+
+                // b) Bloqueo del MISMO Profesional
+                // Si el usuario pidió un profesional (workerIdArg) y coincide con el evento -> Bloqueado.
+                if (workerIdArg && String(eventWorkerId) === String(workerIdArg)) return true;
+
+                // c) Bloqueo de OTRO Profesional
+                // El evento es de "Juan", yo busco a "Pedro". No me bloquea.
+                return false;
+              }
+        })
+        .map(event => ({
+            start: event.start?.dateTime || event.start?.date,
+            end: event.end?.dateTime || event.end?.date
+        }));
+
+    return { success: true, busy: busyIntervals, timeZone, mode: availabilityMode }
+
   } catch (error: any) {
     console.error('Error checking availability:', error)
     return { success: false, error: error.message }
   }
 }
-  
