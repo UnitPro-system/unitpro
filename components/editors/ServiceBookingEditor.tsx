@@ -728,6 +728,25 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                             
                             {config.equipo?.mostrar && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                        <label className="text-[10px] font-bold text-blue-800 uppercase block mb-2">Lógica de Turnos</label>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => updateConfigField('equipo', 'availabilityMode', 'global')}
+                                                className={`flex-1 py-2 px-2 text-xs border rounded-lg transition-all ${(!config.equipo.availabilityMode || config.equipo.availabilityMode === 'global') ? 'bg-white border-blue-500 text-blue-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-blue-400 hover:bg-blue-100/50'}`}
+                                            >
+                                                Sala Única
+                                                <span className="block text-[9px] font-normal opacity-70 mt-1">Un turno bloquea a todos</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => updateConfigField('equipo', 'availabilityMode', 'per_worker')}
+                                                className={`flex-1 py-2 px-2 text-xs border rounded-lg transition-all ${config.equipo.availabilityMode === 'per_worker' ? 'bg-white border-blue-500 text-blue-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-blue-400 hover:bg-blue-100/50'}`}
+                                            >
+                                                Simultáneo
+                                                <span className="block text-[9px] font-normal opacity-70 mt-1">Bloqueo por profesional</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                     <input 
                                         value={config.equipo.titulo} 
                                         onChange={(e) => updateConfigField('equipo', 'titulo', e.target.value)} 
@@ -773,7 +792,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                                                         />
                                                         {/* OPCIONAL: ID CALENDARIO */}
                                                         <div className="bg-blue-50 p-2 rounded border border-blue-100">
-                                                            <label className="text-[9px] font-bold text-blue-800 uppercase block mb-1">ID Calendario (Opcional)</label>
+                                                            <label className="text-[9px] font-bold text-blue-800 uppercase block mb-1">ID del calendario (Opcional)</label>
                                                             <input 
                                                                 value={item.calendarId || ''} 
                                                                 onChange={(e) => updateArrayItem('equipo', i, 'calendarId', e.target.value)} 

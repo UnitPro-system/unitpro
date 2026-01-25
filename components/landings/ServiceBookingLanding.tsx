@@ -188,6 +188,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         end: slotEnd.toISOString(),
         calendarId: bookingData.worker?.calendarId, // Para backend
         workerName: bookingData.worker?.nombre,
+        workerId: bookingData.worker?.id,
     };
     
     const res = await createAppointment(negocio.slug, payload);
