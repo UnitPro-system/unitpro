@@ -77,31 +77,35 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             if (!isEventOnTargetDay(event)) return false;
 
             // --- LÓGICA DE NEGOCIO ---
-
-            // 1. Extraemos el ID de forma segura usando corchetes ['...'] para evitar error de TS
-            //    y usamos trim() para limpiar espacios fantasma.
-            const extendedProps = event.extendedProperties?.shared;
-            const rawEventId = extendedProps ? extendedProps['saas_worker_id'] : null;
-            const eventWorkerId = rawEventId ? String(rawEventId).trim() : null;
             
+            // 1. Extracción segura del ID (solución al error de tipos)
+            // Usamos 'any' para decirle a TS que confíe en nosotros, ya que la propiedad existe en runtime
+            const sharedProps = (event.extendedProperties?.shared as any) || {};
+            const rawEventWorkerId = sharedProps['saas_worker_id'];
+            
+            // 2. Limpieza de IDs (trim para quitar espacios y String para asegurar texto)
+            const eventWorkerId = rawEventWorkerId ? String(rawEventWorkerId).trim() : null;
             const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
+
+            // Si quieres depurar, descomenta esta línea y mira la consola del servidor:
+            // console.log(`Evento: ${event.summary} | ID Guardado: '${eventWorkerId}' | ID Buscado: '${targetWorkerId}'`);
 
             // CASO 1: SALA ÚNICA (Global)
             if (availabilityMode === 'global') {
-                return true; // Cualquier evento bloquea todo
+                return true; // Cualquier evento bloquea
             }
 
             // CASO 2: SIMULTÁNEO (Por profesional)
             else {
-                // a) Bloqueo GENERAL (Feriados, bloqueos manuales sin ID)
+                // a) Bloqueo GENERAL: Si el evento NO tiene ID (ej: Feriado, bloqueo manual), bloquea a TODOS.
                 if (!eventWorkerId) return true;
 
-                // b) Bloqueo ESPECÍFICO (Si busco a Juan y el evento es de Juan)
+                // b) Bloqueo ESPECÍFICO: Si busco a Pepe (targetWorkerId) y el evento es de Pepe.
                 if (targetWorkerId && eventWorkerId === targetWorkerId) {
                     return true;
                 }
 
-                // c) Si es evento de otro profesional -> No me molesta
+                // c) Si es evento de otro profesional, NO bloquea mi búsqueda.
                 return false;
             }
         })
