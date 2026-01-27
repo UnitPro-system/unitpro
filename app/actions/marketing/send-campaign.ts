@@ -3,15 +3,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 
+// Definimos la interfaz del destinatario (debe coincidir con lo que manda el Frontend)
 interface Recipient {
   id: string;
   cliente_nombre: string;
   cliente_email: string;
-}
-
-// 1. Helper para codificar headers correctamente (evita errores por tildes/ñ)
-function encodeHeader(text: string) {
-  return `=?utf-8?B?${Buffer.from(text).toString('base64')}?=`;
 }
 
 const supabase = createClient(
@@ -26,6 +22,7 @@ export async function sendCampaignBatch(
   bodyTemplate: string
 ) {
   try {
+    // ... (La parte de obtener negocio y auth se mantiene igual hasta antes del bucle)
     const { data: negocio, error } = await supabase
       .from('negocios')
       .select('google_refresh_token, nombre')
@@ -48,21 +45,18 @@ export async function sendCampaignBatch(
     const senderEmail = profile.data.emailAddress;
     if (!senderEmail) throw new Error('No se pudo obtener el email del remitente.');
 
-    // 2. Preparamos el nombre del remitente codificado
     const encodedFromName = encodeHeader(negocio.nombre);
 
     // RESULTADOS
     let sentCount = 0;
     const errors: any[] = [];
 
-    // 3. ENVÍO SECUENCIAL (Para evitar error 429 de Google)
-    // En lugar de Promise.allSettled, usamos un bucle for-of
+    // --- BUCLE MEJORADO CON DIAGNÓSTICO DE ERRORES ---
     for (const client of recipients) {
       try {
         const cleanName = client.cliente_nombre || 'Cliente';
         const personalBody = bodyTemplate.replace(/{{nombre}}/gi, cleanName);
         
-        // Construcción correcta del MIME
         const emailContent = 
 `From: ${encodedFromName} <${senderEmail}>
 To: ${client.cliente_email}
@@ -90,17 +84,49 @@ Enviado por ${negocio.nombre}
 
         sentCount++;
         
-        // PEQUEÑA PAUSA (Delay) de 100ms entre correos para no saturar
+        // Delay preventivo
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (err: any) {
-        // Guardamos el error específico para poder depurar si es necesario
-        console.error(`Error enviando a ${client.cliente_email}:`, err.message);
-        errors.push({ email: client.cliente_email, error: err.message });
+        // --- AQUÍ ESTÁ LA LÓGICA DE DETECCIÓN DE ERROR ---
+        let errorCategory = 'DESCONOCIDO';
+        let detailedMessage = err.message || 'Sin mensaje de error';
+
+        // 1. Verificar Errores de API de Google (Estructura común)
+        if (err.response && err.response.data && err.response.data.error) {
+            const googleError = err.response.data.error;
+            detailedMessage = `Code: ${googleError.code} - ${googleError.message}`;
+            
+            // Clasificación rápida
+            if (googleError.code === 401 || detailedMessage.includes('invalid_grant')) {
+                errorCategory = 'AUTH_TOKEN_EXPIRED'; // El refresh token ya no sirve
+            } else if (googleError.code === 403 || detailedMessage.includes('quota')) {
+                errorCategory = 'QUOTA_EXCEEDED'; // Límite diario de Gmail
+            } else if (googleError.code === 429) {
+                errorCategory = 'RATE_LIMIT'; // Demasiado rápido
+            } else if (googleError.errors && Array.isArray(googleError.errors)) {
+                // A veces Google da detalles extra en un array
+                detailedMessage += ` | Details: ${JSON.stringify(googleError.errors)}`;
+            }
+        } 
+        // 2. Errores de red o conexión
+        else if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+            errorCategory = 'NETWORK_ERROR';
+        }
+
+        const fullErrorReport = `[${errorCategory}] ${detailedMessage}`;
+        
+        console.error(`❌ Error enviando a ${client.cliente_email}:`, fullErrorReport);
+        
+        // Agregamos este reporte detallado al array de errores para que lo veas en el frontend/consola
+        errors.push({ 
+            email: client.cliente_email, 
+            error: fullErrorReport 
+        });
       }
     }
 
-    // 4. Retornar información de errores al frontend si los hay
+    // 4. Retornar información
     return { 
       success: true, 
       sent: sentCount, 
@@ -110,6 +136,12 @@ Enviado por ${negocio.nombre}
 
   } catch (error: any) {
     console.error('Error crítico en sendCampaignBatch:', error);
-    return { success: false, error: error.message };
+    // Aquí también aplicamos un poco de limpieza si el error es global
+    const globalMsg = error.response?.data?.error?.message || error.message;
+    return { success: false, error: globalMsg };
   }
+}
+
+function encodeHeader(nombre: any) {
+    throw new Error('Function not implemented.');
 }
