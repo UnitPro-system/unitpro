@@ -14,6 +14,8 @@ export async function createAppointment(slug: string, bookingData: any) {
   try {
     // 1. Validaciones iniciales
     const { data: negocio } = await supabase.from('negocios').select('*').eq('slug', slug).single()
+    const teamConfig = negocio.config_web?.equipo || {};
+    const availabilityMode = teamConfig.availabilityMode || 'global';
     if (!negocio?.google_refresh_token) throw new Error('Negocio no conectado')
 
     // 2. Auth
@@ -26,6 +28,45 @@ export async function createAppointment(slug: string, bookingData: any) {
     const description = `Servicio: ${bookingData.service}\n` +
                         `Profesional: ${bookingData.workerName || 'Cualquiera'}\n` + // <--- NUEVO
                         `Cliente: ${bookingData.clientName}\nTel: ${bookingData.clientPhone}`;
+    const conflictCheck = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: bookingData.start, 
+        timeMax: bookingData.end,
+        singleEvents: true,
+        timeZone: 'America/Argentina/Buenos_Aires' // O la timezone de tu config
+    });
+
+    const conflictingEvents = conflictCheck.data.items || [];
+    const targetWorkerId = bookingData.workerId ? String(bookingData.workerId).trim() : null;
+
+    // 2. Revisamos uno por uno si generan conflicto real
+    for (const existingEvent of conflictingEvents) {
+        // Ignoramos si es transparente o cancelado
+        if (existingEvent.transparency === 'transparent') continue;
+        if (existingEvent.status === 'cancelled') continue;
+
+        // Extraemos ID del profesional del evento existente
+        const shared = (existingEvent.extendedProperties?.shared as any) || {};
+        const eventWorkerId = shared['saas_worker_id'] ? String(shared['saas_worker_id']).trim() : null;
+
+        let hayConflicto = false;
+
+        if (availabilityMode === 'global') {
+             // Si es Sala Única, CUALQUIER evento bloquea
+             hayConflicto = true;
+        } else {
+             // Si es Simultáneo:
+             // - Bloquea si es un evento "general" (sin profesional asignado, ej: feriado)
+             // - Bloquea si es del MISMO profesional que estamos intentando reservar
+             if (!eventWorkerId || (targetWorkerId && eventWorkerId === targetWorkerId)) {
+                 hayConflicto = true;
+             }
+        }
+
+        if (hayConflicto) {
+            throw new Error('El horario seleccionado ya no está disponible (bloqueo por backend).');
+        }
+    }
 
     // 3. Crear Evento (Tu lógica original estaba bien, la mantenemos)
     // NOTA: Asumimos que bookingData.start ya viene en formato ISO correcto desde el frontend

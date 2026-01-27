@@ -73,39 +73,31 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             if (event.transparency === 'transparent') return false;
             if (event.status === 'cancelled') return false;
 
-            // B. Verificar FECHA EXACTA
+            // B. Verificar FECHA EXACTA (Tu lógica actual de isEventOnTargetDay está bien, mantenla si la tienes fuera)
             if (!isEventOnTargetDay(event)) return false;
 
-            // --- LÓGICA DE NEGOCIO ---
+            // --- CAMBIO CLAVE AQUÍ ---
             
-            // 1. Extracción segura del ID (solución al error de tipos)
-            // Usamos 'any' para decirle a TS que confíe en nosotros, ya que la propiedad existe en runtime
-            const sharedProps = (event.extendedProperties?.shared as any) || {};
-            const rawEventWorkerId = sharedProps['saas_worker_id'];
+            // 1. Normalizamos los IDs para evitar errores de espacios o tipos
+            // Usamos 'as any' para evitar que TypeScript se queje de la propiedad dinámica
+            const shared = (event.extendedProperties?.shared as any) || {};
+            const rawId = shared['saas_worker_id'];
             
-            // 2. Limpieza de IDs (trim para quitar espacios y String para asegurar texto)
-            const eventWorkerId = rawEventWorkerId ? String(rawEventWorkerId).trim() : null;
+            const eventWorkerId = rawId ? String(rawId).trim() : null;
             const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
 
-            // Si quieres depurar, descomenta esta línea y mira la consola del servidor:
-            // console.log(`Evento: ${event.summary} | ID Guardado: '${eventWorkerId}' | ID Buscado: '${targetWorkerId}'`);
-
-            // CASO 1: SALA ÚNICA (Global)
+            // 2. Lógica de Bloqueo
             if (availabilityMode === 'global') {
-                return true; // Cualquier evento bloquea
-            }
-
-            // CASO 2: SIMULTÁNEO (Por profesional)
-            else {
-                // a) Bloqueo GENERAL: Si el evento NO tiene ID (ej: Feriado, bloqueo manual), bloquea a TODOS.
+                return true; // Sala Única: Todo bloquea
+            } else {
+                // Simultáneo:
+                // - Si el evento no tiene ID (es un bloqueo manual o feriado) -> BLOQUEADO
                 if (!eventWorkerId) return true;
 
-                // b) Bloqueo ESPECÍFICO: Si busco a Pepe (targetWorkerId) y el evento es de Pepe.
-                if (targetWorkerId && eventWorkerId === targetWorkerId) {
-                    return true;
-                }
+                // - Si busco un profesional y el evento es de él -> BLOQUEADO
+                if (targetWorkerId && eventWorkerId === targetWorkerId) return true;
 
-                // c) Si es evento de otro profesional, NO bloquea mi búsqueda.
+                // - En cualquier otro caso (es de otro profesional) -> DISPONIBLE
                 return false;
             }
         })
