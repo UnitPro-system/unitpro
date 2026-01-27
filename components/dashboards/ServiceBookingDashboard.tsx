@@ -12,7 +12,7 @@ import {
   Menu
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar";
-import MarketingCampaign from '@/components/dashboards/MarketingCampaign' 
+ 
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -31,7 +31,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion" | "marketing">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
@@ -335,7 +335,7 @@ useEffect(() => {
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
-            {activeTab === "marketing" && <MarketingCampaign negocioId={negocio.id} />}
+
             
         </div>
 
