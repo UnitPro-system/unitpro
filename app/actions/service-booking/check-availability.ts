@@ -73,32 +73,35 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             if (event.transparency === 'transparent') return false;
             if (event.status === 'cancelled') return false;
 
-            // B. Verificar FECHA EXACTA (Usando la lógica robusta de arriba)
+            // B. Verificar FECHA EXACTA
             if (!isEventOnTargetDay(event)) return false;
 
             // --- LÓGICA DE NEGOCIO ---
-            const eventWorkerId = event.extendedProperties?.shared?.saas_worker_id;
+
+            // 1. Extraemos el ID de forma segura usando corchetes ['...'] para evitar error de TS
+            //    y usamos trim() para limpiar espacios fantasma.
+            const extendedProps = event.extendedProperties?.shared;
+            const rawEventId = extendedProps ? extendedProps['saas_worker_id'] : null;
+            const eventWorkerId = rawEventId ? String(rawEventId).trim() : null;
+            
+            const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
 
             // CASO 1: SALA ÚNICA (Global)
-            // Cualquier evento bloquea todo.
             if (availabilityMode === 'global') {
-                return true; 
+                return true; // Cualquier evento bloquea todo
             }
 
             // CASO 2: SIMULTÁNEO (Por profesional)
             else {
-                // a) Bloqueo EXTERNO (Sin ID de worker)
-                // Ej: Feriado, Almuerzo, Turno manual desde GCal. Bloquea a TODOS.
+                // a) Bloqueo GENERAL (Feriados, bloqueos manuales sin ID)
                 if (!eventWorkerId) return true;
 
-                // b) Bloqueo del MISMO Profesional
-                // Si el usuario pidió un profesional (workerIdArg) y coincide con el evento -> Bloqueado.
-                if (workerIdArg && String(eventWorkerId) === String(workerIdArg)) {
-                    return true; // Aquí es donde se genera el bloqueo real
+                // b) Bloqueo ESPECÍFICO (Si busco a Juan y el evento es de Juan)
+                if (targetWorkerId && eventWorkerId === targetWorkerId) {
+                    return true;
                 }
 
-                // c) Bloqueo de OTRO Profesional
-                // El evento es de "Juan", yo busco a "Pedro". No me bloquea.
+                // c) Si es evento de otro profesional -> No me molesta
                 return false;
             }
         })
@@ -106,6 +109,7 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             start: event.start?.dateTime || event.start?.date,
             end: event.end?.dateTime || event.end?.date
         }));
+        
 
     return { success: true, busy: busyIntervals, timeZone, mode: availabilityMode }
 
