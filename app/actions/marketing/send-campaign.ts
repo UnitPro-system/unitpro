@@ -3,11 +3,15 @@
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 
-// Definimos la interfaz del destinatario (debe coincidir con lo que manda el Frontend)
 interface Recipient {
   id: string;
   cliente_nombre: string;
   cliente_email: string;
+}
+
+// 1. Helper para codificar headers correctamente (evita errores por tildes/ñ)
+function encodeHeader(text: string) {
+  return `=?utf-8?B?${Buffer.from(text).toString('base64')}?=`;
 }
 
 const supabase = createClient(
@@ -22,7 +26,6 @@ export async function sendCampaignBatch(
   bodyTemplate: string
 ) {
   try {
-    // 1. Obtener credenciales del negocio (Token de Google)
     const { data: negocio, error } = await supabase
       .from('negocios')
       .select('google_refresh_token, nombre')
@@ -30,10 +33,9 @@ export async function sendCampaignBatch(
       .single();
 
     if (error || !negocio?.google_refresh_token) {
-      throw new Error('No se pudo obtener la autorización del negocio. Verificá la conexión con Google.');
+      throw new Error('No se pudo obtener la autorización del negocio.');
     }
 
-    // 2. Configurar el Cliente OAuth2 de Google
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET
@@ -42,27 +44,29 @@ export async function sendCampaignBatch(
     
     const gmail = google.gmail({ version: 'v1', auth });
 
-    // 3. Obtener el email del remitente (El email real del negocio)
-    // Esto es necesario para el campo "From" y evitar que caiga en Spam
     const profile = await gmail.users.getProfile({ userId: 'me' });
     const senderEmail = profile.data.emailAddress;
+    if (!senderEmail) throw new Error('No se pudo obtener el email del remitente.');
 
-    if (!senderEmail) throw new Error('No se pudo obtener el email del perfil de Google.');
+    // 2. Preparamos el nombre del remitente codificado
+    const encodedFromName = encodeHeader(negocio.nombre);
 
-    // 4. Procesar el Lote (Batch) en paralelo
-    // Usamos Promise.allSettled para que si falla uno, no se detenga el resto del lote.
-    const results = await Promise.allSettled(recipients.map(async (client) => {
-        // A. Personalización del mensaje (Reemplazo de variables)
-        // Si el cliente no tiene nombre, usamos un genérico o vacío para que no quede "Hola null"
+    // RESULTADOS
+    let sentCount = 0;
+    const errors: any[] = [];
+
+    // 3. ENVÍO SECUENCIAL (Para evitar error 429 de Google)
+    // En lugar de Promise.allSettled, usamos un bucle for-of
+    for (const client of recipients) {
+      try {
         const cleanName = client.cliente_nombre || 'Cliente';
         const personalBody = bodyTemplate.replace(/{{nombre}}/gi, cleanName);
         
-        // B. Construcción del Email (MIME Format)
-        // Es crucial codificar bien el Subject y el Body para acentos y caracteres especiales (UTF-8)
+        // Construcción correcta del MIME
         const emailContent = 
-`From: ${negocio.nombre} <${senderEmail}>
+`From: ${encodedFromName} <${senderEmail}>
 To: ${client.cliente_email}
-Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=
+Subject: ${encodeHeader(subject)}
 Content-Type: text/plain; charset=utf-8
 MIME-Version: 1.0
 List-Unsubscribe: <mailto:${senderEmail}?subject=unsubscribe>
@@ -73,34 +77,35 @@ ${personalBody}
 Enviado por ${negocio.nombre}
 `;
 
-        // C. Codificación Base64Url (Requerido por Gmail API)
         const encodedMessage = Buffer.from(emailContent)
             .toString('base64')
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=+$/, '');
 
-        // D. Envío
         await gmail.users.messages.send({
             userId: 'me',
             requestBody: { raw: encodedMessage }
         });
 
-        return client.id; // Retornamos ID en caso de éxito
-    }));
+        sentCount++;
+        
+        // PEQUEÑA PAUSA (Delay) de 100ms entre correos para no saturar
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-    // 5. Calcular Resultados
-    const sentCount = results.filter(r => r.status === 'fulfilled').length;
-    const errors = results.filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason);
-
-    if (errors.length > 0) {
-      console.error('Errores en el lote de campaña:', errors);
+      } catch (err: any) {
+        // Guardamos el error específico para poder depurar si es necesario
+        console.error(`Error enviando a ${client.cliente_email}:`, err.message);
+        errors.push({ email: client.cliente_email, error: err.message });
+      }
     }
 
+    // 4. Retornar información de errores al frontend si los hay
     return { 
       success: true, 
       sent: sentCount, 
-      total: recipients.length 
+      total: recipients.length,
+      errors: errors.length > 0 ? errors : undefined 
     };
 
   } catch (error: any) {
