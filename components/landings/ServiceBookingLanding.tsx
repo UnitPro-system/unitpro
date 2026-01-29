@@ -118,7 +118,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     setLoadingSlots(true);
     
     try {
-        const res = await checkAvailability(negocio.slug, date, bookingData.worker?.calendarId);
+        const res = await checkAvailability(negocio.slug, date, bookingData.worker?.id);
         if (res.success && res.busy) {
             setBusySlots(res.busy);
         }
