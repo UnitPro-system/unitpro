@@ -85,11 +85,17 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   
   useEffect(() => {
     const fetchAvailability = async () => {
-        // Solo buscamos si hay una fecha seleccionada y un slug válido
         if (bookingData.date && negocio.slug) {
+            // --- LOG TEMPORAL ---
+            console.log("Frontend pidiendo disponibilidad:", {
+                fecha: bookingData.date,
+                workerID: bookingData.worker?.id, // <--- ESTO NO DEBE SER UNDEFINED
+                workerNombre: bookingData.worker?.nombre
+            });
+            // --------------------
+
             setLoadingSlots(true);
             try {
-                // Pasamos la fecha Y el ID del profesional actual
                 const res = await checkAvailability(negocio.slug, bookingData.date, bookingData.worker?.id);
                 if (res.success && res.busy) {
                     setBusySlots(res.busy);
