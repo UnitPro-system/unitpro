@@ -82,6 +82,30 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     };
     fetchReviews();
   }, [negocio?.id]);
+  
+  useEffect(() => {
+    const fetchAvailability = async () => {
+        // Solo buscamos si hay una fecha seleccionada y un slug válido
+        if (bookingData.date && negocio.slug) {
+            setLoadingSlots(true);
+            try {
+                // Pasamos la fecha Y el ID del profesional actual
+                const res = await checkAvailability(negocio.slug, bookingData.date, bookingData.worker?.id);
+                if (res.success && res.busy) {
+                    setBusySlots(res.busy);
+                } else {
+                    setBusySlots([]);
+                }
+            } catch (error) {
+                console.error("Error buscando disponibilidad:", error);
+            } finally {
+                setLoadingSlots(false);
+            }
+        }
+    };
+
+    fetchAvailability();
+  }, [bookingData.date, bookingData.worker, negocio.slug]);
 
   // --- LISTENER DEL EDITOR ---
   useEffect(() => {
@@ -111,22 +135,10 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     return { start: 9, end: 18 }; 
   };
 
-  const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value;
-    setBookingData({...bookingData, date, time: ""}); 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Solo actualizamos el estado. El useEffect se encargará de buscar.
+    setBookingData(prev => ({ ...prev, date: e.target.value, time: "" })); 
     setBusySlots([]); 
-    setLoadingSlots(true);
-    
-    try {
-        const res = await checkAvailability(negocio.slug, date, bookingData.worker?.id);
-        if (res.success && res.busy) {
-            setBusySlots(res.busy);
-        }
-    } catch (error) {
-        console.error("Error:", error);
-    } finally {
-        setLoadingSlots(false);
-    }
   };
 
   const generateTimeSlots = () => {
