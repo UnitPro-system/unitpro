@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
- 
+import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -739,6 +739,7 @@ function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
 }
 function ConfigTab({ negocio, handleConnectGoogle }: any) {
     const supabase = createClient();
+    const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
 
     const handleDisconnect = async () => {
         const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
@@ -766,27 +767,44 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
         }
     }; 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
-            <header className="mb-8"><h1 className="text-2xl font-bold">Integraciones</h1></header>
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex justify-between gap-6">
-                <div className="flex gap-4">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0"><CalendarIcon size={24} /></div>
-                    <div>
-                        <h3 className="font-bold text-zinc-900">Google Calendar</h3>
-                        <p className="text-sm text-zinc-500 mt-1">Sincroniza tus turnos.</p>
-                        {negocio.google_calendar_connected ? <div className="mt-2 text-emerald-600 text-sm font-bold flex gap-1 items-center"><Check size={14}/> Conectado</div> : <div className="mt-2 text-zinc-400 text-sm">Desconectado</div>}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl space-y-12">
+            
+            {/* SECCIÓN 1: INTEGRACIONES (La que ya tenías) */}
+            <section>
+                <header className="mb-6"><h2 className="text-2xl font-bold">Integraciones</h2></header>
+                <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex justify-between gap-6">
+                    {/* ... (tu código del botón de Google Calendar) ... */}
+                    <div className="flex gap-4">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0"><CalendarIcon size={24} /></div>
+                        <div>
+                            <h3 className="font-bold text-zinc-900">Google Calendar</h3>
+                            <p className="text-sm text-zinc-500 mt-1">Sincroniza tus turnos.</p>
+                            {negocio.google_calendar_connected ? <div className="mt-2 text-emerald-600 text-sm font-bold flex gap-1 items-center"><Check size={14}/> Conectado</div> : <div className="mt-2 text-zinc-400 text-sm">Desconectado</div>}
+                        </div>
+                    </div>
+                    {/* ... (tus botones de conectar/desconectar) ... */}
+                    <div className="flex flex-col gap-2">
+                         <button onClick={handleConnectGoogle} disabled={negocio.google_calendar_connected} className={`px-4 py-2 rounded-lg text-sm font-bold ${negocio.google_calendar_connected ? "bg-zinc-100 text-zinc-400" : "bg-blue-600 text-white"}`}>
+                            {negocio.google_calendar_connected ? "Listo" : "Conectar"}
+                        </button>
+                        {negocio.google_calendar_connected && (
+                            <button onClick={handleDisconnect} className="text-xs text-red-500 hover:underline">Desconectar</button>
+                        )}
                     </div>
                 </div>
-                <button onClick={handleConnectGoogle} disabled={negocio.google_calendar_connected} className={`px-4 py-2 rounded-lg text-sm font-bold ${negocio.google_calendar_connected ? "bg-zinc-100 text-zinc-400" : "bg-blue-600 text-white"}`}>
-                    {negocio.google_calendar_connected ? "Listo" : "Conectar"}
-                </button>
-                <button 
-                            onClick={handleDisconnect}
-                            className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                        >
-                             (Desconectar)
-                </button>
-            </div>
+            </section>
+
+            {/* SECCIÓN 2: GESTIÓN DE HORARIOS (NUEVO) */}
+            {/* Solo mostramos esto si el calendario está conectado, porque los bloqueos se crean en Google Calendar */}
+            {negocio.google_calendar_connected && (
+                <section>
+                    <header className="mb-6"><h2 className="text-2xl font-bold">Bloqueo de Horarios</h2></header>
+                    
+                    {/* AQUÍ INSERTAMOS EL COMPONENTE */}
+                    <BlockTimeManager slug={negocio.slug} workers={workers} />
+                    
+                </section>
+            )}
         </div>
     )
 }
