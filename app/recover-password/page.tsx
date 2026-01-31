@@ -43,7 +43,7 @@ export default function RecoverPasswordPage() {
 
         {step === 1 ? (
           <form onSubmit={handleSendCode} className="space-y-4">
-            <p className="text-sm text-gray-500 text-center mb-4">
+            <p className="text-sm text-zinc-900 text-center mb-4">
               Ingresa tu email y te enviaremos un código de 6 dígitos.
             </p>
             <div>
@@ -83,7 +83,7 @@ export default function RecoverPasswordPage() {
             <button disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">
               {loading ? 'Verificando...' : 'Cambiar Contraseña'}
             </button>
-            <button type="button" onClick={() => setStep(1)} className="w-full text-sm text-gray-500 mt-2">
+            <button type="button" onClick={() => setStep(1)} className="w-full text-sm text-zinc-900 mt-2">
               Volver / Reenviar
             </button>
           </form>
