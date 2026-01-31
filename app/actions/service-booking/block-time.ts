@@ -85,3 +85,68 @@ export async function blockTime(slug: string, data: BlockData) {
     return { success: false, error: error.message }
   }
 }
+export async function getBlocks(slug: string) {
+  try {
+    const { data: negocio } = await supabase
+      .from('negocios')
+      .select('google_refresh_token, config')
+      .eq('slug', slug)
+      .single()
+
+    if (!negocio?.google_refresh_token) return { success: false, error: 'No conectado' }
+
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
+    auth.setCredentials({ refresh_token: negocio.google_refresh_token })
+    const calendar = google.calendar({ version: 'v3', auth })
+
+    // Traemos eventos desde HOY hacia adelante
+    const events = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: new Date().toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    // Filtramos solo los que sean de tipo "block" (nuestra marca especial)
+    const blocks = (events.data.items || [])
+      .filter(ev => ev.extendedProperties?.shared?.saas_type === 'block')
+      .map(ev => ({
+        id: ev.id,
+        summary: ev.summary,
+        start: ev.start?.dateTime || ev.start?.date,
+        end: ev.end?.dateTime || ev.end?.date,
+        workerId: ev.extendedProperties?.shared?.saas_worker_id || 'all'
+      }));
+
+    return { success: true, blocks };
+
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function deleteBlock(slug: string, eventId: string) {
+  try {
+    const { data: negocio } = await supabase
+      .from('negocios')
+      .select('google_refresh_token')
+      .eq('slug', slug)
+      .single()
+
+    if (!negocio?.google_refresh_token) throw new Error('No conectado')
+
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
+    auth.setCredentials({ refresh_token: negocio.google_refresh_token })
+    const calendar = google.calendar({ version: 'v3', auth })
+
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: eventId
+    });
+
+    revalidatePath('/dashboard');
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
