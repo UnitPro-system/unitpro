@@ -47,10 +47,10 @@ export default function RecoverPasswordPage() {
               Ingresa tu email y te enviaremos un código de 6 dígitos.
             </p>
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="block text-sm text-zinc-900 font-medium mb-1">Email</label>
               <input 
                 type="email" required 
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 text-zinc-900 border rounded-lg"
                 value={email} onChange={e => setEmail(e.target.value)}
               />
             </div>
@@ -64,19 +64,19 @@ export default function RecoverPasswordPage() {
               Hemos enviado un código a {email}
             </p>
             <div>
-              <label className="block text-sm font-medium mb-1">Código de 6 dígitos</label>
+              <label className="block text-sm font-medium text-zinc-900 mb-1">Código de 6 dígitos</label>
               <input 
                 type="text" required placeholder="Ej: 123456"
-                className="w-full p-2 border rounded-lg text-center text-2xl tracking-widest"
+                className="w-full p-2 border rounded-lg text-center text-2xl text-zinc-900 tracking-widest"
                 maxLength={6}
                 value={code} onChange={e => setCode(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Nueva Contraseña</label>
+              <label className="block text-sm font-medium text-zinc-900 mb-1">Nueva Contraseña</label>
               <input 
                 type="password" required placeholder="******"
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 text-zinc-900 border rounded-lg"
                 value={password} onChange={e => setPassword(e.target.value)}
               />
             </div>
