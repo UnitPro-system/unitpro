@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
-
+import Link from 'next/link'
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -101,6 +101,9 @@ export default function LoginPage() {
                 <span>{error}</span>
             </div>
           )}
+          <Link href="/recover-password" className="text-sm text-blue-600 hover:underline float-right mb-2">
+          ¿Olvidaste tu contraseña?
+          </Link>
 
           <button 
             type="submit" 
