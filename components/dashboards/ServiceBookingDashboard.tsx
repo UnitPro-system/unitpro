@@ -499,7 +499,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
             {/* GRID SEMANAL */}
             <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
                 {/* CABECERA DÍAS */}
-                <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+                <div className="hidden md:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
                     {days.map((day, i) => (
                         <div key={i} className={`py-4 text-center border-r border-zinc-100 last:border-0 ${isToday(day) ? 'bg-blue-50/50' : ''}`}>
                             <p className="text-xs font-bold text-zinc-400 uppercase mb-1">{day.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
@@ -510,8 +510,9 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                     ))}
                 </div>
 
+
                 {/* CUERPO DEL CALENDARIO */}
-                <div className="flex-1 grid grid-cols-7 overflow-y-auto min-h-[500px]">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px]">
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
                             const tDate = new Date(t.fecha_inicio);
@@ -547,7 +548,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                         Sin actividad
                                     </div>
                                 )}
-                                
+
                                 {dayTurnos.map((t: any) => (
                                     <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500">
 
