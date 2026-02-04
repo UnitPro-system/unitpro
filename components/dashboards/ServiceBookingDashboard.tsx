@@ -648,19 +648,35 @@ function ClientesTable({ turnos, setContactModal }: any) {
                                     <td className="px-6 py-4 font-mono text-zinc-600 text-xs">
                                         {formatearFecha(t.fecha_inicio)}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4">
+                                    <div className="flex justify-end gap-2">
+                                        {/* BOTÓN WHATSAPP (PC) */}
+                                        {t.cliente_telefono && (
+                                            <a 
+                                                href={getWhatsAppLink(t.cliente_telefono)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors font-bold text-xs"
+                                            >
+                                                <MessageCircle size={14} /> 
+                                                WhatsApp
+                                            </a>
+                                        )}
+                                        
+                                        {/* BOTÓN EMAIL (PC) */}
                                         <button 
                                             onClick={() => setContactModal({ 
                                                 show: true, 
                                                 clientEmail: t.cliente_email, 
                                                 clientName: t.cliente_nombre 
                                             })}
-                                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors font-bold text-xs"
+                                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-bold text-xs"
                                         >
                                             <Mail size={14} /> 
                                             Email
                                         </button>
-                                    </td>
+                                    </div>
+                                </td>
                                 </tr>
                             ))}
                         </tbody>
