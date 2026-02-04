@@ -24,7 +24,7 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
     
     // 2. Definir ventana de tiempo (Nativo JS, sin librerías externas)
     // Buscamos desde "ayer" hasta "pasado mañana" para asegurar que cubrimos todo el día
-    // independientemente de la diferencia horaria.
+    // y eventos que crucen la medianoche, independientemente de la diferencia horaria.
     const startWindow = new Date(dateStr); 
     startWindow.setDate(startWindow.getDate() - 1); 
     
@@ -51,39 +51,42 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
     // 5. Filtrado
     const busyIntervals = events
         .filter(event => {
+            // Ignoramos eventos transparentes (marcados como "disponible" en Calendar) o cancelados
             if (event.transparency === 'transparent') return false;
             if (event.status === 'cancelled') return false;
 
-            // A. Verificar FECHA EXACTA usando Intl (Nativo y preciso con Timezones)
-            // Esto convierte la fecha del evento a la hora local del negocio y compara si es el día pedido.
+            // Validación básica de existencia de fechas
             const start = event.start?.dateTime || event.start?.date;
             if (!start) return false;
+
+            // --- CORRECCIÓN IMPORTANTE ---
+            // Eliminamos la comparación estricta de fecha (eventDateString !== dateStr).
+            // Ahora devolvemos cualquier evento que caiga en la ventana de tiempo.
+            // El frontend se encargará de calcular matemáticamente si el horario choca
+            // con el slot específico que el cliente está mirando.
             
-            // "en-CA" nos da formato YYYY-MM-DD
-            const eventDateString = new Intl.DateTimeFormat('en-CA', { 
-                timeZone: timeZone,
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            }).format(new Date(start));
-
-            if (eventDateString !== dateStr) return false;
-
-            // B. Lógica de IDs
+            // B. Lógica de IDs (Profesionales)
             const shared = (event.extendedProperties?.shared as any) || {};
             const rawId = shared['saas_worker_id'];
             const eventWorkerId = rawId ? String(rawId).trim() : null;
             const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
 
             if (availabilityMode === 'global') {
+                // Modo Sala Única: Cualquier evento bloquea todo
                 return true;
             } else {
-                // Modo Simultáneo:
-                // 1. Si no tiene dueño (es un bloqueo manual o feriado) -> Ocupado para todos
+                // Modo Simultáneo (Equipo):
+                
+                // 1. Si el evento NO tiene ID (es un bloqueo manual en Calendar, feriado, o almuerzo)
+                // -> Se considera ocupado para TODOS los profesionales.
                 if (!eventWorkerId) return true; 
                 
-                // 2. Si coinciden IDs (es turno de este profesional) -> Ocupado
+                // 2. Si tiene ID y coincide con el profesional que el cliente eligió
+                // -> Ocupado.
                 if (targetWorkerId && eventWorkerId === targetWorkerId) return true; 
                 
-                // 3. Si es de otro profesional -> Libre (para mi)
+                // 3. Si tiene ID pero es de OTRO profesional
+                // -> Libre (no me afecta a mí).
                 return false; 
             }
         })
