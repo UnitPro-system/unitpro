@@ -9,7 +9,8 @@ import {
   Calendar as CalendarIcon, UserCheck, Clock, ChevronLeft, ChevronRight, User, Eye, EyeOff,
   Mail,
   X,
-  Menu
+  Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
+  Phone
 } from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
@@ -599,6 +600,11 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
 }
 
 function ClientesTable({ turnos, setContactModal }: any) {
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const toggleRow = (id: string) => {
+        setExpandedId(expandedId === id ? null : id);
+    };
     const formatearFecha = (isoString: string) => {
         if (!isoString) return "Sin fecha";
         try {
@@ -610,50 +616,138 @@ function ClientesTable({ turnos, setContactModal }: any) {
             return isoString;
         }
     };
+    const getWhatsAppLink = (phone: string) => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        return `https://wa.me/${cleanPhone}`;
+    };
 
     return (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left text-sm">
-                <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
-                    <tr>
-                        <th className="px-6 py-4">Nombre</th>
-                        <th className="px-6 py-4">Contacto</th>
-                        <th className="px-6 py-4">Servicio</th>
-                        <th className="px-6 py-4">Ultimo Turno</th>
-                        {/* 1. Nueva columna para acciones */}
-                        <th className="px-6 py-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50">
+            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+                {/* --- VISTA ESCRITORIO (TABLE) --- */}
+                <div className="hidden md:block">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
+                            <tr>
+                                <th className="px-6 py-4">Nombre</th>
+                                <th className="px-6 py-4">Teléfono</th>
+                                <th className="px-6 py-4">Email</th>
+                                <th className="px-6 py-4">Servicio</th>
+                                <th className="px-6 py-4">Último Turno</th>
+                                <th className="px-6 py-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
+                            {turnos.map((t: any) => (
+                                <tr key={t.id} className="group hover:bg-zinc-50 transition-colors">
+                                    <td className="px-6 py-4 font-bold text-zinc-900">{t.cliente_nombre}</td>
+                                    <td className="px-6 py-4 font-mono text-zinc-600">
+                                        {t.cliente_telefono || "Sin teléfono"}
+                                    </td>
+                                    <td className="px-6 py-4 text-zinc-500">{t.cliente_email}</td>
+                                    <td className="px-6 py-4 text-zinc-500">{t.servicio || "General"}</td>
+                                    <td className="px-6 py-4 font-mono text-zinc-600 text-xs">
+                                        {formatearFecha(t.fecha_inicio)}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button 
+                                            onClick={() => setContactModal({ 
+                                                show: true, 
+                                                clientEmail: t.cliente_email, 
+                                                clientName: t.cliente_nombre 
+                                            })}
+                                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors font-bold text-xs"
+                                        >
+                                            <Mail size={14} /> 
+                                            Email
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+    
+                {/* --- VISTA MÓVIL (CARDS EXPANDIBLES) --- */}
+                <div className="md:hidden divide-y divide-zinc-100">
                     {turnos.map((t: any) => (
-                        <tr key={t.id} className="group hover:bg-zinc-50">
-                            <td className="px-6 py-4 font-medium">{t.cliente_nombre}</td>
-                            <td className="px-6 py-4 font-mono text-zinc-600">{t.cliente_email}</td>
-                            <td className="px-6 py-4 text-zinc-500">{t.servicio || "General"}</td>
-                            <td className="px-6 py-4 font-mono text-zinc-600">
-                                {formatearFecha(t.fecha_inicio)}
-                            </td>
-                            {/* 2. Celda con el botón de contacto */}
-                            <td className="px-6 py-4 text-right">
-                                <button 
-                                    onClick={() => setContactModal({ 
-                                        show: true, 
-                                        clientEmail: t.cliente_email, 
-                                        clientName: t.cliente_nombre 
-                                    })}
-                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-bold text-xs"
-                                >
-                                    <Mail size={14} /> 
-                                    Contactar
-                                </button>
-                            </td>
-                        </tr>
+                        <div key={t.id} className="flex flex-col">
+                            {/* Fila Colapsada: Siempre visible */}
+                            <div 
+                                onClick={() => toggleRow(t.id)}
+                                className="p-4 flex items-center justify-between active:bg-zinc-50 transition-colors cursor-pointer"
+                            >
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-zinc-900">{t.cliente_nombre}</span>
+                                    <span className="text-sm text-zinc-500 flex items-center gap-1.5">
+                                        <Phone size={12} className="text-zinc-400" />
+                                        {t.cliente_telefono || "Sin teléfono"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {t.cliente_telefono && (
+                                        <a 
+                                            href={getWhatsAppLink(t.cliente_telefono)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="p-2 bg-emerald-50 text-emerald-600 rounded-full"
+                                        >
+                                            <ExternalLink size={18} />
+                                        </a>
+                                    )}
+                                    <div className="text-zinc-400">
+                                        {expandedId === t.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                    </div>
+                                </div>
+                            </div>
+    
+                            {/* Contenido Expandido: Detalles adicionales */}
+                            {expandedId === t.id && (
+                                <div className="px-4 pb-4 pt-2 bg-zinc-50/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="space-y-3 border-t border-zinc-100 pt-3">
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <Mail size={16} className="text-zinc-400 shrink-0" />
+                                            <span className="text-zinc-600 truncate">{t.cliente_email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <Briefcase size={16} className="text-zinc-400 shrink-0" />
+                                            <span className="text-zinc-600">{t.servicio || "General"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <Calendar size={16} className="text-zinc-400 shrink-0" />
+                                            <span className="text-zinc-600 font-mono text-xs">
+                                                Último: {formatearFecha(t.fecha_inicio)}
+                                            </span>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setContactModal({ 
+                                                    show: true, 
+                                                    clientEmail: t.cliente_email, 
+                                                    clientName: t.cliente_nombre 
+                                                });
+                                            }}
+                                            className="w-full mt-2 flex items-center justify-center gap-2 py-3 bg-zinc-900 text-white rounded-xl font-bold text-sm shadow-sm"
+                                        >
+                                            <Mail size={16} /> Enviar Email Profesional
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
+                </div>
+                
+                {turnos.length === 0 && (
+                    <div className="p-10 text-center text-zinc-400 text-sm">
+                        No hay clientes registrados aún.
+                    </div>
+                )}
+            </div>
+        );
+    }
 function SidebarItem({ icon, label, active, onClick, badge }: any) {
     return (
         <button onClick={onClick} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all mb-1 ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"}`}>
