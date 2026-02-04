@@ -522,6 +522,17 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
 
                         return (
                             <div key={i} className={`border-r border-zinc-100 last:border-0 p-2 space-y-2 ${isToday(day) ? 'bg-blue-50/10' : ''}`}>
+                                
+                                <div className={`md:hidden flex items-center gap-2 py-2 px-2 mb-2 rounded-lg ${isToday(day) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-50 text-zinc-600'}`}>
+                                    <span className="font-bold text-sm capitalize">{day.toLocaleDateString('es-AR', { weekday: 'long' })}</span>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>
+                                        {day.getDate()}
+                                    </span>
+                                    <span className="ml-auto text-xs text-zinc-400">
+                                        {dayTurnos.length} turnos
+                                    </span>
+                                </div>
+                                
                                 {dayTurnos.length === 0 && (
                                     <div className="h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                         <div className="w-full h-full border-2 border-dashed border-zinc-100 rounded-lg flex items-center justify-center text-zinc-300 text-xs font-medium cursor-pointer hover:bg-zinc-50">
@@ -529,6 +540,14 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                         </div>
                                     </div>
                                 )}
+
+
+                                {dayTurnos.length === 0 && (
+                                    <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">
+                                        Sin actividad
+                                    </div>
+                                )}
+                                
                                 {dayTurnos.map((t: any) => (
                                     <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500">
 
