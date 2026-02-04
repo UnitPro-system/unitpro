@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updatePasswordWithOld } from "@/app/actions/auth/recover-password";
+import { updatePasswordWithOld } from "@/app/actions/auth/password-actions";
 import { KeyRound, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 
 export function PasswordManager({ email }: { email: string }) {

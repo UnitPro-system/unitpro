@@ -3,38 +3,39 @@
 import { createClient } from '@/lib/supabase-server'
 
 /**
- * Cambia la contraseña de un usuario validando primero su contraseña actual.
- * Este flujo es para usuarios con sesión activa dentro del dashboard.
+ * Envía un correo de recuperación al usuario usando el flujo nativo de Supabase.
+ * El link en el correo redirigirá al usuario a una ruta que definiremos luego.
  */
-export async function updatePasswordWithOld(oldPassword: string, newPassword: string) {
+export async function sendResetPasswordEmail(email: string) {
+  const supabase = await createClient();
+  const emailNormalizado = email.trim().toLowerCase();
+
+  const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
+    // Esta es la URL a la que el usuario será enviado al hacer click en el mail
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/recover-password/reset`,
+  });
+
+  if (error) {
+    console.error('Error al enviar reset email:', error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Esta función se usará en la página de destino para establecer la nueva clave.
+ * Supabase detecta automáticamente el token en la sesión al llegar desde el email.
+ */
+export async function setNewPassword(password: string) {
   const supabase = await createClient();
 
-  // 1. Obtener el usuario actual para recuperar su email
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  
-  if (userError || !user?.email) {
-    return { success: false, error: "No se encontró una sesión activa o el usuario no está autenticado." };
-  }
-
-  // 2. Re-autenticación (Seguridad crítica):
-  // Intentamos iniciar sesión con la clave vieja. Si falla, el cambio se aborta.
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: oldPassword,
+  const { error } = await supabase.auth.updateUser({
+    password: password
   });
 
-  if (signInError) {
-    return { success: false, error: "La contraseña actual es incorrecta." };
-  }
-
-  // 3. Actualización:
-  // Una vez validada la identidad, aplicamos la nueva contraseña.
-  const { error: updateError } = await supabase.auth.updateUser({
-    password: newPassword
-  });
-
-  if (updateError) {
-    return { success: false, error: "Error al actualizar: " + updateError.message };
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   return { success: true };
