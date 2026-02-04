@@ -15,6 +15,7 @@ import {
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
+import { PasswordManager } from "@/components/dashboards/PasswordManager";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -708,7 +709,7 @@ function ClientesTable({ turnos, setContactModal }: any) {
                                             onClick={(e) => e.stopPropagation()}
                                             className="p-2 bg-emerald-50 text-emerald-600 rounded-full"
                                         >
-                                            <ExternalLink size={18} />
+                                            <MessageCircle size={14} /> 
                                         </a>
                                     )}
                                     <div className="text-zinc-400">
@@ -922,6 +923,13 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                         )}
                     </div>
                 </div>
+            </section>
+
+            {/* NUEVA SECCIÓN: SEGURIDAD */}
+            <section>
+                <header className="mb-6"><h2 className="text-2xl font-bold">Cuenta y Seguridad</h2></header>
+                {/* Pasamos el email del negocio para el flujo de 6 dígitos */}
+                <PasswordManager email={negocio.email} />
             </section>
 
             {/* SECCIÓN 2: GESTIÓN DE HORARIOS (NUEVO) */}
