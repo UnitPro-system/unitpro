@@ -12,7 +12,7 @@ export async function sendResetPasswordEmail(email: string) {
 
   const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
     // Esta es la URL a la que el usuario será enviado al hacer click en el mail
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/recover-password/reset`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/recover-password/reset`,
   });
 
   if (error) {
