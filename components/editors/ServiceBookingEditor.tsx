@@ -30,6 +30,15 @@ const DEFAULT_CONFIG = {
       { titulo: "Servicio 3", desc: "Descripción breve." }
     ]
   },
+  schedule: {
+      "0": { isOpen: false, start: "09:00", end: "18:00" }, // Domingo (Cerrado)
+      "1": { isOpen: true, start: "09:00", end: "18:00" },  // Lunes
+      "2": { isOpen: true, start: "09:00", end: "18:00" },  // Martes
+      "3": { isOpen: true, start: "09:00", end: "18:00" },  // Miércoles
+      "4": { isOpen: true, start: "09:00", end: "18:00" },  // Jueves
+      "5": { isOpen: true, start: "09:00", end: "18:00" },  // Viernes
+      "6": { isOpen: false, start: "09:00", end: "13:00" }  // Sábado (Cerrado por defecto)
+  },
   equipo: { 
     mostrar: false, 
     titulo: "Nuestro Equipo", 
@@ -410,6 +419,85 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                         placeholder="Ej: Lun-Vie 9:00 - 18:00"
                     />
+                </div>
+                {/* BLOQUE DE CONFIGURACIÓN DE AGENDA (Nuevo) */}
+                <div className="pt-4 border-t border-zinc-100 mt-4">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
+                        <Clock size={12}/> Configuración de Agenda
+                    </label>
+                    
+                    <div className="space-y-2">
+                        {["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].map((dayName, index) => {
+                            const dayKey = String(index);
+                            // Obtenemos la config actual o usamos un fallback seguro
+                            const dayConfig = config.schedule?.[dayKey] || { isOpen: false, start: "09:00", end: "18:00" };
+
+                            return (
+                                <div key={dayKey} className="flex items-center gap-2 text-xs bg-zinc-50 p-2 rounded-lg border border-zinc-200">
+                                    
+                                    {/* 1. Checkbox: Abierto / Cerrado */}
+                                    <div className="w-24">
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={dayConfig.isOpen}
+                                                onChange={(e) => {
+                                                    // Actualizamos solo el estado 'isOpen' de este día
+                                                    const newSchedule = { 
+                                                        ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                                        [dayKey]: { ...dayConfig, isOpen: e.target.checked } 
+                                                    };
+                                                    updateConfigField('root', 'schedule', newSchedule);
+                                                }}
+                                                className="rounded text-indigo-600 focus:ring-indigo-500 border-zinc-300"
+                                            />
+                                            <span className={dayConfig.isOpen ? "font-bold text-zinc-700" : "text-zinc-400"}>
+                                                {dayName}
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {/* 2. Selectores de Hora (Solo si está abierto) */}
+                                    {dayConfig.isOpen ? (
+                                        <div className="flex items-center gap-1 flex-1 animate-in fade-in">
+                                            <input 
+                                                type="time" 
+                                                value={dayConfig.start} 
+                                                onChange={(e) => {
+                                                    const newSchedule = { 
+                                                        ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                                        [dayKey]: { ...dayConfig, start: e.target.value } 
+                                                    };
+                                                    updateConfigField('root', 'schedule', newSchedule);
+                                                }}
+                                                className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="text-zinc-400 font-bold">-</span>
+                                            <input 
+                                                type="time" 
+                                                value={dayConfig.end}
+                                                onChange={(e) => {
+                                                    const newSchedule = { 
+                                                        ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                                        [dayKey]: { ...dayConfig, end: e.target.value } 
+                                                    };
+                                                    updateConfigField('root', 'schedule', newSchedule);
+                                                }}
+                                                className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <span className="text-zinc-400 italic flex-1 text-center text-[10px] uppercase tracking-wide">
+                                            Cerrado
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 mt-2">
+                        * Estos horarios controlan la disponibilidad real del calendario.
+                    </p>
                 </div>
                 {/* REDES SOCIALES (NUEVO BLOQUE) */}
                 <div className="pt-4 border-t border-zinc-100 mt-2">

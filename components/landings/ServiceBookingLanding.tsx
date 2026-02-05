@@ -142,50 +142,108 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Solo actualizamos el estado. El useEffect se encargará de buscar.
-    setBookingData(prev => ({ ...prev, date: e.target.value, time: "" })); 
+    const dateStr = e.target.value;
+    if (!dateStr) return;
+
+    // Chequeo rápido de día cerrado
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dayIndex = new Date(y, m - 1, d).getDay();
+    const schedule = negocio.config_web?.schedule;
+    
+    // Si existe configuración y el día está cerrado...
+    if (schedule && schedule[String(dayIndex)]?.isOpen === false) {
+        const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+        alert(`El negocio permanece cerrado los ${dias[dayIndex]}. Por favor elige otra fecha.`);
+        // Reseteamos el valor del input (opcional, o dejamos que el usuario lo cambie)
+        setBookingData(prev => ({ ...prev, date: "" })); 
+        setBusySlots([]);
+        return;
+    }
+
+    // Flujo normal
+    setBookingData(prev => ({ ...prev, date: dateStr, time: "" })); 
     setBusySlots([]); 
-  };
+};
 
   const generateTimeSlots = () => {
-    const { start, end } = getBusinessHours();
-    const slots = [];
+    // 1. Obtener fecha y día de la semana de forma segura
+    if (!bookingData.date) return [];
     
-    // USAMOS LA DURACIÓN DEL SERVICIO SELECCIONADO (o 60 min por defecto)
-    const serviceDuration = bookingData.service?.duracion || 60; 
-    
-    // Intervalo entre turnos (puedes dejarlo fijo en 30 o 60, o igual a la duración)
-    // Para mayor flexibilidad, sugiero intervalos de 30 min aunque el turno dure 60.
-    const INTERVAL_STEP = 30; 
+    const [year, month, day] = bookingData.date.split('-').map(Number);
+    // Creamos la fecha localmente para obtener el día correcto (0-6)
+    const dateObj = new Date(year, month - 1, day); 
+    const dayOfWeek = String(dateObj.getDay()); // "0" = Domingo, "1" = Lunes...
 
-    for (let hour = start; hour < end; hour++) {
-        // Generamos slots cada 30 min (o lo que definas en INTERVAL_STEP)
+    // 2. Obtener configuración del día
+    const schedule = negocio.config_web?.schedule || {};
+    const dayConfig = schedule[dayOfWeek];
+
+    // Variables para definir apertura y cierre
+    let openHour = 9;
+    let openMin = 0;
+    let closeHour = 18;
+    let closeMin = 0;
+
+    // LÓGICA PRINCIPAL: Usar el schedule configurado
+    if (dayConfig) {
+        if (!dayConfig.isOpen) return []; // Si está marcado como cerrado, no devolvemos slots
+
+        const [startH, startM] = dayConfig.start.split(':').map(Number);
+        const [endH, endM] = dayConfig.end.split(':').map(Number);
+        
+        openHour = startH;
+        openMin = startM;
+        closeHour = endH;
+        closeMin = endM;
+    } else {
+        // FALLBACK: Si no hay schedule nuevo, intentamos usar el string antiguo o valores por defecto
+        const legacy = getBusinessHours(); // Tu función antigua (puedes mantenerla como auxiliar)
+        openHour = legacy.start;
+        closeHour = legacy.end;
+    }
+
+    const slots = [];
+    // Duración del servicio o 60 min por defecto
+    const serviceDuration = bookingData.service?.duracion || 60; 
+    const INTERVAL_STEP = 30; // Saltos de 30 minutos en la grilla
+
+    // 3. Generación de Slots
+    for (let hour = openHour; hour <= closeHour; hour++) {
         for (let min = 0; min < 60; min += INTERVAL_STEP) {
             
+            // FILTRO DE INICIO: Si estamos en la hora de apertura, respetar los minutos
+            // Ej: Si abre 9:30, no generar 9:00
+            if (hour === openHour && min < openMin) continue;
+
+            // FILTRO DE CIERRE: Si nos pasamos de la hora de cierre, parar.
+            if (hour > closeHour || (hour === closeHour && min >= closeMin)) break;
+
             const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
             
-            // Calculamos INICIO y FIN basados en la duración del servicio
+            // Construimos objetos Date para comparar colisiones
             const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
             const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
 
-            // Verificamos si choca con algún turno ocupado (busySlots)
+            // Validar que el servicio termine ANTES de cerrar
+            const closingTime = new Date(`${bookingData.date}T${closeHour.toString().padStart(2, '0')}:${closeMin.toString().padStart(2, '0')}:00`);
+            
+            if (slotEnd > closingTime) continue;
+
+            // 4. Verificar BusySlots (Google Calendar)
             const isBusy = busySlots.some((busy: any) => {
                 const busyStart = new Date(busy.start);
                 const busyEnd = new Date(busy.end);
-                // Lógica de colisión de rangos
+                // Si se solapan de alguna forma
                 return (slotStart < busyEnd && slotEnd > busyStart);
             });
             
-            // Verificar que el turno no termine después de la hora de cierre
-            const closingTime = new Date(`${bookingData.date}T${end}:00:00`);
-            
-            if (!isBusy && slotEnd <= closingTime) {
+            if (!isBusy) {
                 slots.push({ time: timeString, available: true });
             }
         }
     }
     return slots;
-  };
+};
 
   const getLocalDateString = () => {
     const d = new Date();

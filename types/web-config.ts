@@ -144,4 +144,15 @@ export interface WebConfig {
   footer?: FooterSection;            // Opcional
   customSections?: CustomSection[];
   sectionOrder?: string[];
+  schedule?: WeeklySchedule;
 }
+
+export type DailySchedule = {
+  isOpen: boolean;
+  start: string; // formato "HH:mm", ej: "09:00"
+  end: string;   // formato "HH:mm", ej: "18:00"
+};
+
+export type WeeklySchedule = {
+  [key: string]: DailySchedule; // "0" es Domingo, "1" es Lunes, etc.
+};
