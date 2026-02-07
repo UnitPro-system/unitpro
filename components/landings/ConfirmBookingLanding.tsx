@@ -34,6 +34,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   clientName: string;
   clientPhone: string;
   clientEmail: string;
+  message: string;
+  images: string[];
 }>({
   service: null, 
   date: "", 
@@ -41,6 +43,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   clientName: "", 
   clientPhone: "", 
   clientEmail: "",
+  message: "",
+  images: [],
   worker: null,
 });
   const [busySlots, setBusySlots] = useState<any[]>([]);
@@ -283,7 +287,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         if ((res as any).eventLink) setEventLink((res as any).eventLink); 
         setMostrarGracias(true);
         setBookingStep(1);
-        setBookingData({ service: null, date: "", time: "", clientName: "", clientPhone: "", clientEmail: "", worker: null });
+        setBookingData({ service: null, date: "", time: "", clientName: "", clientPhone: "", clientEmail: "", worker: null, message: "", images: [] });
     } else {
         alert("Error: " + res.error);
     }
@@ -960,6 +964,25 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                      <input required placeholder="Teléfono" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}/>
                      <input required placeholder="Email" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientEmail: e.target.value})}/>
                      <button type="submit" disabled={enviando} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2">{enviando ? <Loader2 className="animate-spin"/> : "Confirmar"}</button>
+                     <textarea 
+                        placeholder="Mensaje explicativo" 
+                        className="w-full p-3 border rounded-xl" 
+                        onChange={e => setBookingData({...bookingData, message: e.target.value})}
+                        />
+
+                        <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700">Adjuntar imágenes</label>
+                        <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*"
+                            onChange={async (e) => {
+                            // Aquí deberías implementar la lógica de subida a Supabase Storage
+                            // y guardar las URLs resultantes en bookingData.images
+                            }}
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        </div>
                 </form>
             )}
         </Modal>

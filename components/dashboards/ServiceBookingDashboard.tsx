@@ -34,7 +34,7 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion" | "marketing">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion" | "horarios" | "marketing">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
@@ -161,6 +161,7 @@ useEffect(() => {
       icon: <CalendarIcon size={18} />, 
       badge: !negocio.google_calendar_connected ? "!" : undefined 
     },
+    { id: "horarios", label: "Horarios", icon: <Clock size={18} /> },
     { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
     { 
       id: "resenas", 
@@ -331,6 +332,9 @@ useEffect(() => {
                     handleConnectGoogle={handleConnectGoogle}
                     onCancel={handleTurnoCancelado} 
                 />
+            )}
+            {activeTab === "horarios" && (
+                <HorariosTab negocio={negocio} />
             )}
 
             {/* --- OTRAS TABS --- */}
@@ -868,9 +872,48 @@ function ReviewsTab({ resenas, onToggle }: any) {
 function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
     return (<div className="p-6 text-center text-zinc-400 bg-white rounded-2xl border border-zinc-200">Panel de Suscripción (simplificado)</div>);
 }
+function HorariosTab({ negocio }: any) {
+    // Recuperamos la lista de trabajadores para el selector
+    const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
+            <header className="mb-6">
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
+                   Administrar Horarios
+                </h2>
+                <p className="text-zinc-500 text-sm">Gestiona la disponibilidad de tu equipo y bloqueos especiales.</p>
+            </header>
+
+            <section>
+                <div className="flex items-center justify-between mb-4">
+                     <h3 className="text-lg font-bold">Bloqueo de Fechas y Horas</h3>
+                     {!negocio.google_calendar_connected && (
+                         <span className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded-md">Requiere Google Calendar</span>
+                     )}
+                </div>
+                
+                {negocio.google_calendar_connected ? (
+                    // Aquí usamos el componente que ya tenías importado
+                    <BlockTimeManager slug={negocio.slug} workers={workers} />
+                ) : (
+                    <div className="p-8 bg-zinc-50 border border-zinc-200 border-dashed rounded-xl text-center">
+                        <div className="w-12 h-12 bg-zinc-200 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <CalendarIcon size={24} />
+                        </div>
+                        <h4 className="font-bold text-zinc-900">Calendario desconectado</h4>
+                        <p className="text-sm text-zinc-500 mt-1 max-w-md mx-auto">
+                            Para bloquear horarios necesitas conectar Google Calendar en la pestaña de <b>Configuración</b>.
+                        </p>
+                    </div>
+                )}
+            </section>
+        </div>
+    );
+}
 function ConfigTab({ negocio, handleConnectGoogle }: any) {
     const supabase = createClient();
-    const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
+    
 
     const handleDisconnect = async () => {
         const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
@@ -932,17 +975,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                 <PasswordManager email={negocio.email} />
             </section>
 
-            {/* SECCIÓN 2: GESTIÓN DE HORARIOS (NUEVO) */}
-            {/* Solo mostramos esto si el calendario está conectado, porque los bloqueos se crean en Google Calendar */}
-            {negocio.google_calendar_connected && (
-                <section>
-                    <header className="mb-6"><h2 className="text-2xl font-bold">Bloqueo de Horarios</h2></header>
                     
-                    {/* AQUÍ INSERTAMOS EL COMPONENTE */}
-                    <BlockTimeManager slug={negocio.slug} workers={workers} />
-                    
-                </section>
-            )}
         </div>
     )
 }
