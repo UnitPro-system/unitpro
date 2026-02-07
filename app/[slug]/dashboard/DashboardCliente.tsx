@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import ConfirmBookingDashboard from "@/components/dashboards/ConfirmBookingDashboard";
 
 // 1. CARGA DINÁMICA (Igual que en LandingCliente)
 const ServiceBookingDashboard = dynamic(() => import("@/components/dashboards/ServiceBookingDashboard"), {
@@ -68,6 +69,9 @@ export default function DashboardFactory() {
     
     case 'project_portfolio':
       return <ProjectDashboard negocio={negocio} />;
+
+    case 'confirm_booking':
+      return <ConfirmBookingDashboard initialData={negocio} />;
       
     
     default:

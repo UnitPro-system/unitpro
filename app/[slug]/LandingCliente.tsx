@@ -4,6 +4,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
+
 // Importamos dinámicamente para que el código de "Citas" no se cargue si el usuario está en un "Restaurante"
 // Esto mejora el rendimiento brutalmente.
 const ServiceBookingLanding = dynamic(() => import("@/components/landings/ServiceBookingLanding"), {
@@ -11,6 +12,10 @@ const ServiceBookingLanding = dynamic(() => import("@/components/landings/Servic
 });
 
 const ProjectLanding = dynamic(() => import("@/components/landings/ProjectLanding"), {
+  loading: () => <LoadingScreen />,
+});
+
+const ConfirmBookingLanding = dynamic(() => import("@/components/landings/ConfirmBookingLanding"), {
   loading: () => <LoadingScreen />,
 });
 
@@ -28,8 +33,8 @@ export default function LandingFactory({ initialData }: { initialData: any }) {
     case 'project_portfolio':
       return <ProjectLanding initialData={initialData} />;
       
-    case 'retail_store':
-      return <div>Próximamente: Tienda</div>;
+    case 'confirm_booking':
+      return <ConfirmBookingLanding initialData={initialData} />;
 
     default:
       return <div className="p-10 text-center">Error: Categoría de negocio no reconocida.</div>;
