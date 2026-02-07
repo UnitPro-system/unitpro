@@ -167,7 +167,23 @@ export default function DashboardAgencia() {
                 }
             };
         }
-        // Aquí agregarás 'else if (newClientCategory === 'restaurant_menu')' en el futuro...
+        if (newClientCategory === 'confirm_booking') {
+            initialConfigWeb = {
+                template: "modern",
+                hero: { 
+                    titulo: newClientData.nombre, 
+                    subtitulo: "Reserva tu cita online con los mejores profesionales.", 
+                    ctaTexto: "Reservar Turno", 
+                    mostrar: true 
+                },
+                beneficios: { 
+                    mostrar: true, 
+                    titulo: "Por qué elegirnos", 
+                    items: [{titulo: "Atención Premium", desc: "Nos enfocamos en los detalles."}]
+                }
+            };
+        }
+        
 
         // 2. Insertar en Base de Datos
         const { error: dbError } = await supabase.from("negocios").insert([{
@@ -320,6 +336,13 @@ export default function DashboardAgencia() {
                                 className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'project_portfolio' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
                             >
                                 <span></span> Project / Portfolio
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setNewClientCategory('confirm_booking')}
+                                className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'confirm_booking' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
+                            >
+                                <span></span> Citas / Servicios (Confirm Booking)
                             </button>
                             
                         </div>
