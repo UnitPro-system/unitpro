@@ -115,6 +115,8 @@ export async function createAppointment(slug: string, bookingData: any) {
         fecha_inicio: bookingData.start,
         fecha_fin: bookingData.end,
         google_event_id: event.data.id,
+        mensaje: bookingData.message,
+        fotos: bookingData.images,
         estado: 'confirmado',
         // Podrías agregar una columna 'worker_id' en tu tabla turnos si quieres, pero no es estrictamente necesario si ya está en Google
     };
@@ -135,6 +137,8 @@ export async function createAppointment(slug: string, bookingData: any) {
       fecha_inicio: bookingData.start,
       fecha_fin: bookingData.end,
       google_event_id: event.data.id,
+      mensaje: bookingData.message,
+      fotos: bookingData.images,
       estado: 'confirmado',
       recordatorio_enviado: false // <--- ¡AGREGA ESTA LÍNEA!
     })
@@ -153,6 +157,8 @@ export async function createAppointment(slug: string, bookingData: any) {
     fecha_inicio: bookingData.start,
     fecha_fin: bookingData.end,
     google_event_id: event.data.id,
+    mensaje: bookingData.message,
+    fotos: bookingData.images,
     estado: 'confirmado',
     recordatorio_enviado: false // <--- Buena práctica: asegurarlo también aquí, aunque el default de la DB sea false.
   })

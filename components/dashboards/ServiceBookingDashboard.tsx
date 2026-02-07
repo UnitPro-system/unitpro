@@ -10,8 +10,7 @@ import {
   Mail,
   X,
   Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
-  Phone
-} from "lucide-react";
+  Phone, MoreVertical, Trash2, Edit} from "lucide-react";
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
@@ -38,6 +37,28 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
+  const [rescheduleModal, setRescheduleModal] = useState({ show: false, turnoId: '', currentStart: '' });
+  const [newDate, setNewDate] = useState('');
+
+  // FUNCIÓN PARA GUARDAR REPROGRAMACIÓN
+  const handleRescheduleSave = async () => {
+    if (!newDate) return alert("Selecciona una fecha válida");
+    
+    // 1. Actualizar en Supabase
+    const { error } = await supabase
+        .from('turnos')
+        .update({ fecha_inicio: new Date(newDate).toISOString() }) // Asumimos fecha fin automática o igual duración por simplicidad
+        .eq('id', rescheduleModal.turnoId);
+
+    if (error) {
+        alert("Error al reprogramar: " + error.message);
+    } else {
+        // 2. Actualizar estado local
+        setTurnos(prev => prev.map(t => t.id === rescheduleModal.turnoId ? { ...t, fecha_inicio: newDate } : t));
+        setRescheduleModal({ ...rescheduleModal, show: false });
+        alert("Turno reprogramado con éxito");
+    }
+  };
 
 
 
@@ -330,7 +351,15 @@ useEffect(() => {
                     negocio={negocio} 
                     turnos={turnos} 
                     handleConnectGoogle={handleConnectGoogle}
-                    onCancel={handleTurnoCancelado} 
+                    onCancel={handleTurnoCancelado}
+                    onContact={(email: string, name: string) => setContactModal({ show: true, clientEmail: email, clientName: name })}
+                    onReschedule={(id: string, start: string) => {
+                        setRescheduleModal({ show: true, turnoId: id, currentStart: start });
+                        // Formatear para input datetime-local (YYYY-MM-DDTHH:MM)
+                        const dateObj = new Date(start);
+                        dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
+                        setNewDate(dateObj.toISOString().slice(0, 16));
+                        }}
                 />
             )}
             {activeTab === "horarios" && (
@@ -346,6 +375,24 @@ useEffect(() => {
 
             
         </div>
+        {rescheduleModal.show && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                    <h3 className="text-lg font-bold mb-4">Reprogramar Turno</h3>
+                    <p className="text-sm text-gray-500 mb-2">Selecciona la nueva fecha y hora:</p>
+                    <input 
+                        type="datetime-local"
+                        className="w-full p-2 border rounded-lg mb-6"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                        <button onClick={() => setRescheduleModal({ ...rescheduleModal, show: false })} className="flex-1 py-2 text-gray-600 font-medium">Cancelar</button>
+                        <button onClick={handleRescheduleSave} className="flex-1 py-2 bg-zinc-900 text-white rounded-lg font-bold">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* CONTACT MODAL */}
         {contactModal.show && (
@@ -396,34 +443,40 @@ useEffect(() => {
 // Para ahorrar espacio en la respuesta, asumo que copiarás las funciones auxiliares al final de este archivo.
 // Asegúrate de exportar o definir CalendarTab, ClientesTable, etc. aquí dentro.
 
-function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
+function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact, onReschedule }: any) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const supabase = createClient(); 
     const router = useRouter();
+    
+    // NUEVO: Estado para saber qué menú está abierto (guarda el ID del turno)
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
     const handleDisconnect = async () => {
         const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
-        
         if (!confirmacion) return;
-
         try {
-            // Limpiamos los tokens y el estado en Supabase
             const { error } = await supabase
                 .from('negocios')
                 .update({
                     google_calendar_connected: false,
                     google_access_token: null,
                     google_refresh_token: null,
-                    // google_watch_id: null // Descomenta si usas webhooks
                 })
                 .eq('id', negocio.id);
-
             if (error) throw error;
-
-            // Recargamos la página para actualizar el estado visual
             window.location.reload(); 
         } catch (error: any) {
             alert("Error al desconectar: " + error.message);
+        }
+    };
+
+    // Lógica para borrar desde el menú de 3 puntos
+    const handleDeleteFromMenu = async (id: string) => {
+        if(confirm("¿Estás seguro de cancelar este turno?")) {
+            // Cancelamos visualmente
+            onCancel(id);
+            // Cancelamos en base de datos
+            await supabase.from('turnos').update({ estado: 'cancelado' }).eq('id', id);
         }
     };
 
@@ -447,13 +500,12 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
         );
     }
 
-    // LÓGICA DE CALENDARIO SEMANAL
+    // Cálculos del calendario
     const getDaysOfWeek = (date: Date) => {
         const start = new Date(date);
-        const day = start.getDay(); // 0 (Dom) - 6 (Sab)
-        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al Lunes
+        const day = start.getDay(); 
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(start.setDate(diff));
-        
         const days = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(monday);
@@ -482,9 +534,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
         return date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
     };
 
-
-    
-
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
             {/* HEADER CALENDARIO */}
@@ -504,7 +553,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
 
             {/* GRID SEMANAL */}
             <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
-                {/* CABECERA DÍAS */}
                 <div className="hidden md:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
                     {days.map((day, i) => (
                         <div key={i} className={`py-4 text-center border-r border-zinc-100 last:border-0 ${isToday(day) ? 'bg-blue-50/50' : ''}`}>
@@ -516,8 +564,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                     ))}
                 </div>
 
-
-                {/* CUERPO DEL CALENDARIO */}
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px]">
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
@@ -535,20 +581,8 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>
                                         {day.getDate()}
                                     </span>
-                                    <span className="ml-auto text-xs text-zinc-400">
-                                        {dayTurnos.length} turnos
-                                    </span>
                                 </div>
                                 
-                                {dayTurnos.length === 0 && (
-                                    <div className="h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                        <div className="w-full h-full border-2 border-dashed border-zinc-100 rounded-lg flex items-center justify-center text-zinc-300 text-xs font-medium cursor-pointer hover:bg-zinc-50">
-                                            +
-                                        </div>
-                                    </div>
-                                )}
-
-
                                 {dayTurnos.length === 0 && (
                                     <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">
                                         Sin actividad
@@ -558,39 +592,91 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                 {dayTurnos.map((t: any) => (
                                     <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500">
 
-                                        {/* CABECERA: Hora y Botón Borrar */}
-                                        <div className="flex justify-between items-start mb-1">
+                                        {/* CABECERA: Hora y 3 PUNTITOS (Aquí está el cambio principal) */}
+                                        <div className="flex justify-between items-start mb-1 relative">
                                             <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
                                                 <Clock size={10}/> 
                                                 {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                             </p>
 
-                                            {/* AQUÍ PEGAS EL BOTÓN */}
-                                            <div onClick={(e) => e.stopPropagation()}>
-                                                <BotonCancelar
-                                                    idTurno={t.id}
-                                                    onCancel={() => onCancel(t.id)} 
-                                                />
-                                            </div>
+                                            {/* BOTÓN 3 PUNTOS */}
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Si ya está abierto este, lo cierra. Si no, lo abre.
+                                                    setActiveMenuId(activeMenuId === t.id ? null : t.id);
+                                                }}
+                                                className="text-zinc-400 hover:text-zinc-600 p-1 rounded-full hover:bg-zinc-100 transition-colors"
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+
+                                            {/* MENÚ DESPLEGABLE (Solo se ve si activeMenuId coincide) */}
+                                            {activeMenuId === t.id && (
+                                                <>
+                                                    {/* Fondo invisible para cerrar clickeando afuera */}
+                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                                                    
+                                                    {/* El cuadrito del menú */}
+                                                    <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                        
+                                                        <button 
+                                                            onClick={() => {
+                                                                onReschedule(t.id, t.fecha_inicio);
+                                                                setActiveMenuId(null);
+                                                            }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
+                                                        >
+                                                            <Edit size={14} /> Reprogramar
+                                                        </button>
+
+                                                        <button 
+                                                            onClick={() => {
+                                                                onContact(t.cliente_email, t.cliente_nombre);
+                                                                setActiveMenuId(null);
+                                                            }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
+                                                        >
+                                                            <Mail size={14} /> Contactar Email
+                                                        </button>
+                                                        
+                                                        {t.cliente_telefono && (
+                                                            <a 
+                                                                href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
+                                                            >
+                                                                <Phone size={14} /> WhatsApp
+                                                            </a>
+                                                        )}
+
+                                                        <div className="h-px bg-zinc-100 my-1" />
+
+                                                        <button 
+                                                            onClick={() => handleDeleteFromMenu(t.id)}
+                                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} /> Cancelar Turno
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
 
                                         
                                         <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
 
-                                        {/* LÓGICA PARA SEPARAR SERVICIO Y PROFESIONAL */}
                                         {t.servicio && t.servicio.includes(" - ") ? (
                                             <div className="flex flex-col mt-1">
-                                                {/* Línea 1: Servicio */}
                                                 <p className="text-xs font-medium text-zinc-700 truncate">
                                                     {t.servicio.split(" - ")[0]}
                                                 </p>
-                                                {/* Línea 2: Profesional (con icono) */}
                                                 <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
                                                     <User size={10}/> {t.servicio.split(" - ")[1]}
                                                 </p>
                                             </div>
                                         ) : (
-                                            // Fallback por si es un turno viejo sin el formato nuevo
                                             <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
                                         )}
                                     </div>
@@ -603,7 +689,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
         </div>
     );
 }
-
 function ClientesTable({ turnos, setContactModal }: any) {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
