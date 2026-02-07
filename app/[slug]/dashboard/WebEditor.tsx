@@ -2,6 +2,7 @@
 import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor";
 import ProjectEditor from "@/components/editors/ProjectEditor"
 import { AlertTriangle } from "lucide-react";
+import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
 
 interface Props {
   negocio: any;
@@ -19,6 +20,9 @@ export default function WebEditorFactory({ negocio, onClose, onSave }: Props) {
 
   if (negocio.category === 'project_portfolio') {
      return <ProjectEditor negocio={negocio} onClose={onClose} onSave={onSave} />;
+  }
+  if (negocio.category === 'confirm_booking') {
+     return <ConfirmBookingEditor negocio={negocio} onClose={onClose} onSave={onSave} />;
   }
   // 2. Si es cualquier otro tipo futuro, mostramos un aviso por ahora
   return (
