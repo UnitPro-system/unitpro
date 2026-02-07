@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
-import ConfirmBookingDashboard from "@/components/dashboards/ConfirmBookingDashboard";
+
 
 // 1. CARGA DINÁMICA (Igual que en LandingCliente)
 const ServiceBookingDashboard = dynamic(() => import("@/components/dashboards/ServiceBookingDashboard"), {
@@ -13,6 +13,10 @@ const ServiceBookingDashboard = dynamic(() => import("@/components/dashboards/Se
 });
 
 const ProjectDashboard = dynamic(() => import("@/components/dashboards/ProjectDashboard"), {
+  loading: () => <LoadingScreen />,
+});
+
+const ConfirmBookingDashboard = dynamic(() => import("@/components/dashboards/ConfirmBookingDashboard"), {
   loading: () => <LoadingScreen />,
 });
 
