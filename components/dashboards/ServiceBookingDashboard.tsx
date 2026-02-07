@@ -15,6 +15,7 @@ import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
+import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/calendar-actions";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -44,19 +45,25 @@ export default function ServiceBookingDashboard({ initialData }: { initialData: 
   const handleRescheduleSave = async () => {
     if (!newDate) return alert("Selecciona una fecha válida");
     
-    // 1. Actualizar en Supabase
-    const { error } = await supabase
-        .from('turnos')
-        .update({ fecha_inicio: new Date(newDate).toISOString() }) // Asumimos fecha fin automática o igual duración por simplicidad
-        .eq('id', rescheduleModal.turnoId);
+    // Indicador de carga visual (opcional)
+    const originalText = document.getElementById('btn-save-reschedule')?.innerText;
+    if(document.getElementById('btn-save-reschedule')) {
+        document.getElementById('btn-save-reschedule')!.innerText = "Guardando...";
+    }
 
-    if (error) {
-        alert("Error al reprogramar: " + error.message);
+    // LLAMADA AL SERVIDOR (Server Action)
+    const res = await rescheduleBooking(rescheduleModal.turnoId, new Date(newDate).toISOString());
+
+    if (!res.success) {
+        alert("Error al reprogramar: " + res.error);
+        if(document.getElementById('btn-save-reschedule')) {
+            document.getElementById('btn-save-reschedule')!.innerText = originalText || "Guardar";
+        }
     } else {
-        // 2. Actualizar estado local
+        // Actualizamos estado local para que se vea reflejado al instante
         setTurnos(prev => prev.map(t => t.id === rescheduleModal.turnoId ? { ...t, fecha_inicio: newDate } : t));
         setRescheduleModal({ ...rescheduleModal, show: false });
-        alert("Turno reprogramado con éxito");
+        alert("Turno reprogramado y sincronizado con Google Calendar.");
     }
   };
 
@@ -472,11 +479,16 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
     // Lógica para borrar desde el menú de 3 puntos
     const handleDeleteFromMenu = async (id: string) => {
-        if(confirm("¿Estás seguro de cancelar este turno?")) {
-            // Cancelamos visualmente
-            onCancel(id);
-            // Cancelamos en base de datos
-            await supabase.from('turnos').update({ estado: 'cancelado' }).eq('id', id);
+        if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
+        
+        // LLAMADA AL SERVIDOR (Server Action)
+        const res = await cancelBooking(id);
+
+        if (res.success) {
+            onCancel(id); // Actualizar UI visualmente
+            alert("Turno cancelado correctamente.");
+        } else {
+            alert("Error al cancelar: " + res.error);
         }
     };
 
