@@ -912,37 +912,79 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(bookingStep / 4) * 100}%` }}></div>
                 </div>
             </div>
-            {/* PASO 1 */}
+            {/* PASO 1: SELECCIONAR SERVICIO (CORREGIDO) */}
             {bookingStep === 1 && (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto">
                     <p className="font-bold text-zinc-700 mb-2">Selecciona un servicio:</p>
                     
-                    {/* Iteramos sobre los servicios reales del config */}
-                    {(config.servicios?.items?.length ?? 0) > 0 ? (
-                        config.servicios?.items?.map((item: any, i: number) => (
-                            <button 
-                                key={i}
-                                onClick={() => { 
-                                    setBookingData({...bookingData, service: item}); // Guardamos el objeto item 
-                                    setBookingStep(2); 
-                                }} 
-                                className="w-full p-4 border border-zinc-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-500 text-left transition-all group"
-                            >
-                                <div className="flex justify-between items-center w-full">
-                                    <span className="font-bold text-zinc-900 group-hover:text-indigo-700">{item.titulo}</span>
-                                    {item.precio && <span className="font-semibold text-zinc-900 bg-zinc-100 px-2 py-1 rounded text-sm group-hover:bg-indigo-100 group-hover:text-indigo-700">{item.precio}</span>}
-                                </div>
-                                <div className="flex justify-between items-center mt-1">
-                                    <span className="text-xs text-zinc-500 truncate max-w-[70%]">{item.desc}</span>
-                                    <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                        <Clock size={12}/> {item.duracion || 60} min
-                                    </span>
-                                </div>
-                            </button>
-                        ))
-                    ) : (
-                        <p className="text-center text-zinc-400 text-sm py-4">No hay servicios configurados.</p>
-                    )}
+                    {/* FUSIONAMOS SERVICIOS + PROMOS */}
+                    {(() => {
+                        const allServices = [
+                            ...(config.servicios?.items || []), 
+                            ...(negocio.config_web?.services || [])
+                        ];
+                        
+                        if (allServices.length === 0) {
+                            return <p className="text-center text-zinc-400 text-sm py-4">No hay servicios configurados.</p>;
+                        }
+
+                        return allServices.map((item: any, i: number) => {
+                            // LÓGICA DE PROMO
+                            const isPromo = item.isPromo && item.promoEndDate;
+                            const isExpired = isPromo && new Date(item.promoEndDate) < new Date();
+                            
+                            // Normalizar datos
+                            const titulo = item.name || item.titulo;
+                            const precio = item.price || item.precio;
+                            const desc = item.description || item.desc;
+                            const duracion = item.duration || item.duracion || 60;
+
+                            if (isExpired) return null; // No mostrar promos vencidas
+
+                            return (
+                                <button 
+                                    key={item.id || i}
+                                    onClick={() => { 
+                                        setBookingData({...bookingData, service: item}); 
+                                        setBookingStep(2); 
+                                    }} 
+                                    className={`w-full p-4 border rounded-xl text-left transition-all group relative overflow-hidden
+                                        ${isPromo 
+                                            ? 'bg-pink-50 border-pink-200 hover:border-pink-400 hover:bg-pink-100' 
+                                            : 'bg-white border-zinc-200 hover:bg-indigo-50 hover:border-indigo-500'
+                                        }
+                                    `}
+                                >
+                                    {isPromo && (
+                                        <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase rounded-bl-lg">
+                                            Promo
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center w-full">
+                                        <span className={`font-bold ${isPromo ? 'text-pink-900' : 'text-zinc-900 group-hover:text-indigo-700'}`}>
+                                            {titulo}
+                                        </span>
+                                        {precio && (
+                                            <span className={`font-semibold px-2 py-1 rounded text-sm 
+                                                ${isPromo 
+                                                    ? 'bg-pink-200 text-pink-800' 
+                                                    : 'bg-zinc-100 text-zinc-900 group-hover:bg-indigo-100 group-hover:text-indigo-700'
+                                                }`}>
+                                                {typeof precio === 'number' || !isNaN(Number(precio)) ? `$${precio}` : precio}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1">
+                                        <span className="text-xs text-zinc-500 truncate max-w-[70%]">{desc}</span>
+                                        <span className={`text-xs font-bold flex items-center gap-1 ${isPromo ? 'text-pink-400' : 'text-zinc-400'}`}>
+                                            <Clock size={12}/> {duracion} min
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        });
+                    })()}
                 </div>
             )}
             {bookingStep === 2 && (
