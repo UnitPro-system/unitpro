@@ -602,6 +602,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
           </section>
       )}
+      
       {/* --- NUEVA SECCIÓN: EQUIPO --- */}
       {config.equipo?.mostrar && (
         <section id="equipo" className="py-24 px-6 bg-zinc-50 border-t border-zinc-200">
