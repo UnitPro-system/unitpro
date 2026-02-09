@@ -11,7 +11,7 @@ import {
   X,
   Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
   Phone,
-  Bell
+  Bell,Tag,Trash2
 } from "lucide-react";
 import { approveAppointment, cancelAppointment } from "@/app/actions/confirm-booking/manage-appointment";
 import { BotonCancelar } from "@/components/BotonCancelar";
@@ -36,10 +36,11 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing"| "promociones">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
+  
 
 
 
@@ -179,6 +180,7 @@ useEffect(() => {
       badge: resenas.length > 0 ? resenas.length : undefined 
     },
     { id: "suscripcion", label: "Suscripción", icon: <CreditCard size={18} /> },
+    { id: "promociones", label: "Promociones", icon: <Tag size={18} /> },
     { id: "configuracion", label: "Configuración", icon: <Settings size={18} /> },
     { id: "marketing", label: "Marketing", icon: <LinkIcon size={18} /> },
   ];
@@ -342,6 +344,10 @@ useEffect(() => {
                     onCancel={handleTurnoCancelado} 
                 />
             )}
+            {/* --- TAB: PROMOCIONES --- */}
+            {activeTab === "promociones" && (
+            <PromotionsTab initialConfig={negocio.config_web} negocioId={negocio.id} />
+            )}
 
             {/* --- OTRAS TABS --- */}
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} setContactModal={setContactModal} /></div>}
@@ -420,6 +426,7 @@ useEffect(() => {
 
             
         </div>
+        
 
         {/* CONTACT MODAL */}
         {contactModal.show && (
@@ -1025,4 +1032,169 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
             )}
         </div>
     )
+}
+function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negocioId: string }) {
+    const [config, setConfig] = useState(initialConfig || { services: [] });
+    const [loading, setLoading] = useState(false);
+    const supabase = createClient();
+    
+    // Estado para el formulario de nueva promoción
+    const [newPromo, setNewPromo] = useState({
+        name: '',
+        description: '',
+        price: '',
+        duration: '60',
+        isPromo: true,
+        promoEndDate: '' // Fecha límite (YYYY-MM-DD)
+    });
+
+    const handleSave = async (updatedServices: any[]) => {
+        setLoading(true);
+        const newConfig = { ...config, services: updatedServices };
+        
+        const { error } = await supabase
+            .from('negocios')
+            .update({ config_web: newConfig })
+            .eq('id', negocioId);
+
+        if (error) {
+            alert("Error al guardar: " + error.message);
+        } else {
+            setConfig(newConfig);
+            alert("Cambios guardados correctamente");
+            // Limpiar formulario si fue una creación
+            setNewPromo({ ...newPromo, name: '', description: '', price: '', promoEndDate: '' });
+        }
+        setLoading(false);
+    };
+
+    const handleAddPromo = () => {
+        if (!newPromo.name || !newPromo.price || !newPromo.promoEndDate) {
+            alert("Completa los campos obligatorios (Nombre, Precio, Fecha Límite)");
+            return;
+        }
+
+        const promoService = {
+            id: crypto.randomUUID(), // Generar ID único
+            ...newPromo,
+            price: Number(newPromo.price),
+            duration: Number(newPromo.duration)
+        };
+
+        handleSave([...(config.services || []), promoService]);
+    };
+
+    const handleDelete = (id: string) => {
+        if(!confirm("¿Eliminar esta promoción?")) return;
+        const filtered = (config.services || []).filter((s: any) => s.id !== id);
+        handleSave(filtered);
+    };
+
+    // Filtrar solo las promociones actuales
+    const promos = (config.services || []).filter((s: any) => s.isPromo);
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 space-y-8 max-w-4xl">
+            <header className="mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <Tag className="text-pink-600" /> 
+                    Gestión de Promociones
+                </h2>
+                <p className="text-zinc-500 text-sm">Crea ofertas por tiempo limitado que resaltarán en tu página.</p>
+            </header>
+
+            {/* FORMULARIO DE CREACIÓN */}
+            <div className="bg-white p-6 rounded-2xl border border-pink-100 shadow-sm">
+                <h3 className="font-bold text-lg mb-4 text-pink-700">Crear Nueva Promoción</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input 
+                        placeholder="Nombre de la Promoción (Ej: 2x1 Corte)" 
+                        className="p-2 border rounded-lg w-full"
+                        value={newPromo.name}
+                        onChange={e => setNewPromo({...newPromo, name: e.target.value})}
+                    />
+                    <input 
+                        type="number" 
+                        placeholder="Precio Promocional ($)" 
+                        className="p-2 border rounded-lg w-full"
+                        value={newPromo.price}
+                        onChange={e => setNewPromo({...newPromo, price: e.target.value})}
+                    />
+                    <div className="md:col-span-2">
+                        <textarea 
+                            placeholder="Descripción breve..." 
+                            className="p-2 border rounded-lg w-full h-20 resize-none"
+                            value={newPromo.description}
+                            onChange={e => setNewPromo({...newPromo, description: e.target.value})}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 mb-1">Duración (min)</label>
+                        <select 
+                            className="p-2 border rounded-lg w-full bg-white"
+                            value={newPromo.duration}
+                            onChange={e => setNewPromo({...newPromo, duration: e.target.value})}
+                        >
+                            <option value="15">15 min</option>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">1 hora</option>
+                            <option value="90">1.5 horas</option>
+                            <option value="120">2 horas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-pink-600 mb-1">Válida hasta (inclusive)</label>
+                        <input 
+                            type="date" 
+                            className="p-2 border border-pink-200 rounded-lg w-full bg-pink-50"
+                            value={newPromo.promoEndDate}
+                            onChange={e => setNewPromo({...newPromo, promoEndDate: e.target.value})}
+                        />
+                    </div>
+                </div>
+                <button 
+                    onClick={handleAddPromo}
+                    disabled={loading}
+                    className="w-full py-3 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-pink-200"
+                >
+                    {loading ? "Guardando..." : "Lanzar Promoción 🚀"}
+                </button>
+            </div>
+
+            {/* LISTA DE PROMOCIONES ACTIVAS */}
+            <div className="space-y-4">
+                <h3 className="font-bold text-lg text-zinc-800">Promociones Activas</h3>
+                {promos.length === 0 ? (
+                    <div className="p-8 text-center text-zinc-400 border border-dashed rounded-xl">No tienes promociones activas.</div>
+                ) : (
+                    <div className="grid gap-4">
+                        {promos.map((promo: any) => (
+                            <div key={promo.id} className="bg-white p-4 rounded-xl border border-l-4 border-l-pink-500 shadow-sm flex justify-between items-center">
+                                <div>
+                                    <h4 className="font-bold text-zinc-900">{promo.name}</h4>
+                                    <p className="text-sm text-zinc-500 line-clamp-1">{promo.description}</p>
+                                    <div className="flex items-center gap-4 mt-2 text-xs font-medium">
+                                        <span className="text-green-600 bg-green-50 px-2 py-1 rounded">${promo.price}</span>
+                                        <span className="text-pink-600 bg-pink-50 px-2 py-1 rounded flex items-center gap-1">
+                                            <Clock size={12}/> Vence: {promo.promoEndDate}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => handleDelete(promo.id)}
+                                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Eliminar promoción"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Users, Globe } from "lucide-react";
+import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Users, Globe, Tag } from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
@@ -519,21 +519,85 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 )}
                 
                 <div className="grid md:grid-cols-3 gap-8">
-                    {config.servicios?.items?.map((item:any, i:number) => (
-                        // Quitamos bg-white y agregamos un borde sutil con transparencia para que funcione en fondos oscuros y claros
-                        <div key={i} className={`p-8 border border-zinc-500/10 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                            <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: brandColor }}>
-                                <CheckCircle size={28}/>
-                            </div>
-                            <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
-                            <p className="leading-relaxed opacity-70">{item.precio}</p>
-                            <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400">
-                                    <Clock size={12} />
-                                    <span>{item.duracion || "Indeterminado"} min</span>
+                    {/* Combinamos servicios normales y promociones */}
+                    {[...(config.servicios?.items || []), ...(negocio.config_web?.services || [])].map((service: any, i: number) => {
+                        
+                        // LÓGICA DE PROMOCIÓN
+                        const isPromo = service.isPromo && service.promoEndDate;
+                        const isExpired = isPromo && new Date(service.promoEndDate) < new Date();
+
+                        // Normalizamos nombres de campos (para soportar ambos formatos)
+                        const titulo = service.name || service.titulo;
+                        const precio = service.price || service.precio;
+                        const desc = service.description || service.desc;
+                        const duracion = service.duration || service.duracion || 60;
+
+                        // Si la promo expiró, no la mostramos
+                        if (isExpired) return null;
+
+                        return (
+                            <div 
+                                key={service.id || i} 
+                                className={`
+                                    relative p-8 transition-all duration-300 group cursor-pointer
+                                    ${radiusClass}
+                                    ${isPromo 
+                                        ? 'bg-gradient-to-br from-pink-50 to-white border-2 border-pink-200 shadow-lg shadow-pink-100 transform hover:-translate-y-2' 
+                                        : 'border border-zinc-500/10 shadow-sm hover:shadow-xl hover:-translate-y-2'
+                                    }
+                                `}
+                                style={{ backgroundColor: isPromo ? undefined : 'rgba(255,255,255,0.05)' }}
+                                onClick={() => {
+                                    // Conectamos con tu lógica de reserva existente
+                                    setBookingData(prev => ({ ...prev, service: service }));
+                                    setBookingStep(2); // Pasamos directo a elegir profesional (o al siguiente paso)
+                                    setIsBookingModalOpen(true);
+                                }}
+                            >
+                                {/* BADGE DE PROMOCIÓN */}
+                                {isPromo ? (
+                                    <div className="absolute -top-3 right-4 bg-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase tracking-wider flex items-center gap-1 z-10">
+                                        <Tag size={10} /> Oferta Limitada
                                     </div>
-                            <p className="leading-relaxed opacity-70">{item.desc}</p>
-                        </div>
-                    ))}
+                                ) : (
+                                    // Icono normal para servicios estándar
+                                    <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: brandColor }}>
+                                        <CheckCircle size={28}/>
+                                    </div>
+                                )}
+
+                                <h3 className={`font-bold text-xl mb-3 ${isPromo ? 'text-pink-900' : ''}`} style={{ color: isPromo ? undefined : textColor }}>
+                                    {titulo}
+                                </h3>
+                                
+                                <p className={`leading-relaxed opacity-70 mb-4 ${isPromo ? 'text-pink-800 font-medium' : ''}`}>
+                                    {/* Si es número, le agregamos el $ */}
+                                    {typeof precio === 'number' || !isNaN(Number(precio)) ? `$${precio}` : precio}
+                                </p>
+
+                                {/* INFO DE VENCIMIENTO SI ES PROMO */}
+                                {isPromo && (
+                                    <div className="mb-4 text-xs font-bold text-pink-600 bg-pink-100/50 p-2 rounded-lg text-center border border-pink-100">
+                                        🔥 Válido hasta el {new Date(service.promoEndDate).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                    </div>
+                                )}
+
+                                <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400 mb-2">
+                                    <Clock size={12} />
+                                    <span>{duracion} min</span>
+                                </div>
+                                
+                                <p className="leading-relaxed opacity-70 text-sm line-clamp-3">
+                                    {desc}
+                                </p>
+
+                                {/* Botón de acción visual */}
+                                <div className={`mt-6 w-full py-2 rounded-lg text-center text-sm font-bold transition-colors ${isPromo ? 'bg-pink-600 text-white group-hover:bg-pink-700' : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white'}`}>
+                                    Reservar
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
           </section>
