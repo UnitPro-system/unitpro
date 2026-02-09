@@ -10,8 +10,10 @@ import {
   Mail,
   X,
   Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
-  Phone
+  Phone,
+  Bell
 } from "lucide-react";
+import { approveAppointment, cancelAppointment } from "@/app/actions/confirm-booking/manage-appointment";
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
@@ -34,7 +36,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes" | "resenas" | "suscripcion" | "configuracion" | "marketing">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
@@ -162,6 +164,14 @@ useEffect(() => {
       badge: !negocio.google_calendar_connected ? "!" : undefined 
     },
     { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
+    { 
+        id: "solicitudes", 
+        label: "Solicitudes", 
+        icon: <Bell size={18} />, 
+        badge: turnos.filter(t => t.estado === 'pendiente').length > 0 
+            ? turnos.filter(t => t.estado === 'pendiente').length 
+            : undefined 
+    },
     { 
       id: "resenas", 
       label: "Reseñas", 
@@ -327,7 +337,7 @@ useEffect(() => {
             {activeTab === "calendario" && (
                 <CalendarTab 
                     negocio={negocio} 
-                    turnos={turnos} 
+                    turnos={turnos.filter((t: any) => t.estado === 'confirmado')} 
                     handleConnectGoogle={handleConnectGoogle}
                     onCancel={handleTurnoCancelado} 
                 />
@@ -335,6 +345,74 @@ useEffect(() => {
 
             {/* --- OTRAS TABS --- */}
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} setContactModal={setContactModal} /></div>}
+            {activeTab === "solicitudes" && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-6">
+                    <header className="mb-8">
+                        <h1 className="text-2xl font-bold tracking-tight mb-1">Solicitudes Pendientes</h1>
+                        <p className="text-zinc-500 text-sm">Turnos que esperan confirmación para ser agendados en Google Calendar.</p>
+                    </header>
+
+                    <div className="grid gap-4">
+                        {turnos.filter(t => t.estado === 'pendiente').length === 0 ? (
+                            <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-zinc-200">
+                                <p className="text-zinc-400">No hay solicitudes nuevas por el momento.</p>
+                            </div>
+                        ) : (
+                            turnos.filter(t => t.estado === 'pendiente').map((t) => (
+                                <div key={t.id} className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
+                                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase">Pendiente</span>
+                                        </div>
+                                        <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
+                                        <div className="flex flex-wrap gap-4 mt-3 text-xs text-zinc-400 font-mono">
+                                            <span className="flex items-center gap-1"><CalendarIcon size={14}/> {new Date(t.fecha_inicio).toLocaleDateString()}</span>
+                                            <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
+                                            <span className="flex items-center gap-1"><Mail size={14}/> {t.cliente_email}</span>
+                                        </div>
+                                        {t.mensaje && (
+                                            <p className="mt-3 text-sm text-zinc-500 italic bg-zinc-50 p-2 rounded-lg border-l-4 border-zinc-200">
+                                                "{t.mensaje}"
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
+                                        <button 
+                                            onClick={async () => {
+                                                if(confirm("¿Rechazar esta solicitud?")) {
+                                                    await cancelAppointment(t.id);
+                                                    // La UI se actualiza vía revalidatePath en la action
+                                                }
+                                            }}
+                                            className="flex-1 md:flex-none px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors text-sm"
+                                        >
+                                            Rechazar
+                                        </button>
+                                        <button 
+                                            onClick={async (e) => {
+                                                const btn = e.currentTarget;
+                                                btn.disabled = true;
+                                                btn.innerText = "Confirmando...";
+                                                const res = await approveAppointment(t.id);
+                                                if (!res.success) {
+                                                    alert("Error: " + res.error);
+                                                    btn.disabled = false;
+                                                    btn.innerText = "Confirmar Turno";
+                                                }
+                                            }}
+                                            className="flex-1 md:flex-none px-6 py-2 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/10"
+                                        >
+                                            <Check size={16}/> Confirmar Turno
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
@@ -475,8 +553,10 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
 
     const isToday = (date: Date) => {
         const today = new Date();
-        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
+        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
     };
+
+
 
 
     
