@@ -23,6 +23,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
+  const [uploadingImages, setUploadingImages] = useState(false)
 
   // --- ESTADO WIZARD (AGENDAMIENTO) ---
   const [bookingStep, setBookingStep] = useState(1);
@@ -1085,33 +1086,71 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             type="file" 
                             multiple 
                             accept="image/*"
+                            disabled={uploadingImages}
                             onChange={async (e) => {
                                 const files = e.target.files;
-                                if (!files) return;
+                                if (!files || files.length === 0) return;
+
+                                setUploadingImages(true); // 1.
 
                                 const uploadedUrls: string[] = [];
-                                for (const file of Array.from(files)) {
-                                    const fileExt = file.name.split('.').pop();
-                                    const fileName = `${Math.random()}.${fileExt}`;
-                                    const filePath = `turnos/${fileName}`;
+                                try {
+                                    for (const file of Array.from(files)) {
+                                        const fileExt = file.name.split('.').pop();
+                                        const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+                                        const filePath = `${fileName}`; // Guardamos en raiz del bucket para evitar problemas de carpetas por ahora
 
-                                    // Sube al bucket 'imagenes-turnos' (asegúrate de que exista en Supabase)
-                                    const { data, error } = await supabase.storage
-                                        .from('appointment-attachments')
-                                        .upload(filePath, file);
+                                        console.log("Subiendo...", filePath);
 
-                                    if (data) {
-                                        const { data: { publicUrl } } = supabase.storage
-                                            .from('appointment-attachments')
-                                            .getPublicUrl(filePath);
-                                        uploadedUrls.push(publicUrl);
+                                        // 2. Intentamos subir
+                                        const { data, error } = await supabase.storage
+                                            .from('appointment-attachments') 
+                                            .upload(filePath, file);
+
+                                        if (error) {
+                                            console.error("Error subiendo imagen:", error.message);
+                                            alert(`Error al subir imagen: ${error.message}`);
+                                            continue; // Saltamos esta imagen si falla
+                                        }
+
+                                        if (data) {
+                                            const { data: { publicUrl } } = supabase.storage
+                                                .from('appointment-attachments')
+                                                .getPublicUrl(filePath);
+                                            
+                                            uploadedUrls.push(publicUrl);
+                                        }
                                     }
+                                    // 3. Guardamos las URLs en el estado
+                                    setBookingData(prev => ({ ...prev, images: [...prev.images, ...uploadedUrls] }));
+                                } catch (err) {
+                                    console.error("Error inesperado:", err);
+                                } finally {
+                                    setUploadingImages(false); // 4. Liberamos bloqueo
                                 }
-                                setBookingData(prev => ({ ...prev, images: uploadedUrls }));
                             }}
-                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
                         />
-                        </div>
+                        {uploadingImages && <p className="text-xs text-blue-600 animate-pulse">Subiendo imágenes, por favor espera...</p>}
+                        
+                        {/* Muestra vistas previas si ya se subieron */}
+                        {bookingData.images.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                                {bookingData.images.map((url, i) => (
+                                    <img key={i} src={url} className="w-12 h-12 object-cover rounded border" />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* BOTÓN CONFIRMAR: Lo deshabilitamos si se están subiendo fotos */}
+                    <button 
+                        type="submit" 
+                        disabled={enviando || uploadingImages}
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2 disabled:bg-zinc-300"
+                    >
+                        {enviando ? <Loader2 className="animate-spin"/> : (uploadingImages ? "Subiendo fotos..." : "Confirmar")}
+                    </button>
                 </form>
             )}
         </Modal>
