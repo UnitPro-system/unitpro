@@ -1097,12 +1097,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
                                     // Sube al bucket 'imagenes-turnos' (asegúrate de que exista en Supabase)
                                     const { data, error } = await supabase.storage
-                                        .from('imagenes-turnos')
+                                        .from('appointment-attachments')
                                         .upload(filePath, file);
 
                                     if (data) {
                                         const { data: { publicUrl } } = supabase.storage
-                                            .from('imagenes-turnos')
+                                            .from('appointment-attachments')
                                             .getPublicUrl(filePath);
                                         uploadedUrls.push(publicUrl);
                                     }
