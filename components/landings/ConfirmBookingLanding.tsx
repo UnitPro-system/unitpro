@@ -1066,88 +1066,144 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {/* PASO 4 */}
             {bookingStep === 4 && (
                 <form onSubmit={handleConfirmBooking} className="space-y-4">
-                     <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">← Volver</button>
-                     <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">
-                        Turno: {new Date(bookingData.date + 'T00:00:00').toLocaleDateString()} - {bookingData.time}hs
-                        </div>
-                     <input required placeholder="Nombre y Apellido" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientName: e.target.value})}/>
-                     <input required placeholder="Teléfono" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}/>
-                     <input required placeholder="Email" className="w-full p-3 border rounded-xl" onChange={e => setBookingData({...bookingData, clientEmail: e.target.value})}/>
-                     <button type="submit" disabled={enviando} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2">{enviando ? <Loader2 className="animate-spin"/> : "Confirmar"}</button>
-                     <textarea 
-                        placeholder="Mensaje explicativo" 
-                        className="w-full p-3 border rounded-xl" 
-                        onChange={e => setBookingData({...bookingData, message: e.target.value})}
-                        />
+                    {/* Botón Volver */}
+                    <button type="button" onClick={() => setBookingStep(2)} className="text-xs text-zinc-400">
+                        ← Volver
+                    </button>
 
-                        <div className="space-y-2">
+                    {/* Resumen del Turno */}
+                    <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">
+                        Turno: {new Date(bookingData.date + 'T00:00:00').toLocaleDateString()} - {bookingData.time}hs
+                    </div>
+
+                    {/* Datos del Cliente */}
+                    <input 
+                        required 
+                        placeholder="Nombre y Apellido" 
+                        className="w-full p-3 border rounded-xl" 
+                        value={bookingData.clientName}
+                        onChange={e => setBookingData({...bookingData, clientName: e.target.value})}
+                    />
+                    <input 
+                        required 
+                        placeholder="Teléfono" 
+                        className="w-full p-3 border rounded-xl" 
+                        value={bookingData.clientPhone}
+                        onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}
+                    />
+                    <input 
+                        required 
+                        type="email"
+                        placeholder="Email" 
+                        className="w-full p-3 border rounded-xl" 
+                        value={bookingData.clientEmail}
+                        onChange={e => setBookingData({...bookingData, clientEmail: e.target.value})}
+                    />
+
+                    {/* Mensaje Opcional */}
+                    <textarea 
+                        placeholder="Mensaje explicativo (opcional)" 
+                        className="w-full p-3 border rounded-xl" 
+                        value={bookingData.message}
+                        onChange={e => setBookingData({...bookingData, message: e.target.value})}
+                    />
+
+                    {/* --- SECCIÓN DE IMÁGENES CORREGIDA --- */}
+                    <div className="space-y-2">
                         <label className="text-sm font-medium text-zinc-700">Adjuntar imágenes</label>
                         <input 
                             type="file" 
                             multiple 
                             accept="image/*"
-                            disabled={uploadingImages}
+                            disabled={uploadingImages} // Bloquea el input mientras sube
                             onChange={async (e) => {
                                 const files = e.target.files;
                                 if (!files || files.length === 0) return;
 
-                                setUploadingImages(true); // 1.
-
+                                setUploadingImages(true); // Activa estado de carga
                                 const uploadedUrls: string[] = [];
+
                                 try {
                                     for (const file of Array.from(files)) {
+                                        // Sanitizar nombre de archivo
                                         const fileExt = file.name.split('.').pop();
                                         const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
-                                        const filePath = `${fileName}`; // Guardamos en raiz del bucket para evitar problemas de carpetas por ahora
+                                        const filePath = `${fileName}`;
 
-                                        console.log("Subiendo...", filePath);
-
-                                        // 2. Intentamos subir
+                                        // 1. Subir al bucket 'imagenes-turnos'
                                         const { data, error } = await supabase.storage
-                                            .from('appointment-attachments') 
+                                            .from('imagenes-turnos') 
                                             .upload(filePath, file);
 
                                         if (error) {
-                                            console.error("Error subiendo imagen:", error.message);
+                                            console.error("Error subiendo imagen:", error);
                                             alert(`Error al subir imagen: ${error.message}`);
-                                            continue; // Saltamos esta imagen si falla
+                                            continue; 
                                         }
 
                                         if (data) {
+                                            // 2. Obtener URL pública
                                             const { data: { publicUrl } } = supabase.storage
-                                                .from('appointment-attachments')
+                                                .from('imagenes-turnos')
                                                 .getPublicUrl(filePath);
                                             
                                             uploadedUrls.push(publicUrl);
                                         }
                                     }
-                                    // 3. Guardamos las URLs en el estado
-                                    setBookingData(prev => ({ ...prev, images: [...prev.images, ...uploadedUrls] }));
+
+                                    // 3. Guardar URLs en el estado
+                                    if (uploadedUrls.length > 0) {
+                                        setBookingData(prev => ({ 
+                                            ...prev, 
+                                            images: [...prev.images, ...uploadedUrls] 
+                                        }));
+                                    }
+
                                 } catch (err) {
                                     console.error("Error inesperado:", err);
+                                    alert("Ocurrió un error inesperado al procesar las imágenes.");
                                 } finally {
-                                    setUploadingImages(false); // 4. Liberamos bloqueo
+                                    setUploadingImages(false); // Libera el bloqueo
                                 }
                             }}
-                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 cursor-pointer"
                         />
-                        {uploadingImages && <p className="text-xs text-blue-600 animate-pulse">Subiendo imágenes, por favor espera...</p>}
                         
-                        {/* Muestra vistas previas si ya se subieron */}
+                        {/* Mensaje de carga */}
+                        {uploadingImages && (
+                            <p className="text-xs text-blue-600 animate-pulse font-medium">
+                                Subiendo imágenes a la nube, por favor espera...
+                            </p>
+                        )}
+                        
+                        {/* Vista previa de imágenes subidas */}
                         {bookingData.images.length > 0 && (
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex gap-2 mt-2 flex-wrap">
                                 {bookingData.images.map((url, i) => (
-                                    <img key={i} src={url} className="w-12 h-12 object-cover rounded border" />
+                                    <div key={i} className="relative w-16 h-16 border rounded-lg overflow-hidden shadow-sm">
+                                        <img src={url} className="w-full h-full object-cover" alt="preview" />
+                                        {/* Botón para eliminar imagen subida (opcional) */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setBookingData(prev => ({
+                                                ...prev,
+                                                images: prev.images.filter((_, idx) => idx !== i)
+                                            }))}
+                                            className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg hover:bg-red-600"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* BOTÓN CONFIRMAR: Lo deshabilitamos si se están subiendo fotos */}
+                    {/* Botón Confirmar */}
                     <button 
                         type="submit" 
-                        disabled={enviando || uploadingImages}
-                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2 disabled:bg-zinc-300"
+                        disabled={enviando || uploadingImages} 
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
                     >
                         {enviando ? <Loader2 className="animate-spin"/> : (uploadingImages ? "Subiendo fotos..." : "Confirmar")}
                     </button>
