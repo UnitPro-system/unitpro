@@ -40,6 +40,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
 
 
 
@@ -365,84 +366,138 @@ useEffect(() => {
                             </div>
                         ) : (
                             turnos.filter(t => t.estado === 'pendiente').map((t) => (
-                                <div key={t.id} className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
-                                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase">Pendiente</span>
+                                <div key={t.id} className="space-y-4">
+                                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
+                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase">Pendiente</span>
+                                            </div>
+                                            <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
+                                            <div className="flex flex-wrap gap-4 mt-3 text-xs text-zinc-400 font-mono">
+                                                <span className="flex items-center gap-1"><CalendarIcon size={14}/> {new Date(t.fecha_inicio).toLocaleDateString()}</span>
+                                                <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
+                                                <span className="flex items-center gap-1"><Mail size={14}/> {t.cliente_email}</span>
+                                            </div>
+                                            {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                                <div className="mt-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
+                                                    {/* Texto del mensaje */}
+                                                    {t.mensaje && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Nota del cliente:</p>
+                                                            <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Galería de imágenes */}
+                                                    {t.fotos && t.fotos.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2">Adjuntos:</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {t.fotos.map((url: string, index: number) => (
+                                                                    <a 
+                                                                        key={index} 
+                                                                        href={url} 
+                                                                        target="_blank" 
+                                                                        rel="noreferrer"
+                                                                        className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-indigo-500 transition-all"
+                                                                    >
+                                                                        <img 
+                                                                            src={url} 
+                                                                            alt={`Adjunto ${index + 1}`} 
+                                                                            className="object-cover w-full h-full"
+                                                                        />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
-                                        <div className="flex flex-wrap gap-4 mt-3 text-xs text-zinc-400 font-mono">
-                                            <span className="flex items-center gap-1"><CalendarIcon size={14}/> {new Date(t.fecha_inicio).toLocaleDateString()}</span>
-                                            <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
-                                            <span className="flex items-center gap-1"><Mail size={14}/> {t.cliente_email}</span>
+
+                                        <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
+                                            {/* BOTÓN PARA VER MENSAJE/FOTOS */}
+                                            {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                                <button 
+                                                    onClick={() => setExpandedRequestId(expandedRequestId === t.id ? null : t.id)}
+                                                    className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 text-sm font-bold ${expandedRequestId === t.id ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
+                                                    title="Ver detalles adjuntos"
+                                                >
+                                                    <Eye size={18}/>
+                                                    <span className="md:hidden lg:inline">{expandedRequestId === t.id ? 'Cerrar' : 'Ver Nota'}</span>
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={async () => {
+                                                    if(confirm("¿Rechazar esta solicitud?")) {
+                                                        await cancelAppointment(t.id);
+                                                        // La UI se actualiza vía revalidatePath en la action
+                                                    }
+                                                }}
+                                                className="flex-1 md:flex-none px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors text-sm"
+                                            >
+                                                Rechazar
+                                            </button>
+                                            <button 
+                                                onClick={async (e) => {
+                                                    const btn = e.currentTarget;
+                                                    btn.disabled = true;
+                                                    btn.innerText = "Confirmando...";
+                                                    const res = await approveAppointment(t.id);
+                                                    if (!res.success) {
+                                                        alert("Error: " + res.error);
+                                                        btn.disabled = false;
+                                                        btn.innerText = "Confirmar Turno";
+                                                    }
+                                                }}
+                                                className="flex-1 md:flex-none px-6 py-2 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/10"
+                                            >
+                                                <Check size={16}/> Confirmar Turno
+                                            </button>
                                         </div>
-                                        {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
-                                            <div className="mt-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
-                                                {/* Texto del mensaje */}
+                                    </div>
+                                    {/* CONTENIDO DESPLEGABLE (MENSAJE Y FOTOS) */}
+                                    {expandedRequestId === t.id && (
+                                        <div className="bg-zinc-50 border-t border-zinc-100 p-6 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="max-w-3xl space-y-6">
                                                 {t.mensaje && (
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Nota del cliente:</p>
-                                                        <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>
+                                                        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Mensaje del Cliente</h4>
+                                                        <div className="bg-white p-4 rounded-xl border border-zinc-200 text-sm text-zinc-700 italic shadow-sm leading-relaxed">
+                                                            "{t.mensaje}"
+                                                        </div>
                                                     </div>
                                                 )}
 
-                                                {/* Galería de imágenes */}
                                                 {t.fotos && t.fotos.length > 0 && (
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2">Adjuntos:</p>
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Imágenes Adjuntas ({t.fotos.length})</h4>
+                                                        <div className="flex flex-wrap gap-3">
                                                             {t.fotos.map((url: string, index: number) => (
                                                                 <a 
                                                                     key={index} 
                                                                     href={url} 
                                                                     target="_blank" 
                                                                     rel="noreferrer"
-                                                                    className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-indigo-500 transition-all"
+                                                                    className="group relative w-32 h-32 rounded-xl overflow-hidden border-2 border-white shadow-md hover:ring-2 hover:ring-zinc-900 transition-all"
                                                                 >
                                                                     <img 
                                                                         src={url} 
                                                                         alt={`Adjunto ${index + 1}`} 
-                                                                        className="object-cover w-full h-full"
+                                                                        className="object-cover w-full h-full transition-transform group-hover:scale-110"
                                                                     />
+                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                                        <ExternalLink size={16} className="text-white opacity-0 group-hover:opacity-100" />
+                                                                    </div>
                                                                 </a>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
-                                        <button 
-                                            onClick={async () => {
-                                                if(confirm("¿Rechazar esta solicitud?")) {
-                                                    await cancelAppointment(t.id);
-                                                    // La UI se actualiza vía revalidatePath en la action
-                                                }
-                                            }}
-                                            className="flex-1 md:flex-none px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors text-sm"
-                                        >
-                                            Rechazar
-                                        </button>
-                                        <button 
-                                            onClick={async (e) => {
-                                                const btn = e.currentTarget;
-                                                btn.disabled = true;
-                                                btn.innerText = "Confirmando...";
-                                                const res = await approveAppointment(t.id);
-                                                if (!res.success) {
-                                                    alert("Error: " + res.error);
-                                                    btn.disabled = false;
-                                                    btn.innerText = "Confirmar Turno";
-                                                }
-                                            }}
-                                            className="flex-1 md:flex-none px-6 py-2 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/10"
-                                        >
-                                            <Check size={16}/> Confirmar Turno
-                                        </button>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
