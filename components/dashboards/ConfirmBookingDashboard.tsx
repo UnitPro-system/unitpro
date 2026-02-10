@@ -40,7 +40,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
-  
+
 
 
 
@@ -339,7 +339,7 @@ useEffect(() => {
             {activeTab === "calendario" && (
                 <CalendarTab 
                     negocio={negocio} 
-                    turnos={turnos.filter((t: any) => t.estado === 'confirmado')} 
+                    turnos={turnos.filter((t: any) => t.estado !== 'cancelado')} 
                     handleConnectGoogle={handleConnectGoogle}
                     onCancel={handleTurnoCancelado} 
                 />
@@ -377,10 +377,40 @@ useEffect(() => {
                                             <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
                                             <span className="flex items-center gap-1"><Mail size={14}/> {t.cliente_email}</span>
                                         </div>
-                                        {t.mensaje && (
-                                            <p className="mt-3 text-sm text-zinc-500 italic bg-zinc-50 p-2 rounded-lg border-l-4 border-zinc-200">
-                                                "{t.mensaje}"
-                                            </p>
+                                        {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                            <div className="mt-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
+                                                {/* Texto del mensaje */}
+                                                {t.mensaje && (
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Nota del cliente:</p>
+                                                        <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Galería de imágenes */}
+                                                {t.fotos && t.fotos.length > 0 && (
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2">Adjuntos:</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {t.fotos.map((url: string, index: number) => (
+                                                                <a 
+                                                                    key={index} 
+                                                                    href={url} 
+                                                                    target="_blank" 
+                                                                    rel="noreferrer"
+                                                                    className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-indigo-500 transition-all"
+                                                                >
+                                                                    <img 
+                                                                        src={url} 
+                                                                        alt={`Adjunto ${index + 1}`} 
+                                                                        className="object-cover w-full h-full"
+                                                                    />
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
 
@@ -426,7 +456,7 @@ useEffect(() => {
 
             
         </div>
-        
+
 
         {/* CONTACT MODAL */}
         {contactModal.show && (
@@ -639,7 +669,20 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                 )}
 
                                 {dayTurnos.map((t: any) => (
-                                    <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500">
+                                    <div 
+                                        key={t.id} 
+                                        className={`p-3 rounded-lg border shadow-sm relative group border-l-4 transition-all ${
+                                            t.estado === 'pendiente' 
+                                                ? 'bg-amber-50/50 border-amber-200 border-l-amber-500 opacity-80' 
+                                                : 'bg-white border-zinc-200 border-l-indigo-500'
+                                        }`}
+                                    >
+                                        {/* Etiqueta de estado solo para pendientes */}
+                                        {t.estado === 'pendiente' && (
+                                            <span className="absolute -top-2 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                                                PENDIENTE
+                                            </span>
+                                        )}
 
                                         {/* CABECERA: Hora y Botón Borrar */}
                                         <div className="flex justify-between items-start mb-1">
@@ -658,7 +701,9 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                         </div>
 
                                         
-                                        <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
+                                        <p className={`text-sm font-bold truncate pr-4 ${t.estado === 'pendiente' ? 'text-amber-900' : 'text-zinc-900'}`}>
+                                            {t.cliente_nombre}
+                                        </p>
 
                                         {/* LÓGICA PARA SEPARAR SERVICIO Y PROFESIONAL */}
                                         {t.servicio && t.servicio.includes(" - ") ? (
