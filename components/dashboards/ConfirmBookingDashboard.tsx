@@ -18,6 +18,7 @@ import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
+import ManualBookingManager from "./ManualBookingManager";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -36,7 +37,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing"| "promociones">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing"| "promociones" | "gestion_turnos">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
@@ -182,8 +183,9 @@ useEffect(() => {
     },
     { id: "suscripcion", label: "Suscripción", icon: <CreditCard size={18} /> },
     { id: "promociones", label: "Promociones", icon: <Tag size={18} /> },
-    { id: "configuracion", label: "Configuración", icon: <Settings size={18} /> },
+    { id: "gestion_turnos", label: "Gestión de Turnos", icon: <Calendar size={18} /> },
     { id: "marketing", label: "Marketing", icon: <LinkIcon size={18} /> },
+    { id: "configuracion", label: "Configuración", icon: <Settings size={18} /> },
   ];
 
   if (loading) return (
@@ -506,6 +508,32 @@ useEffect(() => {
             )}
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
             {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
+            {activeTab === "gestion_turnos" && (
+                <div className="space-y-12 animate-in fade-in">
+                    <header>
+                        <h1 className="text-2xl font-bold">Gestión de Turnos y Horarios</h1>
+                        <p className="text-zinc-500 text-sm">Agenda turnos manuales o bloquea horarios por feriados/vacaciones.</p>
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        {/* 1. Agendamiento Manual */}
+                        <ManualBookingManager 
+                            slug={negocio.slug} 
+                            workers={negocio.config_web?.equipo?.members || []} 
+                            services={negocio.config_web?.services || []}
+                        />
+
+                        {/* 2. Bloqueos (Reutilizamos el componente que ya tenías) */}
+                        <div className="space-y-6">
+                            <h3 className="font-bold text-lg px-2">Bloqueos de Agenda</h3>
+                            <BlockTimeManager 
+                                slug={negocio.slug} 
+                                workers={negocio.config_web?.equipo?.members || []} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
             {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
             {activeTab === "marketing" && <MarketingCampaign negocio={negocio} />}
 

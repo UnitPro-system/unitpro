@@ -31,13 +31,13 @@ const DEFAULT_CONFIG = {
     ]
   },
   schedule: {
-      "0": { isOpen: false, start: "09:00", end: "18:00" }, // Domingo (Cerrado)
-      "1": { isOpen: true, start: "09:00", end: "18:00" },  // Lunes
-      "2": { isOpen: true, start: "09:00", end: "18:00" },  // Martes
-      "3": { isOpen: true, start: "09:00", end: "18:00" },  // Miércoles
-      "4": { isOpen: true, start: "09:00", end: "18:00" },  // Jueves
-      "5": { isOpen: true, start: "09:00", end: "18:00" },  // Viernes
-      "6": { isOpen: false, start: "09:00", end: "13:00" }  // Sábado (Cerrado por defecto)
+      "0": { isOpen: false, ranges: [{ start: "09:00", end: "13:00" }] }, 
+      "1": { isOpen: true, ranges: [{ start: "09:00", end: "13:00" }, { start: "16:00", end: "20:00" }] }, // Ejemplo con 2 turnos
+      "2": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
+      "3": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
+      "4": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
+      "5": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
+      "6": { isOpen: false, ranges: [{ start: "09:00", end: "13:00" }] }  // Sábado (Cerrado por defecto)
   },
   equipo: { 
     mostrar: false, 
@@ -430,19 +430,47 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                         {["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].map((dayName, index) => {
                             const dayKey = String(index);
                             // Obtenemos la config actual o usamos un fallback seguro
-                            const dayConfig = config.schedule?.[dayKey] || { isOpen: false, start: "09:00", end: "18:00" };
+                            const dayConfig = config.schedule?.[dayKey] || { isOpen: false, ranges: [{ start: "09:00", end: "18:00" }] };
+                            const updateRange = (rangeIndex: number, field: 'start' | 'end', value: string) => {
+                                const newRanges = [...(dayConfig.ranges || [])];
+                                newRanges[rangeIndex] = { ...newRanges[rangeIndex], [field]: value };
+                                
+                                const newSchedule = { 
+                                    ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                    [dayKey]: { ...dayConfig, ranges: newRanges } 
+                                };
+                                updateConfigField('root', 'schedule', newSchedule);
+                            };
 
+                            // Función para agregar un turno extra
+                            const addRange = () => {
+                                const newRanges = [...(dayConfig.ranges || []), { start: "16:00", end: "20:00" }];
+                                const newSchedule = { 
+                                    ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                    [dayKey]: { ...dayConfig, ranges: newRanges } 
+                                };
+                                updateConfigField('root', 'schedule', newSchedule);
+                            };
+
+                            // Función para quitar un turno
+                            const removeRange = (rangeIndex: number) => {
+                                const newRanges = dayConfig.ranges.filter((_: any, i: number) => i !== rangeIndex);
+                                const newSchedule = { 
+                                    ...(config.schedule || DEFAULT_CONFIG.schedule), 
+                                    [dayKey]: { ...dayConfig, ranges: newRanges } 
+                                };
+                                updateConfigField('root', 'schedule', newSchedule);
+                            };
                             return (
-                                <div key={dayKey} className="flex items-center gap-2 text-xs bg-zinc-50 p-2 rounded-lg border border-zinc-200">
+                                <div key={dayKey} className="flex flex-col gap-2 text-xs bg-zinc-50 p-2 rounded-lg border border-zinc-200">
                                     
-                                    {/* 1. Checkbox: Abierto / Cerrado */}
-                                    <div className="w-24">
+                                    {/* Cabecera del día + Checkbox Activo */}
+                                    <div className="flex items-center justify-between">
                                         <label className="flex items-center gap-2 cursor-pointer select-none">
                                             <input 
                                                 type="checkbox" 
                                                 checked={dayConfig.isOpen}
                                                 onChange={(e) => {
-                                                    // Actualizamos solo el estado 'isOpen' de este día
                                                     const newSchedule = { 
                                                         ...(config.schedule || DEFAULT_CONFIG.schedule), 
                                                         [dayKey]: { ...dayConfig, isOpen: e.target.checked } 
@@ -455,41 +483,46 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                 {dayName}
                                             </span>
                                         </label>
+                                        
+                                        {/* Botón para agregar turno (solo si está abierto y tiene menos de 2 turnos) */}
+                                        {dayConfig.isOpen && (dayConfig.ranges?.length || 0) < 2 && (
+                                            <button onClick={addRange} className="text-[10px] text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded border border-indigo-100 font-medium">
+                                                + Turno
+                                            </button>
+                                        )}
                                     </div>
 
-                                    {/* 2. Selectores de Hora (Solo si está abierto) */}
+                                    {/* Renderizado de Rangos (Solo si está abierto) */}
                                     {dayConfig.isOpen ? (
-                                        <div className="flex items-center gap-1 flex-1 animate-in fade-in">
-                                            <input 
-                                                type="time" 
-                                                value={dayConfig.start} 
-                                                onChange={(e) => {
-                                                    const newSchedule = { 
-                                                        ...(config.schedule || DEFAULT_CONFIG.schedule), 
-                                                        [dayKey]: { ...dayConfig, start: e.target.value } 
-                                                    };
-                                                    updateConfigField('root', 'schedule', newSchedule);
-                                                }}
-                                                className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            />
-                                            <span className="text-zinc-400 font-bold">-</span>
-                                            <input 
-                                                type="time" 
-                                                value={dayConfig.end}
-                                                onChange={(e) => {
-                                                    const newSchedule = { 
-                                                        ...(config.schedule || DEFAULT_CONFIG.schedule), 
-                                                        [dayKey]: { ...dayConfig, end: e.target.value } 
-                                                    };
-                                                    updateConfigField('root', 'schedule', newSchedule);
-                                                }}
-                                                className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            />
+                                        <div className="space-y-2 pl-6">
+                                            {dayConfig.ranges?.map((range: any, rIndex: number) => (
+                                                <div key={rIndex} className="flex items-center gap-1 animate-in fade-in">
+                                                    <input 
+                                                        type="time" 
+                                                        value={range.start} 
+                                                        onChange={(e) => updateRange(rIndex, 'start', e.target.value)}
+                                                        className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    />
+                                                    <span className="text-zinc-400 font-bold">-</span>
+                                                    <input 
+                                                        type="time" 
+                                                        value={range.end}
+                                                        onChange={(e) => updateRange(rIndex, 'end', e.target.value)}
+                                                        className="p-1.5 border border-zinc-300 rounded-md w-full bg-white text-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    />
+                                                    {/* Botón borrar rango (si hay más de uno) */}
+                                                    {dayConfig.ranges.length > 1 && (
+                                                        <button onClick={() => removeRange(rIndex)} className="text-zinc-400 hover:text-red-500 p-1">
+                                                            <Trash2 size={12}/>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
-                                        <span className="text-zinc-400 italic flex-1 text-center text-[10px] uppercase tracking-wide">
-                                            Cerrado
-                                        </span>
+                                        <div className="pl-6">
+                                            <span className="text-zinc-400 italic text-[10px] uppercase tracking-wide">Cerrado</span>
+                                        </div>
                                     )}
                                 </div>
                             );
@@ -781,6 +814,15 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                             onChange={(e) => updateArrayItem('servicios', i, 'desc', e.target.value)} 
                                                             className="w-full p-2 border rounded-lg text-sm text-zinc-600"
                                                             rows={2}
+                                                        />
+                                                    </div>
+
+                                                    {/* --- AGREGAR ESTO: Subida de Imagen --- */}
+                                                    <div className="mt-3 pt-3 border-t border-zinc-100">
+                                                        <ImageUpload 
+                                                            label="Imagen de Referencia (Opcional)" 
+                                                            value={item.imagenUrl} 
+                                                            onChange={(url) => updateArrayItem('servicios', i, 'imagenUrl', url)} 
                                                         />
                                                     </div>
                                                 </div>

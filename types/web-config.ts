@@ -147,12 +147,17 @@ export interface WebConfig {
   schedule?: WeeklySchedule;
 }
 
+export interface TimeRange {
+  start: string; // "HH:mm"
+  end: string;   // "HH:mm"
+}
+
 export type DailySchedule = {
   isOpen: boolean;
-  start: string; // formato "HH:mm", ej: "09:00"
-  end: string;   // formato "HH:mm", ej: "18:00"
+  // Reemplazamos 'start' y 'end' simples por un array de rangos
+  ranges: TimeRange[]; 
 };
 
 export type WeeklySchedule = {
-  [key: string]: DailySchedule; // "0" es Domingo, "1" es Lunes, etc.
+  [key: string]: DailySchedule; 
 };

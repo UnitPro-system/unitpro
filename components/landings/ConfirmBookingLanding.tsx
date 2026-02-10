@@ -184,70 +184,69 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     const dayConfig = schedule[dayOfWeek];
 
     // Variables para definir apertura y cierre
-    let openHour = 9;
-    let openMin = 0;
-    let closeHour = 18;
-    let closeMin = 0;
+    if (!dayConfig || !dayConfig.isOpen) return [];
 
-    // LÓGICA PRINCIPAL: Usar el schedule configurado
-    if (dayConfig) {
-        if (!dayConfig.isOpen) return []; // Si está marcado como cerrado, no devolvemos slots
-
-        const [startH, startM] = dayConfig.start.split(':').map(Number);
-        const [endH, endM] = dayConfig.end.split(':').map(Number);
-        
-        openHour = startH;
-        openMin = startM;
-        closeHour = endH;
-        closeMin = endM;
+    // 3. Normalizar Rangos (Soporte para estructura vieja y nueva)
+    let ranges = [];
+    
+    if (dayConfig.ranges && Array.isArray(dayConfig.ranges)) {
+        // Nueva estructura: Array de rangos
+        ranges = dayConfig.ranges;
+    } else if (dayConfig.start && dayConfig.end) {
+        // Vieja estructura: Un solo rango (retrocompatibilidad)
+        ranges = [{ start: dayConfig.start, end: dayConfig.end }];
     } else {
-        // FALLBACK: Si no hay schedule nuevo, intentamos usar el string antiguo o valores por defecto
-        const legacy = getBusinessHours(); // Tu función antigua (puedes mantenerla como auxiliar)
-        openHour = legacy.start;
-        closeHour = legacy.end;
+        // Fallback por defecto
+        ranges = [{ start: "09:00", end: "18:00" }];
     }
 
     const slots = [];
-    // Duración del servicio o 60 min por defecto
     const serviceDuration = bookingData.service?.duracion || 60; 
-    const INTERVAL_STEP = 30; // Saltos de 30 minutos en la grilla
+    const INTERVAL_STEP = 30; // Minutos entre cada slot
 
-    // 3. Generación de Slots
-    for (let hour = openHour; hour <= closeHour; hour++) {
-        for (let min = 0; min < 60; min += INTERVAL_STEP) {
-            
-            // FILTRO DE INICIO: Si estamos en la hora de apertura, respetar los minutos
-            // Ej: Si abre 9:30, no generar 9:00
-            if (hour === openHour && min < openMin) continue;
+    // 4. Iterar por CADA rango configurado (Mañana, Tarde, etc.)
+    for (const range of ranges) {
+        const [startH, startM] = range.start.split(':').map(Number);
+        const [endH, endM] = range.end.split(':').map(Number);
 
-            // FILTRO DE CIERRE: Si nos pasamos de la hora de cierre, parar.
-            if (hour > closeHour || (hour === closeHour && min >= closeMin)) break;
+        // Convertir hora de cierre de este rango a Date para comparar
+        const rangeClosingTime = new Date(`${bookingData.date}T${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}:00`);
 
-            const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-            
-            // Construimos objetos Date para comparar colisiones
-            const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
-            const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
+        // Generar slots dentro de este rango específico
+        // Iteramos hora por hora
+        for (let hour = startH; hour <= endH; hour++) {
+            for (let min = 0; min < 60; min += INTERVAL_STEP) {
+                
+                // Filtro inicio rango: Si es la hora de inicio, respetar minutos
+                if (hour === startH && min < startM) continue;
 
-            // Validar que el servicio termine ANTES de cerrar
-            const closingTime = new Date(`${bookingData.date}T${closeHour.toString().padStart(2, '0')}:${closeMin.toString().padStart(2, '0')}:00`);
-            
-            if (slotEnd > closingTime) continue;
+                // Filtro fin rango: Si pasamos la hora fin, cortamos este rango
+                if (hour > endH || (hour === endH && min >= endM)) break;
 
-            // 4. Verificar BusySlots (Google Calendar)
-            const isBusy = busySlots.some((busy: any) => {
-                const busyStart = new Date(busy.start);
-                const busyEnd = new Date(busy.end);
-                // Si se solapan de alguna forma
-                return (slotStart < busyEnd && slotEnd > busyStart);
-            });
-            
-            if (!isBusy) {
-                slots.push({ time: timeString, available: true });
+                const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                
+                const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
+                const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
+
+                // Validar que el servicio termine ANTES de que cierre este turno
+                if (slotEnd > rangeClosingTime) continue;
+
+                // 5. Verificar colisión con Google Calendar (BusySlots)
+                const isBusy = busySlots.some((busy: any) => {
+                    const busyStart = new Date(busy.start);
+                    const busyEnd = new Date(busy.end);
+                    return (slotStart < busyEnd && slotEnd > busyStart);
+                });
+                
+                if (!isBusy) {
+                    slots.push({ time: timeString, available: true });
+                }
             }
         }
     }
-    return slots;
+    
+    // Ordenar slots por hora (por si los rangos estuvieran desordenados en el JSON)
+    return slots.sort((a, b) => a.time.localeCompare(b.time));
 };
 
   const getLocalDateString = () => {
@@ -529,11 +528,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         const isPromo = service.isPromo && service.promoEndDate;
                         const isExpired = isPromo && new Date(service.promoEndDate) < new Date();
 
-                        // Normalizamos nombres de campos (para soportar ambos formatos)
+                        // Normalizamos nombres de campos
                         const titulo = service.name || service.titulo;
                         const precio = service.price || service.precio;
                         const desc = service.description || service.desc;
                         const duracion = service.duration || service.duracion || 60;
+                        const imagenUrl = service.image || service.imagenUrl; // Soporte para ambos campos
 
                         // Si la promo expiró, no la mostramos
                         if (isExpired) return null;
@@ -542,7 +542,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             <div 
                                 key={service.id || i} 
                                 className={`
-                                    relative p-8 transition-all duration-300 group cursor-pointer
+                                    relative p-8 transition-all duration-300 group cursor-pointer overflow-hidden
                                     ${radiusClass}
                                     ${isPromo 
                                         ? 'bg-gradient-to-br from-pink-50 to-white border-2 border-pink-200 shadow-lg shadow-pink-100 transform hover:-translate-y-2' 
@@ -551,30 +551,39 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                 `}
                                 style={{ backgroundColor: isPromo ? undefined : 'rgba(255,255,255,0.05)' }}
                                 onClick={() => {
-                                    // Conectamos con tu lógica de reserva existente
                                     setBookingData(prev => ({ ...prev, service: service }));
-                                    setBookingStep(2); // Pasamos directo a elegir profesional (o al siguiente paso)
+                                    setBookingStep(2); 
                                     setIsBookingModalOpen(true);
                                 }}
                             >
-                                {/* BADGE DE PROMOCIÓN */}
-                                {isPromo ? (
-                                    <div className="absolute -top-3 right-4 bg-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase tracking-wider flex items-center gap-1 z-10">
-                                        <Tag size={10} /> Oferta Limitada
-                                    </div>
-                                ) : (
-                                    // Icono normal para servicios estándar
-                                    <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: brandColor }}>
-                                        <CheckCircle size={28}/>
+                                {/* BADGE DE PROMOCIÓN (Absolute) */}
+                                {isPromo && (
+                                    <div className="absolute top-4 right-4 bg-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase tracking-wider flex items-center gap-1 z-10">
+                                        <Tag size={10} /> Oferta
                                     </div>
                                 )}
 
+                                {/* IMAGEN O ICONO */}
+                                {imagenUrl ? (
+                                    <div className="w-full h-48 mb-6 rounded-xl overflow-hidden shadow-md relative z-0">
+                                        <img 
+                                            src={imagenUrl} 
+                                            alt={titulo} 
+                                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: isPromo ? '#db2777' : brandColor }}>
+                                        {isPromo ? <Tag size={28}/> : <CheckCircle size={28}/>}
+                                    </div>
+                                )}
+
+                                {/* CONTENIDO TEXTO */}
                                 <h3 className={`font-bold text-xl mb-3 ${isPromo ? 'text-pink-900' : ''}`} style={{ color: isPromo ? undefined : textColor }}>
                                     {titulo}
                                 </h3>
                                 
-                                <p className={`leading-relaxed opacity-70 mb-4 ${isPromo ? 'text-pink-800 font-medium' : ''}`}>
-                                    {/* Si es número, le agregamos el $ */}
+                                <p className={`leading-relaxed opacity-70 mb-4 font-medium ${isPromo ? 'text-pink-800' : ''}`}>
                                     {typeof precio === 'number' || !isNaN(Number(precio)) ? `$${precio}` : precio}
                                 </p>
 
@@ -594,9 +603,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                     {desc}
                                 </p>
 
-                                {/* Botón de acción visual */}
+                                {/* BOTÓN DE ACCIÓN */}
                                 <div className={`mt-6 w-full py-2 rounded-lg text-center text-sm font-bold transition-colors ${isPromo ? 'bg-pink-600 text-white group-hover:bg-pink-700' : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white'}`}>
-                                    Reservar
+                                    Reservar Turno
                                 </div>
                             </div>
                         );
@@ -1205,23 +1214,46 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         disabled={enviando || uploadingImages} 
                         className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
                     >
-                        {enviando ? <Loader2 className="animate-spin"/> : (uploadingImages ? "Subiendo fotos..." : "Confirmar")}
+                        {enviando ? <Loader2 className="animate-spin"/> : (uploadingImages ? "Subiendo fotos..." : "Enviar solicitud de turno")}
                     </button>
+                    <p className="text-center text-xs text-zinc-400 mt-4">
+                    El negocio recibirá una solicitud de turno, y tú recibirás un correo de confirmación.
+                </p>
                 </form>
             )}
         </Modal>
       )}
 
       {/* MODAL EXITO */}
-      {mostrarGracias && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-md">
-            <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm">
-                <CheckCircle size={48} className="mx-auto text-emerald-500 mb-4"/>
-                <h3 className="text-2xl font-bold">¡Turno Confirmado!</h3>
-                <button onClick={() => setMostrarGracias(false)} className="mt-4 text-sm text-zinc-500">Cerrar</button>
-            </div>
+    {mostrarGracias && (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="bg-white p-8 rounded-[2rem] shadow-2xl text-center max-w-sm border border-zinc-100">
+        
+        {/* Icono con una sutil animación de pulso */}
+        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle size={40} className="text-emerald-500" strokeWidth={2.5} />
         </div>
-      )}
+
+        <h3 className="text-2xl font-bold text-zinc-800">¡Todo listo!</h3>
+        
+        <div className="space-y-3 mt-4">
+            <p className="text-zinc-600 leading-relaxed">
+            Tu solicitud de turno ha sido enviada con éxito al negocio.
+            </p>
+            <p className="text-sm text-zinc-400 bg-zinc-50 p-3 rounded-xl border border-dashed border-zinc-200">
+            Te enviaremos un <strong>correo de confirmación</strong> con el precio final del servicio en breve.
+            </p>
+        </div>
+
+        <button 
+            onClick={() => setMostrarGracias(false)} 
+            className="mt-8 w-full py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-200"
+        >
+            Entendido
+        </button>
+        </div>
+    </div>
+    )}
 
       
 

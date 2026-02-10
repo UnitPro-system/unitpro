@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation"; 
-import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Users, Globe } from "lucide-react";
+import { Phone, CheckCircle, X, Star, MessageCircle, ArrowRight, ShieldCheck, Loader2, ChevronRight, Heart, MapPin, Clock, Calendar as CalendarIcon, User, Mail, Menu, Maximize2, ChevronLeft, Instagram, Facebook, Linkedin, Users, Globe, Tag } from "lucide-react";
 
 import { SafeHTML } from "@/components/ui/SafeHTML";
 import { Footer } from "@/components/blocks/Footer";
@@ -179,70 +179,69 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     const dayConfig = schedule[dayOfWeek];
 
     // Variables para definir apertura y cierre
-    let openHour = 9;
-    let openMin = 0;
-    let closeHour = 18;
-    let closeMin = 0;
+    if (!dayConfig || !dayConfig.isOpen) return [];
 
-    // LÓGICA PRINCIPAL: Usar el schedule configurado
-    if (dayConfig) {
-        if (!dayConfig.isOpen) return []; // Si está marcado como cerrado, no devolvemos slots
-
-        const [startH, startM] = dayConfig.start.split(':').map(Number);
-        const [endH, endM] = dayConfig.end.split(':').map(Number);
-        
-        openHour = startH;
-        openMin = startM;
-        closeHour = endH;
-        closeMin = endM;
+    // 3. Normalizar Rangos (Soporte para estructura vieja y nueva)
+    let ranges = [];
+    
+    if (dayConfig.ranges && Array.isArray(dayConfig.ranges)) {
+        // Nueva estructura: Array de rangos
+        ranges = dayConfig.ranges;
+    } else if (dayConfig.start && dayConfig.end) {
+        // Vieja estructura: Un solo rango (retrocompatibilidad)
+        ranges = [{ start: dayConfig.start, end: dayConfig.end }];
     } else {
-        // FALLBACK: Si no hay schedule nuevo, intentamos usar el string antiguo o valores por defecto
-        const legacy = getBusinessHours(); // Tu función antigua (puedes mantenerla como auxiliar)
-        openHour = legacy.start;
-        closeHour = legacy.end;
+        // Fallback por defecto
+        ranges = [{ start: "09:00", end: "18:00" }];
     }
 
     const slots = [];
-    // Duración del servicio o 60 min por defecto
     const serviceDuration = bookingData.service?.duracion || 60; 
-    const INTERVAL_STEP = 30; // Saltos de 30 minutos en la grilla
+    const INTERVAL_STEP = 30; // Minutos entre cada slot
 
-    // 3. Generación de Slots
-    for (let hour = openHour; hour <= closeHour; hour++) {
-        for (let min = 0; min < 60; min += INTERVAL_STEP) {
-            
-            // FILTRO DE INICIO: Si estamos en la hora de apertura, respetar los minutos
-            // Ej: Si abre 9:30, no generar 9:00
-            if (hour === openHour && min < openMin) continue;
+    // 4. Iterar por CADA rango configurado (Mañana, Tarde, etc.)
+    for (const range of ranges) {
+        const [startH, startM] = range.start.split(':').map(Number);
+        const [endH, endM] = range.end.split(':').map(Number);
 
-            // FILTRO DE CIERRE: Si nos pasamos de la hora de cierre, parar.
-            if (hour > closeHour || (hour === closeHour && min >= closeMin)) break;
+        // Convertir hora de cierre de este rango a Date para comparar
+        const rangeClosingTime = new Date(`${bookingData.date}T${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}:00`);
 
-            const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-            
-            // Construimos objetos Date para comparar colisiones
-            const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
-            const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
+        // Generar slots dentro de este rango específico
+        // Iteramos hora por hora
+        for (let hour = startH; hour <= endH; hour++) {
+            for (let min = 0; min < 60; min += INTERVAL_STEP) {
+                
+                // Filtro inicio rango: Si es la hora de inicio, respetar minutos
+                if (hour === startH && min < startM) continue;
 
-            // Validar que el servicio termine ANTES de cerrar
-            const closingTime = new Date(`${bookingData.date}T${closeHour.toString().padStart(2, '0')}:${closeMin.toString().padStart(2, '0')}:00`);
-            
-            if (slotEnd > closingTime) continue;
+                // Filtro fin rango: Si pasamos la hora fin, cortamos este rango
+                if (hour > endH || (hour === endH && min >= endM)) break;
 
-            // 4. Verificar BusySlots (Google Calendar)
-            const isBusy = busySlots.some((busy: any) => {
-                const busyStart = new Date(busy.start);
-                const busyEnd = new Date(busy.end);
-                // Si se solapan de alguna forma
-                return (slotStart < busyEnd && slotEnd > busyStart);
-            });
-            
-            if (!isBusy) {
-                slots.push({ time: timeString, available: true });
+                const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                
+                const slotStart = new Date(`${bookingData.date}T${timeString}:00`);
+                const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
+
+                // Validar que el servicio termine ANTES de que cierre este turno
+                if (slotEnd > rangeClosingTime) continue;
+
+                // 5. Verificar colisión con Google Calendar (BusySlots)
+                const isBusy = busySlots.some((busy: any) => {
+                    const busyStart = new Date(busy.start);
+                    const busyEnd = new Date(busy.end);
+                    return (slotStart < busyEnd && slotEnd > busyStart);
+                });
+                
+                if (!isBusy) {
+                    slots.push({ time: timeString, available: true });
+                }
             }
         }
     }
-    return slots;
+    
+    // Ordenar slots por hora (por si los rangos estuvieran desordenados en el JSON)
+    return slots.sort((a, b) => a.time.localeCompare(b.time));
 };
 
   const getLocalDateString = () => {
@@ -515,21 +514,95 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 )}
                 
                 <div className="grid md:grid-cols-3 gap-8">
-                    {config.servicios?.items?.map((item:any, i:number) => (
-                        // Quitamos bg-white y agregamos un borde sutil con transparencia para que funcione en fondos oscuros y claros
-                        <div key={i} className={`p-8 border border-zinc-500/10 shadow-sm hover:shadow-xl transition-all duration-300 group ${radiusClass}`} style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                            <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: brandColor }}>
-                                <CheckCircle size={28}/>
-                            </div>
-                            <h3 className="font-bold text-xl mb-3" style={{ color: textColor }}>{item.titulo}</h3>
-                            <p className="leading-relaxed opacity-70">{item.precio}</p>
-                            <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400">
-                                    <Clock size={12} />
-                                    <span>{item.duracion || "Indeterminado"} min</span>
+                    {/* Combinamos servicios normales y promociones */}
+                    {[...(config.servicios?.items || []), ...(negocio.config_web?.services || [])].map((service: any, i: number) => {
+                        
+                        // LÓGICA DE PROMOCIÓN
+                        const isPromo = service.isPromo && service.promoEndDate;
+                        const isExpired = isPromo && new Date(service.promoEndDate) < new Date();
+
+                        // Normalizamos nombres de campos
+                        const titulo = service.name || service.titulo;
+                        const precio = service.price || service.precio;
+                        const desc = service.description || service.desc;
+                        const duracion = service.duration || service.duracion || 60;
+                        const imagenUrl = service.image || service.imagenUrl; // Soporte para ambos campos
+
+                        // Si la promo expiró, no la mostramos
+                        if (isExpired) return null;
+
+                        return (
+                            <div 
+                                key={service.id || i} 
+                                className={`
+                                    relative p-8 transition-all duration-300 group cursor-pointer overflow-hidden
+                                    ${radiusClass}
+                                    ${isPromo 
+                                        ? 'bg-gradient-to-br from-pink-50 to-white border-2 border-pink-200 shadow-lg shadow-pink-100 transform hover:-translate-y-2' 
+                                        : 'border border-zinc-500/10 shadow-sm hover:shadow-xl hover:-translate-y-2'
+                                    }
+                                `}
+                                style={{ backgroundColor: isPromo ? undefined : 'rgba(255,255,255,0.05)' }}
+                                onClick={() => {
+                                    setBookingData(prev => ({ ...prev, service: service }));
+                                    setBookingStep(2); 
+                                    setIsBookingModalOpen(true);
+                                }}
+                            >
+                                {/* BADGE DE PROMOCIÓN (Absolute) */}
+                                {isPromo && (
+                                    <div className="absolute top-4 right-4 bg-pink-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase tracking-wider flex items-center gap-1 z-10">
+                                        <Tag size={10} /> Oferta
                                     </div>
-                            <p className="leading-relaxed opacity-70">{item.desc}</p>
-                        </div>
-                    ))}
+                                )}
+
+                                {/* IMAGEN O ICONO */}
+                                {imagenUrl ? (
+                                    <div className="w-full h-48 mb-6 rounded-xl overflow-hidden shadow-md relative z-0">
+                                        <img 
+                                            src={imagenUrl} 
+                                            alt={titulo} 
+                                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-14 h-14 mb-6 text-white rounded-2xl flex items-center justify-center shadow-lg transform group-hover:-translate-y-2 transition-transform" style={{ backgroundColor: isPromo ? '#db2777' : brandColor }}>
+                                        {isPromo ? <Tag size={28}/> : <CheckCircle size={28}/>}
+                                    </div>
+                                )}
+
+                                {/* CONTENIDO TEXTO */}
+                                <h3 className={`font-bold text-xl mb-3 ${isPromo ? 'text-pink-900' : ''}`} style={{ color: isPromo ? undefined : textColor }}>
+                                    {titulo}
+                                </h3>
+                                
+                                <p className={`leading-relaxed opacity-70 mb-4 font-medium ${isPromo ? 'text-pink-800' : ''}`}>
+                                    {typeof precio === 'number' || !isNaN(Number(precio)) ? `$${precio}` : precio}
+                                </p>
+
+                                {/* INFO DE VENCIMIENTO SI ES PROMO */}
+                                {isPromo && (
+                                    <div className="mb-4 text-xs font-bold text-pink-600 bg-pink-100/50 p-2 rounded-lg text-center border border-pink-100">
+                                        🔥 Válido hasta el {new Date(service.promoEndDate).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                    </div>
+                                )}
+
+                                <div className="flex flex-row items-center gap-2 text-xs font-bold text-zinc-400 mb-2">
+                                    <Clock size={12} />
+                                    <span>{duracion} min</span>
+                                </div>
+                                
+                                <p className="leading-relaxed opacity-70 text-sm line-clamp-3">
+                                    {desc}
+                                </p>
+
+                                {/* BOTÓN DE ACCIÓN */}
+                                <div className={`mt-6 w-full py-2 rounded-lg text-center text-sm font-bold transition-colors ${isPromo ? 'bg-pink-600 text-white group-hover:bg-pink-700' : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white'}`}>
+                                    Reservar Turno
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
           </section>

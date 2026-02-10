@@ -217,3 +217,52 @@ export async function cancelAppointment(appointmentId: string) {
     return { success: false, error: error.message }
   }
 }
+export async function createManualAppointment(slug: string, bookingData: any) {
+  try {
+    // 1. Obtener negocio y auth
+    const { data: negocio } = await supabase.from('negocios').select('*').eq('slug', slug).single()
+    if (!negocio?.google_refresh_token) throw new Error('Negocio no conectado')
+
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
+    auth.setCredentials({ refresh_token: negocio.google_refresh_token })
+    const calendar = google.calendar({ version: 'v3', auth })
+
+    // 2. Crear evento en Google Calendar primero para tener el ID
+    const event = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: {
+        summary: `Turno Manual: ${bookingData.clientName}`,
+        description: `Servicio: ${bookingData.service}\nTel: ${bookingData.clientPhone}\nAgendado manualmente desde el dashboard.`,
+        start: { dateTime: bookingData.start, timeZone: 'America/Argentina/Buenos_Aires' },
+        end: { dateTime: bookingData.end, timeZone: 'America/Argentina/Buenos_Aires' },
+        extendedProperties: {
+          shared: {
+            saas_worker_id: bookingData.workerId,
+            saas_service_type: 'confirm_booking_manual'
+          }
+        }
+      }
+    })
+
+    // 3. Guardar en Supabase directamente como 'confirmado'
+    const { error } = await supabase.from('turnos').insert({
+      negocio_id: negocio.id,
+      cliente_nombre: bookingData.clientName,
+      cliente_telefono: bookingData.clientPhone,
+      cliente_email: bookingData.clientEmail,
+      servicio: `${bookingData.service} - ${bookingData.workerName}`,
+      fecha_inicio: bookingData.start,
+      fecha_fin: bookingData.end,
+      estado: 'confirmado',
+      google_event_id: event.data.id
+    })
+
+    if (error) throw error
+
+    revalidatePath('/dashboard')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error manual booking:', error)
+    return { success: false, error: error.message }
+  }
+}
