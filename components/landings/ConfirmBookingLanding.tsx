@@ -1130,9 +1130,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                         const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
                                         const filePath = `${fileName}`;
 
-                                        // 1. Subir al bucket 'imagenes-turnos'
+                                        // 1. Subir al bucket 'appointment-attachments'
                                         const { data, error } = await supabase.storage
-                                            .from('imagenes-turnos') 
+                                            .from('appointment-attachments') 
                                             .upload(filePath, file);
 
                                         if (error) {
@@ -1144,7 +1144,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                         if (data) {
                                             // 2. Obtener URL pública
                                             const { data: { publicUrl } } = supabase.storage
-                                                .from('imagenes-turnos')
+                                                .from('appointment-attachments')
                                                 .getPublicUrl(filePath);
                                             
                                             uploadedUrls.push(publicUrl);
