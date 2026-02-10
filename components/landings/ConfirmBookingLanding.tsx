@@ -277,6 +277,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         calendarId: bookingData.worker?.calendarId, // Para backend
         workerName: bookingData.worker?.nombre,
         workerId: bookingData.worker?.id,
+        message: bookingData.message, 
+        images: bookingData.images,
     };
     
     const res = await createAppointment(negocio.slug, payload);
@@ -1084,8 +1086,28 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             multiple 
                             accept="image/*"
                             onChange={async (e) => {
-                            // Aquí deberías implementar la lógica de subida a Supabase Storage
-                            // y guardar las URLs resultantes en bookingData.images
+                                const files = e.target.files;
+                                if (!files) return;
+
+                                const uploadedUrls: string[] = [];
+                                for (const file of Array.from(files)) {
+                                    const fileExt = file.name.split('.').pop();
+                                    const fileName = `${Math.random()}.${fileExt}`;
+                                    const filePath = `turnos/${fileName}`;
+
+                                    // Sube al bucket 'imagenes-turnos' (asegúrate de que exista en Supabase)
+                                    const { data, error } = await supabase.storage
+                                        .from('imagenes-turnos')
+                                        .upload(filePath, file);
+
+                                    if (data) {
+                                        const { data: { publicUrl } } = supabase.storage
+                                            .from('imagenes-turnos')
+                                            .getPublicUrl(filePath);
+                                        uploadedUrls.push(publicUrl);
+                                    }
+                                }
+                                setBookingData(prev => ({ ...prev, images: uploadedUrls }));
                             }}
                             className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
