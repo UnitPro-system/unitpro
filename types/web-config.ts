@@ -117,6 +117,18 @@ export interface BookingConfig {
   requestDeposit: boolean;     // ¿Pide seña?
   depositPercentage?: number;  // Porcentaje (ej: 50)
 }
+export interface EmailTemplate {
+  enabled: boolean;
+  subject: string;
+  body: string; // Soporta HTML básico o texto plano
+  bannerUrl?: string; // Imagen de cabecera
+}
+
+export interface NotificationConfig {
+  confirmation: EmailTemplate;
+  reminder: EmailTemplate;
+  deposit?: EmailTemplate; // Para señas
+}
 // ------------------------------------
 // LA CONFIGURACIÓN MAESTRA (WEB CONFIG)
 // ------------------------------------
@@ -150,6 +162,7 @@ export interface WebConfig {
   sectionOrder?: string[];
   schedule?: WeeklySchedule;
   booking?: BookingConfig;
+  notifications?: NotificationConfig;
 }
 
 export interface TimeRange {
