@@ -197,7 +197,6 @@ useEffect(() => {
       icon: <CalendarIcon size={18} />, 
       badge: !negocio.google_calendar_connected ? "!" : undefined 
     },
-    { id: "horarios", label: "Horarios", icon: <Clock size={18} /> },
     { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
     { 
       id: "resenas", 

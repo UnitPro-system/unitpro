@@ -11,7 +11,7 @@ import {
   X,
   Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
   Phone,
-  Bell,Tag,Trash2,MoreVertical, Edit
+  Bell,Tag,Trash2,MoreVertical, Edit,Minus, Plus
 } from "lucide-react";
 import { approveAppointment, cancelAppointment, markDepositPaid } from "@/app/actions/confirm-booking/manage-appointment";
 import { BotonCancelar } from "@/components/BotonCancelar";
@@ -1285,20 +1285,66 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
                         />
                     </div>
                     
+                    {/* NUEVO SELECTOR DE DURACIÓN (STEPPER) */}
                     <div>
-                        <label className="block text-xs font-bold text-zinc-500 mb-1">Duración (min)</label>
-                        <select 
-                            className="p-2 border rounded-lg w-full bg-white"
-                            value={newPromo.duration}
-                            onChange={e => setNewPromo({...newPromo, duration: e.target.value})}
-                        >
-                            <option value="15">15 min</option>
-                            <option value="30">30 min</option>
-                            <option value="45">45 min</option>
-                            <option value="60">1 hora</option>
-                            <option value="90">1.5 horas</option>
-                            <option value="120">2 horas</option>
-                        </select>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2">Duración del Servicio</label>
+                        
+                        <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-zinc-200 w-full max-w-[250px]">
+                            {/* Botón Restar */}
+                            <button 
+                                onClick={() => {
+                                    const current = Number(newPromo.duration);
+                                    // Lógica: Si es <= 60 baja de 15 en 15. Si es > 60 baja de 30 en 30. Minimo 15.
+                                    let newVal = current;
+                                    if (current <= 60) {
+                                        newVal = Math.max(15, current - 15);
+                                    } else {
+                                        newVal = current - 30;
+                                    }
+                                    setNewPromo({ ...newPromo, duration: newVal.toString() });
+                                }}
+                                className="w-10 h-10 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-lg transition-colors border border-zinc-100 active:scale-95"
+                            >
+                                <Minus size={18} />
+                            </button>
+
+                            {/* Visualizador */}
+                            <div className="flex-1 text-center">
+                                <span className="text-lg font-bold text-zinc-900 block">
+                                    {Number(newPromo.duration) < 60 
+                                        ? `${newPromo.duration} min`
+                                        : Number(newPromo.duration) === 60 
+                                            ? "1 hora"
+                                            : (() => {
+                                                const h = Math.floor(Number(newPromo.duration) / 60);
+                                                const m = Number(newPromo.duration) % 60;
+                                                return `${h}h ${m > 0 ? `${m}m` : ''}`;
+                                              })()
+                                    }
+                                </span>
+                                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">
+                                    Tiempo
+                                </span>
+                            </div>
+
+                            {/* Botón Sumar */}
+                            <button 
+                                onClick={() => {
+                                    const current = Number(newPromo.duration);
+                                    // Lógica: Si es < 60 sube 15. Si es >= 60 sube 30.
+                                    let newVal = current;
+                                    if (current < 60) {
+                                        newVal = current + 15;
+                                    } else {
+                                        newVal = current + 30;
+                                    }
+                                    setNewPromo({ ...newPromo, duration: newVal.toString() });
+                                }}
+                                className="w-10 h-10 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors shadow-sm active:scale-95"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
                     </div>
 
                     <div>
