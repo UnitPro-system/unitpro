@@ -19,7 +19,7 @@ import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
 import ManualBookingManager from "./ManualBookingManager";
-
+import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/calendar-actions";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -47,7 +47,30 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [priceInput, setPriceInput] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
 
+  const [rescheduleModal, setRescheduleModal] = useState({ show: false, turnoId: '', currentStart: '' });
+  const [newDate, setNewDate] = useState('');
 
+  // NUEVO: Función para guardar la reprogramación
+  const handleRescheduleSave = async () => {
+    if (!newDate) return alert("Selecciona una fecha válida");
+    
+    // Indicador visual simple
+    const btn = document.getElementById('btn-save-reschedule');
+    if(btn) btn.innerText = "Guardando...";
+
+    // Usamos la Server Action compartida
+    const res = await rescheduleBooking(rescheduleModal.turnoId, new Date(newDate).toISOString());
+
+    if (!res.success) {
+        alert("Error al reprogramar: " + res.error);
+        if(btn) btn.innerText = "Guardar";
+    } else {
+        // Actualizamos estado local
+        setTurnos(prev => prev.map(t => t.id === rescheduleModal.turnoId ? { ...t, fecha_inicio: newDate } : t));
+        setRescheduleModal({ ...rescheduleModal, show: false });
+        alert("Turno reprogramado y actualizado en Google Calendar.");
+    }
+  };
 
 
   // --- LÓGICA DE DATOS ESPECÍFICOS ---
@@ -368,7 +391,15 @@ useEffect(() => {
                     negocio={negocio} 
                     turnos={turnos.filter((t: any) => t.estado !== 'cancelado')} 
                     handleConnectGoogle={handleConnectGoogle}
-                    onCancel={handleTurnoCancelado} 
+                    onCancel={handleTurnoCancelado}
+                    onContact={(email: string, name: string) => setContactModal({ show: true, clientEmail: email, clientName: name })}
+                    onReschedule={(id: string, start: string) => {
+                        setRescheduleModal({ show: true, turnoId: id, currentStart: start });
+                        // Formato para input datetime-local
+                        const dateObj = new Date(start);
+                        dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
+                        setNewDate(dateObj.toISOString().slice(0, 16));
+                    }}
                 />
             )}
             {/* --- TAB: PROMOCIONES --- */}
@@ -517,6 +548,25 @@ useEffect(() => {
 
             
         </div>
+        {/* MODAL REPROGRAMAR (NUEVO) */}
+        {rescheduleModal.show && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                    <h3 className="text-lg font-bold mb-4">Reprogramar Turno</h3>
+                    <p className="text-sm text-zinc-500 mb-2">Selecciona la nueva fecha y hora:</p>
+                    <input 
+                        type="datetime-local"
+                        className="w-full p-2 border rounded-lg mb-6 outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                        <button onClick={() => setRescheduleModal({ ...rescheduleModal, show: false })} className="flex-1 py-2 text-gray-600 font-medium">Cancelar</button>
+                        <button id="btn-save-reschedule" onClick={handleRescheduleSave} className="flex-1 py-2 bg-zinc-900 text-white rounded-lg font-bold hover:bg-zinc-800">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        )}
 
 
         {/* CONTACT MODAL */}
@@ -609,34 +659,21 @@ useEffect(() => {
 // Para ahorrar espacio en la respuesta, asumo que copiarás las funciones auxiliares al final de este archivo.
 // Asegúrate de exportar o definir CalendarTab, ClientesTable, etc. aquí dentro.
 
-function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
+function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact, onReschedule }: any) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const supabase = createClient(); 
-    const router = useRouter();
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null); // Estado para el menú
 
-    const handleDisconnect = async () => {
-        const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
+    const handleDeleteFromMenu = async (id: string) => {
+        if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
         
-        if (!confirmacion) return;
+        // Usamos la Server Action importada
+        const res = await cancelBooking(id);
 
-        try {
-            // Limpiamos los tokens y el estado en Supabase
-            const { error } = await supabase
-                .from('negocios')
-                .update({
-                    google_calendar_connected: false,
-                    google_access_token: null,
-                    google_refresh_token: null,
-                    // google_watch_id: null // Descomenta si usas webhooks
-                })
-                .eq('id', negocio.id);
-
-            if (error) throw error;
-
-            // Recargamos la página para actualizar el estado visual
-            window.location.reload(); 
-        } catch (error: any) {
-            alert("Error al desconectar: " + error.message);
+        if (res.success) {
+            onCancel(id); // Actualizar UI
+        } else {
+            alert("Error al cancelar: " + res.error);
         }
     };
 
@@ -648,25 +685,21 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                 </div>
                 <h2 className="text-2xl font-bold text-zinc-900 mb-2">Conecta tu Calendario</h2>
                 <p className="text-zinc-500 max-w-md mb-8">
-                    Para visualizar y gestionar tus turnos aquí, necesitamos sincronizar con tu Google Calendar. Es seguro y automático.
+                    Para visualizar y gestionar tus turnos aquí, necesitamos sincronizar con tu Google Calendar.
                 </p>
-                <button 
-                    onClick={handleConnectGoogle}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-1"
-                >
+                <button onClick={handleConnectGoogle} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg">
                     <LinkIcon size={18} /> Conectar con Google
                 </button>
             </div>
         );
     }
 
-    // LÓGICA DE CALENDARIO SEMANAL
+    // LÓGICA DE FECHAS
     const getDaysOfWeek = (date: Date) => {
         const start = new Date(date);
-        const day = start.getDay(); // 0 (Dom) - 6 (Sab)
-        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al Lunes
+        const day = start.getDay(); 
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(start.setDate(diff));
-        
         const days = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(monday);
@@ -677,148 +710,128 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
     };
 
     const days = getDaysOfWeek(currentDate);
-
-    const prevWeek = () => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() - 7);
-        setCurrentDate(newDate);
-    };
-
-    const nextWeek = () => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() + 7);
-        setCurrentDate(newDate);
-    };
-
     const isToday = (date: Date) => {
         const today = new Date();
-        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
     };
-
-
-
-
-    
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
-            {/* HEADER CALENDARIO */}
+            {/* HEADER */}
             <header className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Tu Calendario</h1>
                     <p className="text-zinc-500 text-sm">Gestiona tus turnos de la semana.</p>
                 </div>
                 <div className="flex items-center gap-4 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
-                    <button onClick={prevWeek} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronLeft size={20}/></button>
+                    <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()-7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronLeft size={20}/></button>
                     <span className="text-sm font-bold min-w-[140px] text-center capitalize">
                         {days[0].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })} - {days[6].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })}
                     </span>
-                    <button onClick={nextWeek} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronRight size={20}/></button>
+                    <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()+7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronRight size={20}/></button>
                 </div>
             </header>
 
-            {/* GRID SEMANAL */}
+            {/* GRID */}
             <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
-                {/* CABECERA DÍAS */}
                 <div className="hidden md:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
                     {days.map((day, i) => (
                         <div key={i} className={`py-4 text-center border-r border-zinc-100 last:border-0 ${isToday(day) ? 'bg-blue-50/50' : ''}`}>
                             <p className="text-xs font-bold text-zinc-400 uppercase mb-1">{day.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
-                            <div className={`text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center mx-auto ${isToday(day) ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-900'}`}>
-                                {day.getDate()}
-                            </div>
+                            <div className={`text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center mx-auto ${isToday(day) ? 'bg-blue-600 text-white shadow-md' : 'text-zinc-900'}`}>{day.getDate()}</div>
                         </div>
                     ))}
                 </div>
 
-
-                {/* CUERPO DEL CALENDARIO */}
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px]">
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
                             const tDate = new Date(t.fecha_inicio);
-                            return tDate.getDate() === day.getDate() && 
-                                   tDate.getMonth() === day.getMonth() && 
-                                   tDate.getFullYear() === day.getFullYear();
+                            return tDate.getDate() === day.getDate() && tDate.getMonth() === day.getMonth() && tDate.getFullYear() === day.getFullYear();
                         });
 
                         return (
                             <div key={i} className={`border-r border-zinc-100 last:border-0 p-2 space-y-2 ${isToday(day) ? 'bg-blue-50/10' : ''}`}>
-                                
+                                {/* Header móvil */}
                                 <div className={`md:hidden flex items-center gap-2 py-2 px-2 mb-2 rounded-lg ${isToday(day) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-50 text-zinc-600'}`}>
                                     <span className="font-bold text-sm capitalize">{day.toLocaleDateString('es-AR', { weekday: 'long' })}</span>
-                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>
-                                        {day.getDate()}
-                                    </span>
-                                    <span className="ml-auto text-xs text-zinc-400">
-                                        {dayTurnos.length} turnos
-                                    </span>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>{day.getDate()}</span>
                                 </div>
                                 
-                                {dayTurnos.length === 0 && (
-                                    <div className="h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                        <div className="w-full h-full border-2 border-dashed border-zinc-100 rounded-lg flex items-center justify-center text-zinc-300 text-xs font-medium cursor-pointer hover:bg-zinc-50">
-                                            +
-                                        </div>
-                                    </div>
-                                )}
+                                {dayTurnos.length === 0 && <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">Sin actividad</div>}
 
-
-                                {dayTurnos.length === 0 && (
-                                    <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">
-                                        Sin actividad
-                                    </div>
-                                )}
-
-                                {dayTurnos.map((t: any) => {
-                                    // Definimos estilos según el estado
-                                    let containerClass = "bg-white border-zinc-200 border-l-indigo-500"; // Por defecto (Confirmado)
-                                    let badge = null;
-
-                                    if (t.estado === 'pendiente') {
-                                        containerClass = "bg-amber-50/50 border-amber-200 border-l-amber-500 opacity-80";
-                                        badge = <span className="absolute -top-2 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">PENDIENTE</span>;
-                                    } else if (t.estado === 'esperando_senia') {
-                                        containerClass = "bg-orange-50/50 border-orange-200 border-l-orange-500";
-                                        badge = <span className="absolute -top-2 -right-1 bg-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">FALTA PAGO</span>;
-                                    }
-
-                                    return (
-                                        <div 
-                                            key={t.id} 
-                                            className={`p-3 rounded-lg border shadow-sm relative group border-l-4 transition-all ${containerClass}`}
-                                        >
-                                            {badge}
-
-                                            {/* ... (Resto del contenido del turno: Hora, Botón Cancelar, Nombre, etc.) ... */}
-                                            <div className="flex justify-between items-start mb-1">
-                                                <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                                    <Clock size={10}/> 
-                                                    {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
-                                                </p>
-                                                <div onClick={(e) => e.stopPropagation()}>
-                                                    <BotonCancelar idTurno={t.id} onCancel={() => onCancel(t.id)} />
-                                                </div>
-                                            </div>
-                                            
-                                            <p className={`text-sm font-bold truncate pr-4 ${t.estado === 'pendiente' || t.estado === 'esperando_senia' ? 'text-zinc-700' : 'text-zinc-900'}`}>
-                                                {t.cliente_nombre}
+                                {dayTurnos.map((t: any) => (
+                                    <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
+                                        
+                                        {/* CABECERA: Hora y MENÚ DE 3 PUNTOS */}
+                                        <div className="flex justify-between items-start mb-1 relative">
+                                            <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+                                                <Clock size={10}/> 
+                                                {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                             </p>
 
-                                            {/* ... (Resto igual) ... */}
-                                            {t.servicio && t.servicio.includes(" - ") ? (
-                                                <div className="flex flex-col mt-1">
-                                                    <p className="text-xs font-medium text-zinc-700 truncate">{t.servicio.split(" - ")[0]}</p>
-                                                    <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
-                                                        <User size={10}/> {t.servicio.split(" - ")[1]}
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
+                                            {/* BOTÓN 3 PUNTOS */}
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenuId(activeMenuId === t.id ? null : t.id);
+                                                }}
+                                                className="text-zinc-400 hover:text-zinc-600 p-1 rounded-full hover:bg-zinc-100 transition-colors"
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+
+                                            {/* MENÚ DESPLEGABLE */}
+                                            {activeMenuId === t.id && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                                                    <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                        <button 
+                                                            onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
+                                                        >
+                                                            <Edit size={14} /> Reprogramar
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => { onContact(t.cliente_email, t.cliente_nombre); setActiveMenuId(null); }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
+                                                        >
+                                                            <Mail size={14} /> Email
+                                                        </button>
+                                                        {t.cliente_telefono && (
+                                                            <a 
+                                                                href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
+                                                                target="_blank" rel="noopener noreferrer"
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
+                                                            >
+                                                                <Phone size={14} /> WhatsApp
+                                                            </a>
+                                                        )}
+                                                        <div className="h-px bg-zinc-100 my-1" />
+                                                        <button 
+                                                            onClick={() => handleDeleteFromMenu(t.id)}
+                                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} /> Cancelar Turno
+                                                        </button>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
-                                    );
-                                })}
+
+                                        <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
+                                        
+                                        {/* INFO DEL SERVICIO */}
+                                        {t.servicio && t.servicio.includes(" - ") ? (
+                                            <div className="flex flex-col mt-1">
+                                                <p className="text-xs font-medium text-zinc-700 truncate">{t.servicio.split(" - ")[0]}</p>
+                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5"><User size={10}/> {t.servicio.split(" - ")[1]}</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         );
                     })}
