@@ -50,24 +50,35 @@ export default function ManualBookingManager({ slug, workers, services }: { slug
         <UserPlus className="text-indigo-600" size={22}/> 
         Agendar Turno Manualmente
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+      <form onSubmit={handleSubmit} className="space-y-5"> {/* Aumenté el espaciado vertical */}
+        
+        {/* FILA 1: DATOS CLIENTE (Ahora incluye Email) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-1">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cliente</label>
             <input 
-              required placeholder="Nombre completo" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
+              required placeholder="Nombre" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
               value={formData.clientName} onChange={e => setFormData({...formData, clientName: e.target.value})}
             />
           </div>
-          <div>
+          <div className="md:col-span-1">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
             <input 
-              placeholder="Ej: 1122334455" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
+              placeholder="Ej: 11223344" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
               value={formData.clientPhone} onChange={e => setFormData({...formData, clientPhone: e.target.value})}
+            />
+          </div>
+          {/* NUEVO CAMPO EMAIL */}
+          <div className="md:col-span-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email (Opcional)</label>
+            <input 
+              type="email" placeholder="cliente@mail.com" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
+              value={formData.clientEmail} onChange={e => setFormData({...formData, clientEmail: e.target.value})}
             />
           </div>
         </div>
 
+        {/* FILA 2: FECHA Y HORA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha</label>
@@ -79,7 +90,7 @@ export default function ManualBookingManager({ slug, workers, services }: { slug
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora</label>
-              <input type="time" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
+              <input type="time" required className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Duración</label>
@@ -93,22 +104,29 @@ export default function ManualBookingManager({ slug, workers, services }: { slug
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* FILA 3: PROFESIONAL Y SERVICIO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Profesional</label>
                 <select className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm" value={formData.workerId} onChange={e => setFormData({...formData, workerId: e.target.value})}>
-                    {workers?.map(w => <option key={w.id} value={w.id}>{w.nombre}</option>)}
+                    <option value="">Cualquiera / Sin asignar</option>
+                    {workers?.map((w: any) => <option key={w.id} value={w.id}>{w.nombre}</option>)}
                 </select>
             </div>
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
                 <select className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})}>
-                    {services?.map((s, idx) => <option key={idx} value={s.name}>{s.name}</option>)}
+                    <option value="">Seleccionar servicio...</option>
+                    {services?.map((s: any, idx: number) => {
+                        // Corrección: Maneja si 's' es string o objeto, y muestra si es promo
+                        const name = s.name || s; 
+                        return <option key={idx} value={name}>{name} {s.isPromo ? '(Promo)' : ''}</option>
+                    })}
                 </select>
             </div>
         </div>
 
-        <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700 transition font-bold shadow-lg shadow-indigo-100">
+        <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700 transition font-bold shadow-lg shadow-indigo-100 mt-4">
           {loading ? 'Agendando...' : 'Confirmar y Sincronizar'}
         </button>
       </form>
