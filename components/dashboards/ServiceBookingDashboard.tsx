@@ -14,6 +14,7 @@ import {
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
+import ManualBookingManager from "./ManualBookingManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
 import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/calendar-actions";
 
@@ -377,9 +378,32 @@ useEffect(() => {
             {/* --- TAB: PROMOCIONES --- */}
             {activeTab === "promociones" && <PromotionsTab initialConfig={negocio.config_web} negocioId={negocio.id} />}     
             {activeTab === "resenas" && <ReviewsTab resenas={reviews} onToggle={toggleVisibility}/>}
-            {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
-            {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
             {activeTab === "marketing" && <MarketingCampaign negocio={negocio} />}
+            {activeTab === "suscripcion" && <SubscriptionTab negocio={negocio} CONST_LINK_MP={CONST_LINK_MP} />}
+            {activeTab === "gestion_turnos" && (
+                            <div className="space-y-12 animate-in fade-in">
+                                <header>
+                                    <h1 className="text-2xl font-bold">Gestión de Turnos y Horarios</h1>
+                                    <p className="text-zinc-500 text-sm">Agenda turnos manuales o bloquea horarios por feriados/vacaciones.</p>
+                                </header>
+            
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    {/* 1. Agendamiento Manual */}
+                                    <ManualBookingManager 
+                                        slug={negocio.slug} 
+                                        workers={negocio.config_web?.equipo?.members || []} 
+                                        services={negocio.config_web?.services || []}
+                                    />
+            
+                                    {/* 2. Bloqueos (Reutilizamos el componente que ya tenías) */}
+                                    <BlockTimeManager 
+                                        slug={negocio.slug} 
+                                        workers={negocio.config_web?.equipo?.members || []} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+            {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
 
             
         </div>

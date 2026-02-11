@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users} from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users, CreditCard, DollarSign} from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
@@ -38,6 +38,10 @@ const DEFAULT_CONFIG = {
       "4": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
       "5": { isOpen: true, ranges: [{ start: "09:00", end: "18:00" }] },
       "6": { isOpen: false, ranges: [{ start: "09:00", end: "13:00" }] }
+  },
+  booking: {
+    requestDeposit: false,
+    depositPercentage: 50
   },
   equipo: { 
     mostrar: false, 
@@ -583,6 +587,48 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 </div>
             </div>
+            {/* BLOQUE: POLÍTICA DE SEÑAS Y PAGOS (NUEVO) */}
+                <div className="pt-4 border-t border-zinc-100 mt-4">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
+                        <DollarSign size={12}/> Política de Reservas
+                    </label>
+                    
+                    <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-3">
+                        {/* Switch: Pedir Seña */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-zinc-700">Solicitar Seña/Depósito</span>
+                            <button 
+                                onClick={() => updateConfigField('booking', 'requestDeposit', !config.booking?.requestDeposit)}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config.booking?.requestDeposit ? 'bg-indigo-600' : 'bg-zinc-300'}`}
+                            >
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.booking?.requestDeposit ? 'translate-x-5' : 'translate-x-1'}`}/>
+                            </button>
+                        </div>
+
+                        {/* Input: Porcentaje (Solo si está activo) */}
+                        {config.booking?.requestDeposit && (
+                            <div className="animate-in fade-in slide-in-from-top-1">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">
+                                    Porcentaje de Seña (%)
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="100"
+                                        value={config.booking?.depositPercentage || 50} 
+                                        onChange={(e) => updateConfigField('booking', 'depositPercentage', Number(e.target.value))} 
+                                        className="w-full p-2 pl-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                    <span className="absolute right-3 top-2 text-zinc-400 text-sm font-bold">%</span>
+                                </div>
+                                <p className="text-[10px] text-zinc-400 mt-1">
+                                    El cliente recibirá un correo solicitando el {config.booking?.depositPercentage}% del total.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
             {/* 2. SECCIÓN APARIENCIA */}
             <div ref={sectionsRefs.appearance} className={getSectionClass('appearance')}>
@@ -920,16 +966,20 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                                                             className="w-full p-1.5 border rounded text-xs text-zinc-500"
                                                             placeholder="Cargo / Rol"
                                                         />
-                                                        {/* OPCIONAL: ID CALENDARIO */}
-                                                        <div className="bg-blue-50 p-2 rounded border border-blue-100">
-                                                            <label className="text-[9px] font-bold text-blue-800 uppercase block mb-1">ID del calendario (Opcional)</label>
+                                                        {/* INPUT: LINK DE PAGO */}
+                                                        <div className="bg-indigo-50 p-2 rounded border border-indigo-100">
+                                                            <label className="text-[9px] font-bold text-indigo-800 uppercase block mb-1 flex items-center gap-1">
+                                                                <CreditCard size={10}/> Link de Pago (MP)
+                                                            </label>
                                                             <input 
-                                                                value={item.calendarId || ''} 
-                                                                onChange={(e) => updateArrayItem('equipo', i, 'calendarId', e.target.value)} 
-                                                                className="w-full p-1 bg-white border border-blue-200 rounded text-[10px]"
-                                                                placeholder="Ej: juan@gmail.com o primary"
+                                                                value={item.paymentLink || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'paymentLink', e.target.value)} 
+                                                                className="w-full p-1 bg-white border border-indigo-200 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none"
+                                                                placeholder="Ej: https://mpago.la/..."
                                                             />
-                                                            <p className="text-[9px] text-blue-600 mt-1 leading-tight">Si está vacío usa el calendario principal.</p>
+                                                            <p className="text-[9px] text-indigo-600/80 mt-1 leading-tight">
+                                                                Link de Mercado Pago (o CBU) que recibirá el cliente para abonar la seña.
+                                                            </p>
                                                         </div>
                                                         <div className="mt-2">
                                                             <ImageUpload label="Foto" value={item.imagenUrl} onChange={(url) => updateArrayItem('equipo', i, 'imagenUrl', url)} />

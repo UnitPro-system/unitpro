@@ -11,14 +11,15 @@ import {
   X,
   Menu,  Calendar, ChevronDown, ChevronUp, Briefcase, ExternalLink,
   Phone,
-  Bell,Tag,Trash2
+  Bell,Tag,Trash2,MoreVertical, Edit
 } from "lucide-react";
-import { approveAppointment, cancelAppointment } from "@/app/actions/confirm-booking/manage-appointment";
+import { approveAppointment, cancelAppointment, markDepositPaid } from "@/app/actions/confirm-booking/manage-appointment";
 import { BotonCancelar } from "@/components/BotonCancelar";
 import MarketingCampaign from "@/components/dashboards/MarketingCampaign";
 import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
 import ManualBookingManager from "./ManualBookingManager";
+
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -42,6 +43,9 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{show: boolean, turnoId: string | null}>({ show: false, turnoId: null });
+  const [priceInput, setPriceInput] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
 
 
@@ -156,6 +160,26 @@ useEffect(() => {
   const handleConnectGoogle = () => {
     if (!negocio?.slug) return;
     window.location.href = `/api/google/auth?slug=${negocio.slug}`;
+  };
+
+  const onPreConfirm = (id: string) => {
+      setConfirmModal({ show: true, turnoId: id });
+      setPriceInput(""); 
+  };
+
+
+  const handleConfirmAction = async () => {
+      if (!confirmModal.turnoId) return;
+      
+      setIsConfirming(true);
+      const res = await approveAppointment(confirmModal.turnoId);
+      
+      if (!res.success) {
+          alert("Error: " + res.error);
+      }
+      
+      setIsConfirming(false);
+      setConfirmModal({ show: false, turnoId: null });
   };
 
   const menuItems = [
@@ -355,152 +379,109 @@ useEffect(() => {
             {/* --- OTRAS TABS --- */}
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} setContactModal={setContactModal} /></div>}
             {activeTab === "solicitudes" && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-6">
-                    <header className="mb-8">
-                        <h1 className="text-2xl font-bold tracking-tight mb-1">Solicitudes Pendientes</h1>
-                        <p className="text-zinc-500 text-sm">Turnos que esperan confirmación para ser agendados en Google Calendar.</p>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
+                    <header className="mb-4">
+                        <h1 className="text-2xl font-bold tracking-tight mb-1">Centro de Solicitudes</h1>
+                        <p className="text-zinc-500 text-sm">Gestiona pagos pendientes y nuevas reservas.</p>
                     </header>
 
-                    <div className="grid gap-4">
+                    {/* --- ZONA 1: ESPERANDO SEÑA (Naranja) --- */}
+                    {/* Estos turnos NO están en Google Calendar aún */}
+                    {turnos.some(t => t.estado === 'esperando_senia') && (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-orange-600 uppercase tracking-wide flex items-center gap-2 bg-orange-50 w-fit px-3 py-1 rounded-full border border-orange-100">
+                                <Clock size={14} /> Esperando Pago de Seña
+                            </h3>
+                            <div className="grid gap-4">
+                                {turnos.filter(t => t.estado === 'esperando_senia').map((t) => (
+                                    <div key={t.id} className="bg-white p-5 rounded-2xl border border-orange-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
+                                        <div className="flex-1 pl-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
+                                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full uppercase">Falta Seña</span>
+                                            </div>
+                                            <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
+                                            <div className="flex gap-4 mt-2 text-xs text-zinc-400">
+                                                <span className="flex items-center gap-1"><CalendarIcon size={14}/> {new Date(t.fecha_inicio).toLocaleDateString()}</span>
+                                                <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
+                                            </div>
+                                            <p className="text-[10px] text-orange-600 mt-2 font-bold">⚠️ No agendado en Google Calendar todavía.</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={async () => {
+                                                    if(confirm("¿Confirmar que llegó el pago? Esto intentará reservar el lugar en Google Calendar.")) {
+                                                        const res = await markDepositPaid(t.id);
+                                                        if(!res.success) alert(res.error);
+                                                    }
+                                                }}
+                                                className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-orange-200"
+                                            >
+                                                <CreditCard size={16}/> Registrar Pago
+                                            </button>
+                                            <button 
+                                                onClick={async () => { if(confirm("¿Cancelar turno?")) await cancelAppointment(t.id); }}
+                                                className="px-3 py-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                            >
+                                                <X size={20}/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="h-px bg-zinc-200 my-6"></div>
+                        </div>
+                    )}
+
+                    {/* --- ZONA 2: NUEVAS SOLICITUDES (Gris/Blanco) --- */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-2 px-1">
+                             Nuevas Solicitudes ({turnos.filter(t => t.estado === 'pendiente').length})
+                        </h3>
+                        
                         {turnos.filter(t => t.estado === 'pendiente').length === 0 ? (
-                            <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-zinc-200">
-                                <p className="text-zinc-400">No hay solicitudes nuevas por el momento.</p>
+                            <div className="py-12 text-center bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
+                                <p className="text-zinc-400 text-sm">No hay nuevas solicitudes pendientes.</p>
                             </div>
                         ) : (
                             turnos.filter(t => t.estado === 'pendiente').map((t) => (
-                                <div key={t.id} className="space-y-4">
-                                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div key={t.id} className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
-                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase">Pendiente</span>
+                                                <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-full uppercase">Nuevo</span>
                                             </div>
                                             <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
                                             <div className="flex flex-wrap gap-4 mt-3 text-xs text-zinc-400 font-mono">
                                                 <span className="flex items-center gap-1"><CalendarIcon size={14}/> {new Date(t.fecha_inicio).toLocaleDateString()}</span>
                                                 <span className="flex items-center gap-1"><Clock size={14}/> {new Date(t.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}hs</span>
-                                                <span className="flex items-center gap-1"><Mail size={14}/> {t.cliente_email}</span>
                                             </div>
                                             {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
                                                 <div className="mt-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
-                                                    {/* Texto del mensaje */}
-                                                    {t.mensaje && (
-                                                        <div>
-                                                            <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Nota del cliente:</p>
-                                                            <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Galería de imágenes */}
-                                                    {t.fotos && t.fotos.length > 0 && (
-                                                        <div>
-                                                            <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2">Adjuntos:</p>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {t.fotos.map((url: string, index: number) => (
-                                                                    <a 
-                                                                        key={index} 
-                                                                        href={url} 
-                                                                        target="_blank" 
-                                                                        rel="noreferrer"
-                                                                        className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 hover:ring-2 hover:ring-indigo-500 transition-all"
-                                                                    >
-                                                                        <img 
-                                                                            src={url} 
-                                                                            alt={`Adjunto ${index + 1}`} 
-                                                                            className="object-cover w-full h-full"
-                                                                        />
-                                                                    </a>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    {t.mensaje && <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>}
                                                 </div>
                                             )}
                                         </div>
 
                                         <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
-                                            {/* BOTÓN PARA VER MENSAJE/FOTOS */}
-                                            {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
-                                                <button 
-                                                    onClick={() => setExpandedRequestId(expandedRequestId === t.id ? null : t.id)}
-                                                    className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 text-sm font-bold ${expandedRequestId === t.id ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
-                                                    title="Ver detalles adjuntos"
-                                                >
-                                                    <Eye size={18}/>
-                                                    <span className="md:hidden lg:inline">{expandedRequestId === t.id ? 'Cerrar' : 'Ver Nota'}</span>
-                                                </button>
-                                            )}
                                             <button 
                                                 onClick={async () => {
-                                                    if(confirm("¿Rechazar esta solicitud?")) {
-                                                        await cancelAppointment(t.id);
-                                                        // La UI se actualiza vía revalidatePath en la action
-                                                    }
+                                                    if(confirm("¿Rechazar esta solicitud?")) await cancelAppointment(t.id);
                                                 }}
                                                 className="flex-1 md:flex-none px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors text-sm"
                                             >
                                                 Rechazar
                                             </button>
+                                            {/* Abre el Modal de Precio. Al confirmar ahí, llama a approveAppointment */}
                                             <button 
-                                                onClick={async (e) => {
-                                                    const btn = e.currentTarget;
-                                                    btn.disabled = true;
-                                                    btn.innerText = "Confirmando...";
-                                                    const res = await approveAppointment(t.id);
-                                                    if (!res.success) {
-                                                        alert("Error: " + res.error);
-                                                        btn.disabled = false;
-                                                        btn.innerText = "Confirmar Turno";
-                                                    }
-                                                }}
-                                                className="flex-1 md:flex-none px-6 py-2 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/10"
+                                                onClick={() => onPreConfirm(t.id)}
+                                                className="flex-1 md:flex-none px-6 py-2 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center gap-2"
                                             >
-                                                <Check size={16}/> Confirmar Turno
+                                                <Check size={16}/> Aceptar
                                             </button>
                                         </div>
                                     </div>
-                                    {/* CONTENIDO DESPLEGABLE (MENSAJE Y FOTOS) */}
-                                    {expandedRequestId === t.id && (
-                                        <div className="bg-zinc-50 border-t border-zinc-100 p-6 animate-in slide-in-from-top-2 duration-300">
-                                            <div className="max-w-3xl space-y-6">
-                                                {t.mensaje && (
-                                                    <div>
-                                                        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Mensaje del Cliente</h4>
-                                                        <div className="bg-white p-4 rounded-xl border border-zinc-200 text-sm text-zinc-700 italic shadow-sm leading-relaxed">
-                                                            "{t.mensaje}"
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {t.fotos && t.fotos.length > 0 && (
-                                                    <div>
-                                                        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Imágenes Adjuntas ({t.fotos.length})</h4>
-                                                        <div className="flex flex-wrap gap-3">
-                                                            {t.fotos.map((url: string, index: number) => (
-                                                                <a 
-                                                                    key={index} 
-                                                                    href={url} 
-                                                                    target="_blank" 
-                                                                    rel="noreferrer"
-                                                                    className="group relative w-32 h-32 rounded-xl overflow-hidden border-2 border-white shadow-md hover:ring-2 hover:ring-zinc-900 transition-all"
-                                                                >
-                                                                    <img 
-                                                                        src={url} 
-                                                                        alt={`Adjunto ${index + 1}`} 
-                                                                        className="object-cover w-full h-full transition-transform group-hover:scale-110"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                                                        <ExternalLink size={16} className="text-white opacity-0 group-hover:opacity-100" />
-                                                                    </div>
-                                                                </a>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             ))
                         )}
                     </div>
@@ -524,13 +505,10 @@ useEffect(() => {
                         />
 
                         {/* 2. Bloqueos (Reutilizamos el componente que ya tenías) */}
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-lg px-2">Bloqueos de Agenda</h3>
-                            <BlockTimeManager 
-                                slug={negocio.slug} 
-                                workers={negocio.config_web?.equipo?.members || []} 
-                            />
-                        </div>
+                        <BlockTimeManager 
+                            slug={negocio.slug} 
+                            workers={negocio.config_web?.equipo?.members || []} 
+                        />
                     </div>
                 </div>
             )}
@@ -579,6 +557,47 @@ useEffect(() => {
               </div>
             </div>
           </div>
+        )}
+        {/* MODAL DE CONFIRMACIÓN DE PRECIO */}
+        {confirmModal.show && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
+                    <h3 className="text-xl font-bold text-zinc-900 mb-2">Confirmar Turno</h3>
+                    <p className="text-sm text-zinc-500 mb-4">
+                        Ingresa el precio final del servicio. Esto se enviará al cliente junto con la solicitud de seña (si aplica).
+                    </p>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Precio Final ($)</label>
+                            <input 
+                                type="number" 
+                                autoFocus
+                                placeholder="Ej: 15000"
+                                className="w-full p-3 border border-zinc-200 rounded-xl text-lg font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={priceInput}
+                                onChange={(e) => setPriceInput(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button 
+                                onClick={() => setConfirmModal({ show: false, turnoId: null })}
+                                className="flex-1 py-3 text-zinc-500 font-bold hover:bg-zinc-100 rounded-xl transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleConfirmAction}
+                                disabled={isConfirming || !priceInput}
+                                className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isConfirming ? "Procesando..." : "Enviar y Confirmar"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         )}
       </main>
     </div>
@@ -751,61 +770,55 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel }: any) {
                                     </div>
                                 )}
 
-                                {dayTurnos.map((t: any) => (
-                                    <div 
-                                        key={t.id} 
-                                        className={`p-3 rounded-lg border shadow-sm relative group border-l-4 transition-all ${
-                                            t.estado === 'pendiente' 
-                                                ? 'bg-amber-50/50 border-amber-200 border-l-amber-500 opacity-80' 
-                                                : 'bg-white border-zinc-200 border-l-indigo-500'
-                                        }`}
-                                    >
-                                        {/* Etiqueta de estado solo para pendientes */}
-                                        {t.estado === 'pendiente' && (
-                                            <span className="absolute -top-2 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
-                                                PENDIENTE
-                                            </span>
-                                        )}
+                                {dayTurnos.map((t: any) => {
+                                    // Definimos estilos según el estado
+                                    let containerClass = "bg-white border-zinc-200 border-l-indigo-500"; // Por defecto (Confirmado)
+                                    let badge = null;
 
-                                        {/* CABECERA: Hora y Botón Borrar */}
-                                        <div className="flex justify-between items-start mb-1">
-                                            <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                                <Clock size={10}/> 
-                                                {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                                    if (t.estado === 'pendiente') {
+                                        containerClass = "bg-amber-50/50 border-amber-200 border-l-amber-500 opacity-80";
+                                        badge = <span className="absolute -top-2 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">PENDIENTE</span>;
+                                    } else if (t.estado === 'esperando_senia') {
+                                        containerClass = "bg-orange-50/50 border-orange-200 border-l-orange-500";
+                                        badge = <span className="absolute -top-2 -right-1 bg-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">FALTA PAGO</span>;
+                                    }
+
+                                    return (
+                                        <div 
+                                            key={t.id} 
+                                            className={`p-3 rounded-lg border shadow-sm relative group border-l-4 transition-all ${containerClass}`}
+                                        >
+                                            {badge}
+
+                                            {/* ... (Resto del contenido del turno: Hora, Botón Cancelar, Nombre, etc.) ... */}
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+                                                    <Clock size={10}/> 
+                                                    {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                                                </p>
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                    <BotonCancelar idTurno={t.id} onCancel={() => onCancel(t.id)} />
+                                                </div>
+                                            </div>
+                                            
+                                            <p className={`text-sm font-bold truncate pr-4 ${t.estado === 'pendiente' || t.estado === 'esperando_senia' ? 'text-zinc-700' : 'text-zinc-900'}`}>
+                                                {t.cliente_nombre}
                                             </p>
 
-                                            {/* AQUÍ PEGAS EL BOTÓN */}
-                                            <div onClick={(e) => e.stopPropagation()}>
-                                                <BotonCancelar
-                                                    idTurno={t.id}
-                                                    onCancel={() => onCancel(t.id)} 
-                                                />
-                                            </div>
+                                            {/* ... (Resto igual) ... */}
+                                            {t.servicio && t.servicio.includes(" - ") ? (
+                                                <div className="flex flex-col mt-1">
+                                                    <p className="text-xs font-medium text-zinc-700 truncate">{t.servicio.split(" - ")[0]}</p>
+                                                    <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
+                                                        <User size={10}/> {t.servicio.split(" - ")[1]}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
+                                            )}
                                         </div>
-
-                                        
-                                        <p className={`text-sm font-bold truncate pr-4 ${t.estado === 'pendiente' ? 'text-amber-900' : 'text-zinc-900'}`}>
-                                            {t.cliente_nombre}
-                                        </p>
-
-                                        {/* LÓGICA PARA SEPARAR SERVICIO Y PROFESIONAL */}
-                                        {t.servicio && t.servicio.includes(" - ") ? (
-                                            <div className="flex flex-col mt-1">
-                                                {/* Línea 1: Servicio */}
-                                                <p className="text-xs font-medium text-zinc-700 truncate">
-                                                    {t.servicio.split(" - ")[0]}
-                                                </p>
-                                                {/* Línea 2: Profesional (con icono) */}
-                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
-                                                    <User size={10}/> {t.servicio.split(" - ")[1]}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            // Fallback por si es un turno viejo sin el formato nuevo
-                                            <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         );
                     })}
@@ -1147,17 +1160,6 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                 <PasswordManager email={negocio.email} />
             </section>
 
-            {/* SECCIÓN 2: GESTIÓN DE HORARIOS (NUEVO) */}
-            {/* Solo mostramos esto si el calendario está conectado, porque los bloqueos se crean en Google Calendar */}
-            {negocio.google_calendar_connected && (
-                <section>
-                    <header className="mb-6"><h2 className="text-2xl font-bold">Bloqueo de Horarios</h2></header>
-                    
-                    {/* AQUÍ INSERTAMOS EL COMPONENTE */}
-                    <BlockTimeManager slug={negocio.slug} workers={workers} />
-                    
-                </section>
-            )}
         </div>
     )
 }

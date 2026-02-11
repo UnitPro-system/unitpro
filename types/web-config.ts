@@ -87,7 +87,7 @@ export interface WorkerItem {
   nombre: string;
   cargo: string;
   imagenUrl?: string;
-  calendarId?: string; // ID del calendario de Google específico (opcional)
+  paymentLink?: string; // ID del calendario de Google específico (opcional)
 }
 
 export interface TeamSection {
@@ -112,6 +112,10 @@ export interface FooterSection {
 }
 export interface LocationSection {
   mostrar: boolean;
+}
+export interface BookingConfig {
+  requestDeposit: boolean;     // ¿Pide seña?
+  depositPercentage?: number;  // Porcentaje (ej: 50)
 }
 // ------------------------------------
 // LA CONFIGURACIÓN MAESTRA (WEB CONFIG)
@@ -145,6 +149,7 @@ export interface WebConfig {
   customSections?: CustomSection[];
   sectionOrder?: string[];
   schedule?: WeeklySchedule;
+  booking?: BookingConfig;
 }
 
 export interface TimeRange {
