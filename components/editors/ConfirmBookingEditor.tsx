@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users, DollarSign, CreditCard} from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users, DollarSign, CreditCard,Minus, Plus, Mail} from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
@@ -51,7 +51,21 @@ const DEFAULT_CONFIG = {
   },
   ubicacion: { mostrar: true },
   testimonios: { mostrar: false, titulo: "Opiniones", items: [] },
-  footer: { mostrar: true, textoCopyright: "Derechos reservados" }
+  footer: { mostrar: true, textoCopyright: "Derechos reservados" },
+  notifications: {
+    confirmation: {
+      enabled: true,
+      subject: "Confirmación: {{servicio}}",
+      body: "Hola {{cliente}}, tu turno para {{servicio}} el {{fecha}} está confirmado.",
+      bannerUrl: ""
+    },
+    reminder: {
+      enabled: true,
+      subject: "Recordatorio: {{servicio}}",
+      body: "Hola {{cliente}}, recuerda tu turno para mañana {{fecha}}.",
+      bannerUrl: ""
+    }
+  }
 };
 
 export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) {
@@ -630,6 +644,72 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 </div>
 
+            {/* BLOQUE: NOTIFICACIONES POR CORREO */}
+            <div className="pt-4 border-t border-zinc-100 mt-4">
+                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
+                    <Mail size={12}/> Personalizar Correos
+                </label>
+                
+                <div className="bg-zinc-50 p-1 rounded-lg border border-zinc-200">
+                    {/* Pestañas internas */}
+                    <div className="flex p-1 gap-1 mb-2">
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'confirmation')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab !== 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Confirmación</button>
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'reminder')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Recordatorio (24hs)</button>
+                    </div>
+
+                    {/* Editor de Template */}
+                    {(() => {
+                        const activeType = config._mailTab === 'reminder' ? 'reminder' : 'confirmation';
+                        const template = config.notifications?.[activeType] || DEFAULT_CONFIG.notifications[activeType];
+                        
+                        return (
+                            <div className="p-2 space-y-3 animate-in fade-in">
+                                {/* Switch Enabled */}
+                                <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                    <span className="text-xs font-bold text-zinc-700">Activar envío</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={template.enabled}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, enabled: e.target.checked })}
+                                        className="accent-indigo-600"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto del Correo</label>
+                                    <input 
+                                        value={template.subject}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, subject: e.target.value })}
+                                        className="w-full p-2 border rounded-lg text-sm bg-white"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase flex justify-between">
+                                        Cuerpo del Mensaje
+                                        <span className="text-[9px] text-indigo-500 cursor-help" title="Usa {{cliente}}, {{servicio}}, {{fecha}}">Variables: {'{{cliente}}'}, {'{{fecha}}'}...</span>
+                                    </label>
+                                    <textarea 
+                                        rows={5}
+                                        value={template.body}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, body: e.target.value })}
+                                        className="w-full p-2 border rounded-lg text-sm bg-white text-zinc-600 leading-relaxed"
+                                    />
+                                </div>
+
+                                <div className="pt-2">
+                                    <ImageUpload 
+                                        label="Banner / Cabecera (Opcional)" 
+                                        value={template.bannerUrl} 
+                                        onChange={(url) => updateConfigField('notifications', activeType, { ...template, bannerUrl: url })} 
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            </div>
+
             {/* 2. SECCIÓN APARIENCIA */}
             <div ref={sectionsRefs.appearance} className={getSectionClass('appearance')}>
                 <h3 className="font-bold text-zinc-800 text-sm uppercase tracking-wide flex items-center gap-2 pb-3 border-b border-zinc-100">
@@ -836,19 +916,59 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                         </div>
                                                         <div>
                                                             <label className="text-[10px] font-bold text-zinc-400 uppercase">Duración (min)</label>
-                                                            <select 
-                                                                value={item.duracion || "Indeterminado"} 
-                                                                onChange={(e) => updateArrayItem('servicios', i, 'duracion', Number(e.target.value))} 
-                                                                className="w-full p-2 border rounded-lg text-sm bg-white"
-                                                            >
-                                                                <option value={15}>15 min</option>
-                                                                <option value={30}>30 min</option>
-                                                                <option value={45}>45 min</option>
-                                                                <option value={60}>1 hora</option>
-                                                                <option value={90}>1.5 horas</option>
-                                                                <option value={120}>2 horas</option>
-                                                                <option value={"Indeterminado"}>Indeterminado</option>
-                                                            </select>
+                                                            <div className="flex items-center gap-3 bg-white p-1 rounded-lg border border-zinc-200">
+                                                                {/* Botón Restar */}
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const current = Number(item.duracion || 60);
+                                                                        // Lógica: Si es <= 60 baja de 15 en 15. Si es > 60 baja de 30 en 30. Minimo 15.
+                                                                        let newVal = current;
+                                                                        if (current <= 60) {
+                                                                            newVal = Math.max(15, current - 15);
+                                                                        } else {
+                                                                            newVal = current - 30;
+                                                                        }
+                                                                        updateArrayItem('servicios', index, 'duracion', newVal.toString());
+                                                                    }}
+                                                                    className="w-8 h-8 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-md transition-colors border border-zinc-100 active:scale-95"
+                                                                >
+                                                                    <Minus size={14} />
+                                                                </button>
+
+                                                                {/* Visualizador de Texto */}
+                                                                <div className="flex-1 text-center min-w-[60px]">
+                                                                    <span className="text-xs font-bold text-zinc-700 block">
+                                                                        {Number(item.duracion || 60) < 60 
+                                                                            ? `${item.duracion || 60} min`
+                                                                            : Number(item.duracion || 60) === 60 
+                                                                                ? "1 hora"
+                                                                                : (() => {
+                                                                                    const h = Math.floor(Number(item.duracion || 60) / 60);
+                                                                                    const m = Number(item.duracion || 60) % 60;
+                                                                                    return `${h}h ${m > 0 ? `${m}m` : ''}`;
+                                                                                })()
+                                                                        }
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Botón Sumar */}
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const current = Number(item.duracion || 60);
+                                                                        // Lógica: Si es < 60 sube 15. Si es >= 60 sube 30.
+                                                                        let newVal = current;
+                                                                        if (current < 60) {
+                                                                            newVal = current + 15;
+                                                                        } else {
+                                                                            newVal = current + 30;
+                                                                        }
+                                                                        updateArrayItem('servicios', index, 'duracion', newVal.toString());
+                                                                    }}
+                                                                    className="w-8 h-8 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-md transition-colors shadow-sm active:scale-95"
+                                                                >
+                                                                    <Plus size={14} />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
 
