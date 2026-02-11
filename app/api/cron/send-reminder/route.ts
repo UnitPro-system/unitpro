@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
+import { compileEmailTemplate } from '@/lib/email-helper';
 
 // IMPORTANTE: Al ser un cron, no hay cookies de usuario.
 // Usamos la Service Role Key para tener acceso a "todos" los datos sin RLS.
@@ -76,17 +77,36 @@ export async function GET(req: Request) {
             hour: '2-digit',
             minute: '2-digit'
         });
+        const emailData = compileEmailTemplate(
+            'reminder', 
+            turno.negocios.config_web, 
+            {
+                cliente: turno.cliente_nombre,
+                servicio: turno.servicio,
+                fecha: fechaLegible,
+                profesional: '' 
+            }
+        );
 
-        const subject = `Recordatorio de tu turno: ${turno.servicio}`;
-        const message = `
-          <h1>Hola ${turno.cliente_nombre},</h1>
-          <p>Te recordamos que tienes un turno mañana.</p>
-          <ul>
-            <li><strong>Servicio:</strong> ${turno.servicio}</li>
-            <li><strong>Fecha y Hora:</strong> ${fechaLegible}</li>
-          </ul>
-          <p>Por favor, avísanos si necesitas reprogramar.</p>
-        `;
+        // --- CORRECCIÓN: Validar si el mail está activado ---
+        if (!emailData) {
+            // Si es null, es porque el dueño del negocio desactivó los recordatorios.
+            // Lo marcamos como "enviado" (aunque no se envió) para que el cron
+            // no lo vuelva a traer en la próxima ejecución.
+            console.log(`Recordatorio desactivado para turno ${turno.id}`);
+            
+            await supabaseAdmin
+              .from('turnos')
+              .update({ recordatorio_enviado: true })
+              .eq('id', turno.id);
+
+            continue; // Saltamos al siguiente turno del bucle
+        }
+        // ---------------------------------------------------
+
+        // Ahora TypeScript ya sabe que emailData NO es null aquí
+        const subject = emailData.subject;
+        const message = emailData.html;
 
         // C. Codificar mensaje (RFC 2822) - Reutilizamos tu lógica de send-email
         const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;

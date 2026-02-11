@@ -55,14 +55,20 @@ const DEFAULT_CONFIG = {
   notifications: {
     confirmation: {
       enabled: true,
-      subject: "Confirmación: {{servicio}}",
-      body: "Hola {{cliente}}, tu turno para {{servicio}} el {{fecha}} está confirmado.",
+      subject: "✅ Turno Confirmado: {{servicio}}",
+      body: "Hola {{cliente}}, tu turno ha sido confirmado. Precio final: {{precio_total}}.",
       bannerUrl: ""
     },
     reminder: {
       enabled: true,
-      subject: "Recordatorio: {{servicio}}",
-      body: "Hola {{cliente}}, recuerda tu turno para mañana {{fecha}}.",
+      subject: "⏰ Recordatorio: Turno mañana",
+      body: "Hola {{cliente}}, te esperamos mañana a las {{fecha}}.",
+      bannerUrl: ""
+    },
+    deposit: {
+      enabled: true,
+      subject: "📢 Solicitud recibida: Falta Seña",
+      body: "Hola {{cliente}}, para confirmar tu turno debes abonar una seña de {{monto_senia}}.",
       bannerUrl: ""
     }
   }
@@ -651,22 +657,23 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                 </label>
                 
                 <div className="bg-zinc-50 p-1 rounded-lg border border-zinc-200">
-                    {/* Pestañas internas */}
+                    {/* Pestañas de tipos de correo */}
                     <div className="flex p-1 gap-1 mb-2">
-                        <button onClick={() => updateConfigField('root', '_mailTab', 'confirmation')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab !== 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Confirmación</button>
-                        <button onClick={() => updateConfigField('root', '_mailTab', 'reminder')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Recordatorio (24hs)</button>
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'confirmation')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${(!config._mailTab || config._mailTab === 'confirmation') ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Confirmación</button>
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'deposit')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'deposit' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Seña</button>
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'reminder')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Recordatorio</button>
                     </div>
 
-                    {/* Editor de Template */}
+                    {/* Editor del Template Activo */}
                     {(() => {
-                        const activeType = config._mailTab === 'reminder' ? 'reminder' : 'confirmation';
-                        const template = config.notifications?.[activeType] || DEFAULT_CONFIG.notifications[activeType];
+                        const activeType = config._mailTab || 'confirmation';
+                        const template = config.notifications?.[activeType] || DEFAULT_CONFIG.notifications[activeType as keyof typeof DEFAULT_CONFIG.notifications];
                         
                         return (
                             <div className="p-2 space-y-3 animate-in fade-in">
                                 {/* Switch Enabled */}
                                 <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                    <span className="text-xs font-bold text-zinc-700">Activar envío</span>
+                                    <span className="text-xs font-bold text-zinc-700">Activar este envío</span>
                                     <input 
                                         type="checkbox" 
                                         checked={template.enabled}
@@ -675,8 +682,9 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                     />
                                 </div>
 
+                                {/* Asunto */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto del Correo</label>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto</label>
                                     <input 
                                         value={template.subject}
                                         onChange={(e) => updateConfigField('notifications', activeType, { ...template, subject: e.target.value })}
@@ -684,19 +692,23 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                     />
                                 </div>
                                 
+                                {/* Cuerpo */}
                                 <div>
                                     <label className="text-[10px] font-bold text-zinc-400 uppercase flex justify-between">
-                                        Cuerpo del Mensaje
-                                        <span className="text-[9px] text-indigo-500 cursor-help" title="Usa {{cliente}}, {{servicio}}, {{fecha}}">Variables: {'{{cliente}}'}, {'{{fecha}}'}...</span>
+                                        Mensaje
                                     </label>
+                                    <div className="text-[9px] text-indigo-500 mb-1 bg-indigo-50 p-1.5 rounded border border-indigo-100">
+                                    Variables: {'{{cliente}}'}, {'{{fecha}}'}, {'{{servicio}}'}{activeType === 'deposit' || activeType === 'confirmation' ? ', {{precio_total}}' : ''}{activeType === 'deposit' ? ', {{monto_senia}}' : ''}
+                                    </div>
                                     <textarea 
-                                        rows={5}
+                                        rows={6}
                                         value={template.body}
                                         onChange={(e) => updateConfigField('notifications', activeType, { ...template, body: e.target.value })}
                                         className="w-full p-2 border rounded-lg text-sm bg-white text-zinc-600 leading-relaxed"
                                     />
                                 </div>
 
+                                {/* Banner */}
                                 <div className="pt-2">
                                     <ImageUpload 
                                         label="Banner / Cabecera (Opcional)" 

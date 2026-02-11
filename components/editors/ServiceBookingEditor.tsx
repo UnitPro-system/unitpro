@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users, CreditCard, DollarSign} from "lucide-react";
+import { Save, X, LayoutTemplate, Eye, EyeOff, Loader2, Monitor, Smartphone, ExternalLink, Palette, MousePointerClick, Layout, Layers, MapPin, Clock, PlusCircle, Trash2, Image, FileText, ArrowUp, ArrowDown, Users, CreditCard, DollarSign, Mail} from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Facebook, Instagram, Linkedin, Phone } from "lucide-react";
 
@@ -51,7 +51,21 @@ const DEFAULT_CONFIG = {
   },
   ubicacion: { mostrar: true },
   testimonios: { mostrar: false, titulo: "Opiniones", items: [] },
-  footer: { mostrar: true, textoCopyright: "Derechos reservados" }
+  footer: { mostrar: true, textoCopyright: "Derechos reservados" },
+  notifications: {
+    confirmation: {
+      enabled: true,
+      subject: "Confirmación: {{servicio}}",
+      body: "Hola {{cliente}}, tu turno para {{servicio}} el {{fecha}} está confirmado.",
+      bannerUrl: ""
+    },
+    reminder: {
+      enabled: true,
+      subject: "Recordatorio: {{servicio}}",
+      body: "Hola {{cliente}}, recuerda tu turno para mañana {{fecha}}.",
+      bannerUrl: ""
+    }
+  }
 };
 
 export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) {
@@ -629,6 +643,71 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
                         )}
                     </div>
                 </div>
+            {/* BLOQUE: NOTIFICACIONES POR CORREO */}
+            <div className="pt-4 border-t border-zinc-100 mt-4">
+                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
+                    <Mail size={12}/> Personalizar Correos
+                </label>
+                
+                <div className="bg-zinc-50 p-1 rounded-lg border border-zinc-200">
+                    {/* Pestañas internas */}
+                    <div className="flex p-1 gap-1 mb-2">
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'confirmation')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab !== 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Confirmación</button>
+                        <button onClick={() => updateConfigField('root', '_mailTab', 'reminder')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'reminder' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Recordatorio (24hs)</button>
+                    </div>
+
+                    {/* Editor de Template */}
+                    {(() => {
+                        const activeType = config._mailTab === 'reminder' ? 'reminder' : 'confirmation';
+                        const template = config.notifications?.[activeType] || DEFAULT_CONFIG.notifications[activeType];
+                        
+                        return (
+                            <div className="p-2 space-y-3 animate-in fade-in">
+                                {/* Switch Enabled */}
+                                <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                    <span className="text-xs font-bold text-zinc-700">Activar envío</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={template.enabled}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, enabled: e.target.checked })}
+                                        className="accent-indigo-600"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto del Correo</label>
+                                    <input 
+                                        value={template.subject}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, subject: e.target.value })}
+                                        className="w-full p-2 border rounded-lg text-sm bg-white"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase flex justify-between">
+                                        Cuerpo del Mensaje
+                                        <span className="text-[9px] text-indigo-500 cursor-help" title="Usa {{cliente}}, {{servicio}}, {{fecha}}">Variables: {'{{cliente}}'}, {'{{fecha}}'}...</span>
+                                    </label>
+                                    <textarea 
+                                        rows={5}
+                                        value={template.body}
+                                        onChange={(e) => updateConfigField('notifications', activeType, { ...template, body: e.target.value })}
+                                        className="w-full p-2 border rounded-lg text-sm bg-white text-zinc-600 leading-relaxed"
+                                    />
+                                </div>
+
+                                <div className="pt-2">
+                                    <ImageUpload 
+                                        label="Banner / Cabecera (Opcional)" 
+                                        value={template.bannerUrl} 
+                                        onChange={(url) => updateConfigField('notifications', activeType, { ...template, bannerUrl: url })} 
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            </div>
 
             {/* 2. SECCIÓN APARIENCIA */}
             <div ref={sectionsRefs.appearance} className={getSectionClass('appearance')}>

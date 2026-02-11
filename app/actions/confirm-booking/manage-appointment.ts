@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 import { revalidatePath } from 'next/cache'
+import { compileEmailTemplate } from '@/lib/email-helper'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -140,7 +141,7 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
 
     // 4. Enviar Email (Lógica de texto según estado)
     if (turno.cliente_email && finalPrice) {
-        // (Aquí va tu lógica de búsqueda de paymentLink existente...)
+        // Lógica de Payment Link (intacta)
         const serviceString = turno.servicio || "";
         const parts = serviceString.split(" - ");
         const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
@@ -150,42 +151,51 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
             if (worker && worker.paymentLink) paymentLink = worker.paymentLink;
         }
 
-        let emailBody = `<p>Hola <strong>${turno.cliente_nombre}</strong>,</p>`;
+        // Calculamos montos
+        const depositAmount = necesitaSenia ? (finalPrice * bookingConfig.depositPercentage) / 100 : 0;
         
-        if (necesitaSenia) {
-            const depositAmount = (finalPrice * bookingConfig.depositPercentage) / 100;
-            emailBody += `<p>Tu solicitud para <strong>${turno.servicio}</strong> ha sido pre-aprobada. ⚠️ <strong>El horario NO está reservado aún en nuestra agenda.</strong> Se confirmará definitivamente al recibir la seña.</p>`;
-            emailBody += `
-                <div style="background-color: #fff7ed; padding: 15px; border-radius: 8px; border: 1px solid #fdba74; margin: 20px 0;">
-                    <p style="margin: 0;"><strong>Total del Servicio:</strong> $${finalPrice}</p>
-                    <p style="margin: 5px 0 0 0; color: #c2410c; font-size: 16px;">
-                        <strong>Monto a Señar (${bookingConfig.depositPercentage}%): $${depositAmount}</strong>
-                    </p>
-                </div>
-            `;
-            if (paymentLink) {
-                 emailBody += `<p><a href="${paymentLink}" style="background-color: #ea580c; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Pagar Seña ($${depositAmount})</a></p>`;
-            } else {
-                emailBody += `<p><em>Por favor, responde este correo para coordinar el pago.</em></p>`;
+        // Formatear Fecha
+        const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+
+        // Seleccionar Template y Datos
+        const templateType = necesitaSenia ? 'deposit' : 'confirmation';
+        
+        const emailData = compileEmailTemplate(
+            templateType,
+            configWeb,
+            {
+                cliente: turno.cliente_nombre,
+                servicio: turno.servicio,
+                fecha: fechaLegible,
+                profesional: workerName || '',
+                precio_total: `$${finalPrice}`,
+                monto_senia: `$${depositAmount}`,
+                link_pago: paymentLink
             }
-        } else {
-             emailBody += `<p>Tu turno para <strong>${turno.servicio}</strong> ha sido CONFIRMADO correctamente.</p>`;
-             emailBody += `<p><strong>Precio Final:</strong> $${finalPrice}</p>`;
+        );
+
+        // Si compileEmailTemplate retorna null, es porque el usuario deshabilitó este correo
+        if (emailData) {
+            const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+            const messageParts = [
+                `To: ${turno.cliente_email}`,
+                'Content-Type: text/html; charset=utf-8',
+                'MIME-Version: 1.0',
+                `Subject: ${utf8Subject}`,
+                '',
+                emailData.html,
+            ];
+            const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            
+            try { 
+                await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
+            } catch(e) { 
+                console.error("Error enviando Gmail:", e); 
+            }
         }
-        
-        // Enviar mail...
-        const subject = necesitaSenia ? `📢 Falta Seña - Turno en ${negocio.nombre}` : `✅ Turno Confirmado - ${negocio.nombre}`;
-        const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
-        const messageParts = [
-            `To: ${turno.cliente_email}`,
-            'Content-Type: text/html; charset=utf-8',
-            'MIME-Version: 1.0',
-            `Subject: ${utf8Subject}`,
-            '',
-            emailBody,
-        ];
-        const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        try { await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); } catch(e) { console.error(e); }
     }
 
     // 5. Actualizar DB

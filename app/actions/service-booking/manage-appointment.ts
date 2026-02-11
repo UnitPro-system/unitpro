@@ -1,5 +1,6 @@
 'use server'
 
+import { compileEmailTemplate } from '@/lib/email-helper'
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 import { revalidatePath } from 'next/cache'
@@ -159,8 +160,50 @@ export async function createAppointment(slug: string, bookingData: any) {
 
   if (error) throw error
 }
-    //aca va lo del gmail
-    // 5. Revalidate
+    try {
+        const fechaLegible = new Date(bookingData.start).toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+
+        const emailData = compileEmailTemplate(
+        'confirmation',
+        negocio.config_web,
+        {
+            cliente: bookingData.clientName,
+            servicio: servicioConProfesional,
+            fecha: fechaLegible,
+            profesional: bookingData.workerName
+        }
+    );
+
+    // >>> CORRECCIÓN: Verificamos si el mail está activado antes de armarlo <<<
+    if (emailData) {
+        // Reutilizamos la autenticación que ya tienes instanciada en 'auth'
+        const gmail = google.gmail({ version: 'v1', auth });
+
+        const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+        const messageParts = [
+          `To: ${bookingData.clientEmail}`,
+          'Content-Type: text/html; charset=utf-8',
+          'MIME-Version: 1.0',
+          `Subject: ${utf8Subject}`,
+          '',
+          emailData.html, // Ahora sí es seguro acceder a .html
+        ];
+        
+        const rawMessage = Buffer.from(messageParts.join('\n'))
+          .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        await gmail.users.messages.send({
+          userId: 'me',
+          requestBody: { raw: rawMessage },
+        });
+    }
+    } catch (emailError) {
+        console.error("No se pudo enviar el mail de confirmación:", emailError);
+        // No lanzamos error para no fallar la reserva si solo falló el mail
+    }
     revalidatePath('/dashboard') // O la ruta que corresponda
     return { success: true, eventLink: event.data.htmlLink }
 
