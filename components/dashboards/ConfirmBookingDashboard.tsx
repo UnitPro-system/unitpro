@@ -205,6 +205,13 @@ useEffect(() => {
       setConfirmModal({ show: false, turnoId: null });
   };
 
+  const regularServices = negocio.config_web?.servicios?.items?.map((s: any) => ({ 
+      ...s, 
+      name: s.titulo 
+  })) || [];
+  const promoServices = negocio.config_web?.services || [];
+  const allServices = [...regularServices, ...promoServices];
+
   const menuItems = [
     { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
     { 
@@ -532,13 +539,13 @@ useEffect(() => {
                         <ManualBookingManager 
                             slug={negocio.slug} 
                             workers={negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || []} 
-                            services={negocio.config_web?.services || []}
+                            services={allServices}
                         />
 
                         {/* 2. Bloqueos (Reutilizamos el componente que ya tenías) */}
                         <BlockTimeManager 
                             slug={negocio.slug} 
-                            workers={negocio.config_web?.equipo?.members || []} 
+                            workers={negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || []} 
                         />
                     </div>
                 </div>

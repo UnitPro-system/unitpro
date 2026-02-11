@@ -182,6 +182,13 @@ useEffect(() => {
     window.location.href = `/api/google/auth?slug=${negocio.slug}`;
   };
 
+    const regularServices = negocio.config_web?.servicios?.items?.map((s: any) => ({ 
+        ...s, 
+        name: s.titulo 
+    })) || [];
+    const promoServices = negocio.config_web?.services || [];
+    const allServices = [...regularServices, ...promoServices];
+
   const menuItems = [
     { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
     { 
@@ -391,14 +398,14 @@ useEffect(() => {
                                     {/* 1. Agendamiento Manual */}
                                     <ManualBookingManager 
                                         slug={negocio.slug} 
-                                        workers={negocio.config_web?.equipo?.members || []} 
-                                        services={negocio.config_web?.services || []}
+                                        workers={negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || []} 
+                                        services={allServices}
                                     />
             
                                     {/* 2. Bloqueos (Reutilizamos el componente que ya tenías) */}
                                     <BlockTimeManager 
                                         slug={negocio.slug} 
-                                        workers={negocio.config_web?.equipo?.members || []} 
+                                        workers={negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || []} 
                                     />
                                 </div>
                             </div>
@@ -1157,6 +1164,8 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
         const filtered = (config.services || []).filter((s: any) => s.id !== id);
         handleSave(filtered);
     };
+
+
 
     // Filtrar solo las promociones actuales
     const promos = (config.services || []).filter((s: any) => s.isPromo);
