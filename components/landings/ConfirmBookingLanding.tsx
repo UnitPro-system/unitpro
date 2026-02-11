@@ -551,7 +551,13 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                 `}
                                 style={{ backgroundColor: isPromo ? undefined : 'rgba(255,255,255,0.05)' }}
                                 onClick={() => {
-                                    setBookingData(prev => ({ ...prev, service: service }));
+                                    // 1. Obtenemos solo el nombre (sea promo o servicio normal)
+                                    const nombreFinal = service.name || service.titulo || "Servicio sin nombre";
+                                    
+                                    // 2. Guardamos SOLO el texto, no el objeto completo
+                                    setBookingData(prev => ({ ...prev, service: nombreFinal }));
+                                    
+                                    // 3. Abrimos el modal
                                     setBookingStep(2); 
                                     setIsBookingModalOpen(true);
                                 }}
