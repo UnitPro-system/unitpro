@@ -201,8 +201,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     }
 
     const slots = [];
-    const serviceDuration = bookingData.service?.duracion || 60; 
-    const INTERVAL_STEP = 30; // Minutos entre cada slot
+    const serviceDuration = bookingData.service?.duration || bookingData.service?.duracion || 60; 
+    
+    const INTERVAL_STEP = 30;
 
     // 4. Iterar por CADA rango configurado (Mañana, Tarde, etc.)
     for (const range of ranges) {
@@ -261,12 +262,17 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     e.preventDefault();
     setEnviando(true);
     
-    const serviceDuration = bookingData.service?.duracion || 60;
+    // CORRECCIÓN 1: Leemos duración de ambos formatos (duration o duracion)
+    const serviceDuration = bookingData.service?.duration || bookingData.service?.duracion || 60;
+    
     const slotStart = new Date(`${bookingData.date}T${bookingData.time}:00`);
     const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
 
+    // CORRECCIÓN 2: Leemos el nombre de ambos formatos (name o titulo)
+    const serviceName = bookingData.service?.name || bookingData.service?.titulo || "Servicio Agendado";
+
     const payload = {
-        service: bookingData.service?.titulo, // Enviamos el nombre string al backend
+        service: serviceName, // <--- Aquí enviamos el nombre correcto
         date: bookingData.date,
         time: bookingData.time,
         clientName: bookingData.clientName,
@@ -274,7 +280,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         clientEmail: bookingData.clientEmail,
         start: slotStart.toISOString(),
         end: slotEnd.toISOString(),
-        calendarId: bookingData.worker?.calendarId, // Para backend
+        calendarId: bookingData.worker?.calendarId, 
         workerName: bookingData.worker?.nombre,
         workerId: bookingData.worker?.id,
         message: bookingData.message, 
@@ -551,13 +557,10 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                 `}
                                 style={{ backgroundColor: isPromo ? undefined : 'rgba(255,255,255,0.05)' }}
                                 onClick={() => {
-                                    // 1. Obtenemos solo el nombre (sea promo o servicio normal)
-                                    const nombreFinal = service.name || service.titulo || "Servicio sin nombre";
+                                    // VOLVEMOS A GUARDAR EL OBJETO COMPLETO
+                                    // Esto es necesario para saber la duración y el precio después
+                                    setBookingData(prev => ({ ...prev, service: service }));
                                     
-                                    // 2. Guardamos SOLO el texto, no el objeto completo
-                                    setBookingData(prev => ({ ...prev, service: nombreFinal }));
-                                    
-                                    // 3. Abrimos el modal
                                     setBookingStep(2); 
                                     setIsBookingModalOpen(true);
                                 }}
