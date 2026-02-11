@@ -531,7 +531,7 @@ useEffect(() => {
                         {/* 1. Agendamiento Manual */}
                         <ManualBookingManager 
                             slug={negocio.slug} 
-                            workers={negocio.config_web?.equipo?.members || []} 
+                            workers={negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || []} 
                             services={negocio.config_web?.services || []}
                         />
 
@@ -822,14 +822,20 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                         <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
                                         
                                         {/* INFO DEL SERVICIO */}
-                                        {t.servicio && t.servicio.includes(" - ") ? (
-                                            <div className="flex flex-col mt-1">
-                                                <p className="text-xs font-medium text-zinc-700 truncate">{t.servicio.split(" - ")[0]}</p>
-                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5"><User size={10}/> {t.servicio.split(" - ")[1]}</p>
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-zinc-500 truncate">{t.servicio || "Reunión"}</p>
-                                        )}
+                                        <div className="flex flex-col mt-1">
+                                            <p className="text-xs font-medium text-zinc-700 truncate">
+                                                {typeof t.servicio === 'string'
+                                                    ? (t.servicio.includes(" - ") ? t.servicio.split(" - ")[0] : t.servicio)
+                                                    : (t.servicio?.titulo || t.servicio?.name || "Servicio Agendado")
+                                                }
+                                            </p>
+                                            {(t.worker_name || (typeof t.servicio === 'string' && t.servicio.includes(" - "))) && (
+                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
+                                                    <User size={10}/>
+                                                    {t.worker_name || (typeof t.servicio === 'string' ? t.servicio.split(" - ")[1] : "")}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

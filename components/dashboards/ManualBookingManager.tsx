@@ -70,7 +70,7 @@ export default function ManualBookingManager({ slug, workers, services }: { slug
           </div>
           {/* NUEVO CAMPO EMAIL */}
           <div className="md:col-span-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email (Opcional)</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
             <input 
               type="email" placeholder="cliente@mail.com" className="w-full p-2.5 border rounded-xl bg-gray-50 text-sm"
               value={formData.clientEmail} onChange={e => setFormData({...formData, clientEmail: e.target.value})}
