@@ -39,6 +39,9 @@ export async function createAppointment(slug: string, bookingData: any) {
 
     const conflictingEvents = conflictCheck.data.items || [];
     const targetWorkerId = bookingData.workerId ? String(bookingData.workerId).trim() : null;
+    const servicios = negocio.config_web?.servicios?.items || [];
+    const servicioEncontrado = servicios.find((s: any) => s.titulo === bookingData.service);
+    const precioDelServicio = servicioEncontrado?.precio || '';
 
     // 2. Revisamos uno por uno si generan conflicto real
     for (const existingEvent of conflictingEvents) {
@@ -173,7 +176,8 @@ export async function createAppointment(slug: string, bookingData: any) {
             cliente: bookingData.clientName,
             servicio: servicioConProfesional,
             fecha: fechaLegible,
-            profesional: bookingData.workerName
+            profesional: bookingData.workerName,
+            precio_total: precioDelServicio
         }
     );
 

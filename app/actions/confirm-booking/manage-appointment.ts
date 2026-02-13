@@ -140,7 +140,7 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     }
 
     // 4. Enviar Email (Lógica de texto según estado)
-    if (turno.cliente_email && finalPrice) {
+    if (turno.cliente_email && finalPrice !== undefined) {
         // Lógica de Payment Link (intacta)
         const serviceString = turno.servicio || "";
         const parts = serviceString.split(" - ");

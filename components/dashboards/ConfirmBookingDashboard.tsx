@@ -498,6 +498,31 @@ useEffect(() => {
                                             {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
                                                 <div className="mt-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
                                                     {t.mensaje && <p className="text-sm text-zinc-700 italic">"{t.mensaje}"</p>}
+                                                    {t.fotos && t.fotos.length > 0 && (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Archivos Adjuntos:</span>
+                                                            <div className="flex gap-2 flex-wrap">
+                                                                {t.fotos.map((url: string, index: number) => (
+                                                                    <a 
+                                                                        key={index} 
+                                                                        href={url} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        className="relative w-16 h-16 rounded-lg overflow-hidden border border-zinc-200 shadow-sm hover:ring-2 hover:ring-indigo-500 transition-all group"
+                                                                        title="Ver imagen completa"
+                                                                    >
+                                                                        <img 
+                                                                            src={url} 
+                                                                            alt={`Adjunto ${index + 1}`} 
+                                                                            className="w-full h-full object-cover" 
+                                                                        />
+                                                                        {/* Icono overlay al pasar mouse */}
+                                                                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

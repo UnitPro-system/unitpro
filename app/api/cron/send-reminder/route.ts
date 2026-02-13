@@ -32,7 +32,8 @@ export async function GET(req: Request) {
         *,
         negocios!inner (
           google_refresh_token,
-          google_access_token
+          google_access_token,
+          config_web
         )
       `)
       .eq('estado', 'confirmado')
