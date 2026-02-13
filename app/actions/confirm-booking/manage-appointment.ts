@@ -199,25 +199,35 @@ export async function markDepositPaid(turnoId: string) {
 
         // 3. Email confirmación final
         if (turno.cliente_email) {
-    const configWeb = negocio.config_web || {};
-    
-    // Formatear Fecha
-    const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-    });
+            const configWeb = negocio.config_web || {};
+            const bookingConfig = configWeb.booking || { depositPercentage: 50 };
+            
+            // A. Recuperamos valores
+            const precioTotal = turno.precio_total || 0; 
+            const porcentajeSenia = bookingConfig.depositPercentage || 50;
 
-    const emailData = compileEmailTemplate(
-        'confirmation', // Usamos el template de confirmación porque ya pagó
-        configWeb,
-        {
-            cliente: turno.cliente_nombre,
-            servicio: turno.servicio,
-            fecha: fechaLegible,
-            precio_total: 'PAGADO (Seña)',
-            // ... otros campos que necesites
-        }
-    );
+            // B. Calculamos
+            const montoPagado = (precioTotal * porcentajeSenia) / 100;
+            const saldoRestante = precioTotal - montoPagado;
+            
+            // Formatear Fecha
+            const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+
+            const emailData = compileEmailTemplate(
+                'confirmation', 
+                configWeb,
+                {
+                    cliente: turno.cliente_nombre,
+                    servicio: turno.servicio,
+                    fecha: fechaLegible,
+                    precio_total: `$${precioTotal}`,     // <--- Precio Total Real
+                    monto_senia: `$${montoPagado}`,      // <--- Lo que ya pagó
+                    precio_a_pagar: `$${saldoRestante}`, // <--- Lo que falta pagar
+                }
+            );
 
     if (emailData) {
         const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;

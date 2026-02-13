@@ -196,10 +196,16 @@ useEffect(() => {
       if (!confirmModal.turnoId) return;
       
       setIsConfirming(true);
-      const res = await approveAppointment(confirmModal.turnoId);
+      
+      // CORRECCIÓN: Ahora pasamos el precio convertido a número
+      const finalPrice = priceInput ? Number(priceInput) : 0;
+      const res = await approveAppointment(confirmModal.turnoId, finalPrice);
       
       if (!res.success) {
           alert("Error: " + res.error);
+        } else {
+
+        router.refresh();
       }
       
       setIsConfirming(false);
@@ -453,7 +459,9 @@ useEffect(() => {
                                                     if(confirm("¿Confirmar que llegó el pago? Esto intentará reservar el lugar en Google Calendar.")) {
                                                         const res = await markDepositPaid(t.id);
                                                         if(!res.success) alert(res.error);
-                                                    }
+                                                    } else {
+                                                            router.refresh();
+                                                        }
                                                 }}
                                                 className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-orange-200"
                                             >
@@ -531,7 +539,14 @@ useEffect(() => {
                                         <div className="flex gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
                                             <button 
                                                 onClick={async () => {
-                                                    if(confirm("¿Rechazar esta solicitud?")) await cancelAppointment(t.id);
+                                                    if(confirm("¿Rechazar esta solicitud?")) {
+                                                        const res = await cancelAppointment(t.id);
+                                                        if (res.success) {
+                                                            router.refresh(); // Refresca la página para que la solicitud desaparezca de la lista
+                                                        } else {
+                                                            alert("Error al rechazar: " + res.error);
+                                                        }
+                                                    }
                                                 }}
                                                 className="flex-1 md:flex-none px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors text-sm"
                                             >
