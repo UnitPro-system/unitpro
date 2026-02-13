@@ -132,6 +132,7 @@ useEffect(() => {
             setReviews(data);
         }
     };
+    
 
     fetchReviews();}, [negocio?.id]); // Se ejecuta cuando carga el negocio
     const toggleVisibility = async (id: string, currentStatus: boolean) => {
