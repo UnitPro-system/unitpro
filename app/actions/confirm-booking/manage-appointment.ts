@@ -84,7 +84,7 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     
     const necesitaSenia = bookingConfig.requestDeposit && bookingConfig.depositPercentage > 0;
     
-    let nuevoEstado = 'confirmado';
+    let nuevoEstado = necesitaSenia ? 'esperando_senia' : 'confirmado';
     let googleEventId = null;
 
     // ... (Lógica del CASO A y CASO B se mantiene igual) ...
