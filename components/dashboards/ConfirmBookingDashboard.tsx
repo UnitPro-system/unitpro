@@ -694,17 +694,18 @@ useEffect(() => {
 function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact, onReschedule }: any) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const supabase = createClient(); 
-    const [activeMenuId, setActiveMenuId] = useState<string | null>(null); // Estado para el menú
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+    
+    // Estado para el modal de ver detalles (mensaje/fotos)
     const [detailsModal, setDetailsModal] = useState<{show: boolean, data: any}>({ show: false, data: null });
 
     const handleDeleteFromMenu = async (id: string) => {
         if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
         
-        // Usamos la Server Action importada
         const res = await cancelBooking(id);
 
         if (res.success) {
-            onCancel(id); // Actualizar UI
+            onCancel(id);
         } else {
             alert("Error al cancelar: " + res.error);
         }
@@ -727,7 +728,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
         );
     }
 
-    // LÓGICA DE FECHAS
     const getDaysOfWeek = (date: Date) => {
         const start = new Date(date);
         const day = start.getDay(); 
@@ -750,7 +750,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
-            {/* HEADER */}
+            {/* HEADER DEL CALENDARIO */}
             <header className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Tu Calendario</h1>
@@ -765,7 +765,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                 </div>
             </header>
 
-            {/* GRID */}
+            {/* GRILLA DEL CALENDARIO */}
             <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="hidden md:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
                     {days.map((day, i) => (
@@ -785,7 +785,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
                         return (
                             <div key={i} className={`border-r border-zinc-100 last:border-0 p-2 space-y-2 ${isToday(day) ? 'bg-blue-50/10' : ''}`}>
-                                {/* Header móvil */}
                                 <div className={`md:hidden flex items-center gap-2 py-2 px-2 mb-2 rounded-lg ${isToday(day) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-50 text-zinc-600'}`}>
                                     <span className="font-bold text-sm capitalize">{day.toLocaleDateString('es-AR', { weekday: 'long' })}</span>
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>{day.getDate()}</span>
@@ -794,6 +793,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                 {dayTurnos.length === 0 && <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">Sin actividad</div>}
 
                                 {dayTurnos.map((t: any) => {
+                                    // 1. LÓGICA DE COLORES SEMÁFORO
                                     let estadoStyles = { 
                                         border: 'border-l-emerald-500', // Verde por defecto (confirmado)
                                         bgHeader: 'bg-emerald-50', 
@@ -817,75 +817,80 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                     }
 
                                     return (
-                                        <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
+                                        <div 
+                                            key={t.id} 
+                                            className={`bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 hover:shadow-md transition-all ${estadoStyles.border}`}
+                                        >
                                             
-                                            {/* CABECERA: Hora y MENÚ DE 3 PUNTOS */}
-                                            <div className="flex justify-between items-start mb-1 relative">
-                                                <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                                    <Clock size={10}/> 
+                                            {/* HEADER DE LA TARJETA CON COLOR DINÁMICO */}
+                                            <div className={`flex justify-between items-start mb-2 p-1.5 rounded ${estadoStyles.bgHeader} ${estadoStyles.textHeader}`}>
+                                                <p className="text-xs font-bold flex items-center gap-1">
+                                                    <Clock size={12}/> 
                                                     {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                                 </p>
 
-                                                {/* BOTÓN 3 PUNTOS */}
+                                                {/* MENÚ DE 3 PUNTOS */}
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setActiveMenuId(activeMenuId === t.id ? null : t.id);
                                                     }}
-                                                    className="text-zinc-400 hover:text-zinc-600 p-1 rounded-full hover:bg-zinc-100 transition-colors"
+                                                    className="hover:bg-white/50 p-0.5 rounded transition-colors"
                                                 >
                                                     <MoreVertical size={14} />
                                                 </button>
-
-                                                {/* MENÚ DESPLEGABLE */}
-                                                {activeMenuId === t.id && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                                                        <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                                                            {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
-                                                                <button 
-                                                                    onClick={() => { setDetailsModal({ show: true, data: t }); setActiveMenuId(null); }}
-                                                                    className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-blue-600 flex items-center gap-2 border-b border-zinc-50"
-                                                                >
-                                                                    <Eye size={14} /> Ver Solicitud
-                                                                </button>
-                                                            )}
-                                                            <button 
-                                                                onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
-                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
-                                                            >
-                                                                <Edit size={14} /> Reprogramar
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => { onContact(t.cliente_email, t.cliente_nombre); setActiveMenuId(null); }}
-                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
-                                                            >
-                                                                <Mail size={14} /> Email
-                                                            </button>
-                                                            {t.cliente_telefono && (
-                                                                <a 
-                                                                    href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
-                                                                    target="_blank" rel="noopener noreferrer"
-                                                                    className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
-                                                                >
-                                                                    <Phone size={14} /> WhatsApp
-                                                                </a>
-                                                            )}
-                                                            <div className="h-px bg-zinc-100 my-1" />
-                                                            <button 
-                                                                onClick={() => handleDeleteFromMenu(t.id)}
-                                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                            >
-                                                                <Trash2 size={14} /> Cancelar Turno
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                )}
                                             </div>
 
-                                            <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
+                                            {/* MENÚ DESPLEGABLE */}
+                                            {activeMenuId === t.id && (
+                                                <>
+                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                                                    <div className="absolute right-0 top-8 w-52 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                        
+                                                        {/* OPCIÓN VER DETALLES (Condicional) */}
+                                                        {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                                            <button 
+                                                                onClick={() => { setDetailsModal({ show: true, data: t }); setActiveMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-blue-600 flex items-center gap-2 border-b border-zinc-50"
+                                                            >
+                                                                <Eye size={14} /> Ver Solicitud
+                                                            </button>
+                                                        )}
+
+                                                        <button 
+                                                            onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
+                                                        >
+                                                            <Edit size={14} /> Reprogramar
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => { onContact(t.cliente_email, t.cliente_nombre); setActiveMenuId(null); }}
+                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
+                                                        >
+                                                            <Mail size={14} /> Email
+                                                        </button>
+                                                        {t.cliente_telefono && (
+                                                            <a 
+                                                                href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
+                                                                target="_blank" rel="noopener noreferrer"
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
+                                                            >
+                                                                <Phone size={14} /> WhatsApp
+                                                            </a>
+                                                        )}
+                                                        <div className="h-px bg-zinc-100 my-1" />
+                                                        <button 
+                                                            onClick={() => handleDeleteFromMenu(t.id)}
+                                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} /> Cancelar Turno
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            <p className="text-sm font-bold text-zinc-900 truncate pr-1">{t.cliente_nombre}</p>
                                             
-                                            {/* INFO DEL SERVICIO */}
                                             <div className="flex flex-col mt-1">
                                                 <p className="text-xs font-medium text-zinc-700 truncate">
                                                     {typeof t.servicio === 'string'
@@ -901,7 +906,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                                 )}
                                             </div>
                                         </div>
-                                    );    
+                                    );
                                 })}
                             </div>
                         );
@@ -909,11 +914,10 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                 </div>
             </div>
 
-            {/* 3. MODAL DE DETALLES: Renderizado condicional */}
+            {/* MODAL DE DETALLES (Mensaje y Fotos) */}
             {detailsModal.show && detailsModal.data && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
-                        {/* Botón cerrar */}
                         <button 
                             onClick={() => setDetailsModal({ show: false, data: null })}
                             className="absolute top-4 right-4 p-2 text-zinc-400 hover:bg-zinc-100 rounded-full transition-colors"
@@ -925,7 +929,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                         <p className="text-sm text-zinc-500 mb-6">Información enviada por {detailsModal.data.cliente_nombre}</p>
 
                         <div className="space-y-6">
-                            {/* Mensaje */}
                             {detailsModal.data.mensaje ? (
                                 <div>
                                     <label className="text-xs font-bold text-zinc-400 uppercase block mb-2">Mensaje del Cliente</label>
@@ -937,7 +940,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                 <p className="text-sm text-zinc-400 italic">Sin mensaje adjunto.</p>
                             )}
 
-                            {/* Fotos */}
                             {detailsModal.data.fotos && detailsModal.data.fotos.length > 0 && (
                                 <div>
                                     <label className="text-xs font-bold text-zinc-400 uppercase block mb-2 flex items-center gap-2">
@@ -978,8 +980,6 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                     </div>
                 </div>
             )}
-
-
         </div>
     );
 }
