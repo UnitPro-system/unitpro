@@ -122,7 +122,40 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
             }
         );
 
-        // ... (envío de gmail se mantiene igual) ...
+        if (emailData && turno.cliente_email) {
+    // 1. Necesitas configurar el cliente de Auth (esto falta en tu función actual)
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+    auth.setCredentials({ refresh_token: negocio.google_refresh_token });
+    const gmail = google.gmail({ version: 'v1', auth });
+
+    // 2. Preparar el mensaje RFC 2822
+    const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+    const messageParts = [
+        `To: ${turno.cliente_email}`,
+        'Content-Type: text/html; charset=utf-8',
+        'MIME-Version: 1.0',
+        `Subject: ${utf8Subject}`,
+        '',
+        emailData.html,
+    ];
+    
+    const rawMessage = Buffer.from(messageParts.join('\n'))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    // 3. ENVIAR EL CORREO
+    try {
+        await gmail.users.messages.send({ 
+            userId: 'me', 
+            requestBody: { raw: rawMessage } 
+        });
+    } catch (e) {
+        console.error("Error enviando correo de aprobación/seña:", e);
+        // Opcional: podrías decidir si lanzar el error o solo loguearlo
+    }
+}
     }
 
     // 5. Actualizar DB (CORRECCIÓN CRÍTICA AQUÍ)
