@@ -793,92 +793,116 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                 
                                 {dayTurnos.length === 0 && <div className="md:hidden text-center py-4 text-xs text-zinc-300 italic">Sin actividad</div>}
 
-                                {dayTurnos.map((t: any) => (
-                                    <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
-                                        
-                                        {/* CABECERA: Hora y MENÚ DE 3 PUNTOS */}
-                                        <div className="flex justify-between items-start mb-1 relative">
-                                            <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                                                <Clock size={10}/> 
-                                                {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
-                                            </p>
+                                {dayTurnos.map((t: any) => {
+                                    let estadoStyles = { 
+                                        border: 'border-l-emerald-500', // Verde por defecto (confirmado)
+                                        bgHeader: 'bg-emerald-50', 
+                                        textHeader: 'text-emerald-700' 
+                                    };
 
-                                            {/* BOTÓN 3 PUNTOS */}
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveMenuId(activeMenuId === t.id ? null : t.id);
-                                                }}
-                                                className="text-zinc-400 hover:text-zinc-600 p-1 rounded-full hover:bg-zinc-100 transition-colors"
-                                            >
-                                                <MoreVertical size={14} />
-                                            </button>
+                                    if (t.estado === 'pendiente') {
+                                        // ROJO: Pendiente (Nueva solicitud)
+                                        estadoStyles = { 
+                                            border: 'border-l-red-500', 
+                                            bgHeader: 'bg-red-50', 
+                                            textHeader: 'text-red-700' 
+                                        };
+                                    } else if (t.estado === 'esperando_senia') {
+                                        // AMARILLO: Esperando Seña
+                                        estadoStyles = { 
+                                            border: 'border-l-yellow-400', 
+                                            bgHeader: 'bg-yellow-50', 
+                                            textHeader: 'text-yellow-700' 
+                                        };
+                                    }
 
-                                            {/* MENÚ DESPLEGABLE */}
-                                            {activeMenuId === t.id && (
-                                                <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                                                    <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                                                        {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
-                                                            <button 
-                                                                onClick={() => { setDetailsModal({ show: true, data: t }); setActiveMenuId(null); }}
-                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-blue-600 flex items-center gap-2 border-b border-zinc-50"
-                                                            >
-                                                                <Eye size={14} /> Ver Solicitud
-                                                            </button>
-                                                        )}
-                                                        <button 
-                                                            onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
-                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
-                                                        >
-                                                            <Edit size={14} /> Reprogramar
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => { onContact(t.cliente_email, t.cliente_nombre); setActiveMenuId(null); }}
-                                                            className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
-                                                        >
-                                                            <Mail size={14} /> Email
-                                                        </button>
-                                                        {t.cliente_telefono && (
-                                                            <a 
-                                                                href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
-                                                                target="_blank" rel="noopener noreferrer"
-                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
-                                                            >
-                                                                <Phone size={14} /> WhatsApp
-                                                            </a>
-                                                        )}
-                                                        <div className="h-px bg-zinc-100 my-1" />
-                                                        <button 
-                                                            onClick={() => handleDeleteFromMenu(t.id)}
-                                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                        >
-                                                            <Trash2 size={14} /> Cancelar Turno
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
-                                        
-                                        {/* INFO DEL SERVICIO */}
-                                        <div className="flex flex-col mt-1">
-                                            <p className="text-xs font-medium text-zinc-700 truncate">
-                                                {typeof t.servicio === 'string'
-                                                    ? (t.servicio.includes(" - ") ? t.servicio.split(" - ")[0] : t.servicio)
-                                                    : (t.servicio?.titulo || t.servicio?.name || "Servicio Agendado")
-                                                }
-                                            </p>
-                                            {(t.worker_name || (typeof t.servicio === 'string' && t.servicio.includes(" - "))) && (
-                                                <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
-                                                    <User size={10}/>
-                                                    {t.worker_name || (typeof t.servicio === 'string' ? t.servicio.split(" - ")[1] : "")}
+                                    return (
+                                        <div key={t.id} className="bg-white p-3 rounded-lg border border-zinc-200 shadow-sm relative group border-l-4 border-l-indigo-500 hover:shadow-md transition-all">
+                                            
+                                            {/* CABECERA: Hora y MENÚ DE 3 PUNTOS */}
+                                            <div className="flex justify-between items-start mb-1 relative">
+                                                <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+                                                    <Clock size={10}/> 
+                                                    {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                                 </p>
-                                            )}
+
+                                                {/* BOTÓN 3 PUNTOS */}
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(activeMenuId === t.id ? null : t.id);
+                                                    }}
+                                                    className="text-zinc-400 hover:text-zinc-600 p-1 rounded-full hover:bg-zinc-100 transition-colors"
+                                                >
+                                                    <MoreVertical size={14} />
+                                                </button>
+
+                                                {/* MENÚ DESPLEGABLE */}
+                                                {activeMenuId === t.id && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                                                        <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                            {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                                                <button 
+                                                                    onClick={() => { setDetailsModal({ show: true, data: t }); setActiveMenuId(null); }}
+                                                                    className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-blue-600 flex items-center gap-2 border-b border-zinc-50"
+                                                                >
+                                                                    <Eye size={14} /> Ver Solicitud
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
+                                                            >
+                                                                <Edit size={14} /> Reprogramar
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => { onContact(t.cliente_email, t.cliente_nombre); setActiveMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-emerald-600 flex items-center gap-2"
+                                                            >
+                                                                <Mail size={14} /> Email
+                                                            </button>
+                                                            {t.cliente_telefono && (
+                                                                <a 
+                                                                    href={`https://wa.me/${t.cliente_telefono.replace(/\D/g,'')}`}
+                                                                    target="_blank" rel="noopener noreferrer"
+                                                                    className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-green-600 flex items-center gap-2"
+                                                                >
+                                                                    <Phone size={14} /> WhatsApp
+                                                                </a>
+                                                            )}
+                                                            <div className="h-px bg-zinc-100 my-1" />
+                                                            <button 
+                                                                onClick={() => handleDeleteFromMenu(t.id)}
+                                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                            >
+                                                                <Trash2 size={14} /> Cancelar Turno
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm font-bold text-zinc-900 truncate pr-4">{t.cliente_nombre}</p>
+                                            
+                                            {/* INFO DEL SERVICIO */}
+                                            <div className="flex flex-col mt-1">
+                                                <p className="text-xs font-medium text-zinc-700 truncate">
+                                                    {typeof t.servicio === 'string'
+                                                        ? (t.servicio.includes(" - ") ? t.servicio.split(" - ")[0] : t.servicio)
+                                                        : (t.servicio?.titulo || t.servicio?.name || "Servicio Agendado")
+                                                    }
+                                                </p>
+                                                {(t.worker_name || (typeof t.servicio === 'string' && t.servicio.includes(" - "))) && (
+                                                    <p className="text-[10px] text-zinc-400 flex items-center gap-1 truncate mt-0.5">
+                                                        <User size={10}/>
+                                                        {t.worker_name || (typeof t.servicio === 'string' ? t.servicio.split(" - ")[1] : "")}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );    
+                                })}
                             </div>
                         );
                     })}

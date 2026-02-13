@@ -140,63 +140,61 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     }
 
     // 4. Enviar Email (Lógica de texto según estado)
-    if (turno.cliente_email && finalPrice !== undefined) {
-        // Lógica de Payment Link (intacta)
-        const serviceString = turno.servicio || "";
-        const parts = serviceString.split(" - ");
-        const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
-        let paymentLink = "";
-        if (workerName && teamConfig.items) {
-            const worker = teamConfig.items.find((w: any) => w.nombre === workerName);
-            if (worker && worker.paymentLink) paymentLink = worker.paymentLink;
+    if (turno.cliente_email) { // Quitamos la validación estricta de finalPrice
+    const serviceString = turno.servicio || "";
+    const parts = serviceString.split(" - ");
+    const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
+    
+    let paymentLink = "";
+    if (workerName && teamConfig.items) {
+        const worker = teamConfig.items.find((w: any) => w.nombre === workerName);
+        if (worker && worker.paymentLink) paymentLink = worker.paymentLink;
+    }
+
+    // Calculamos montos (si finalPrice es undefined usamos 0 para no romper el cálculo)
+    const precioNumerico = finalPrice || 0;
+    const depositAmount = necesitaSenia ? (precioNumerico * bookingConfig.depositPercentage) / 100 : 0;
+    
+    const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+
+    const templateType = necesitaSenia ? 'deposit' : 'confirmation';
+    
+    const emailData = compileEmailTemplate(
+        templateType,
+        configWeb,
+        {
+            cliente: turno.cliente_nombre,
+            servicio: turno.servicio,
+            fecha: fechaLegible,
+            profesional: workerName || '',
+            precio_total: `$${precioNumerico}`,
+            monto_senia: `$${depositAmount}`,
+            link_pago: paymentLink
         }
+    );
 
-        // Calculamos montos
-        const depositAmount = necesitaSenia ? (finalPrice * bookingConfig.depositPercentage) / 100 : 0;
+    if (emailData) {
+        const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+        const messageParts = [
+            `To: ${turno.cliente_email}`,
+            'Content-Type: text/html; charset=utf-8',
+            'MIME-Version: 1.0',
+            `Subject: ${utf8Subject}`,
+            '',
+            emailData.html,
+        ];
+        const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         
-        // Formatear Fecha
-        const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-        });
-
-        // Seleccionar Template y Datos
-        const templateType = necesitaSenia ? 'deposit' : 'confirmation';
-        
-        const emailData = compileEmailTemplate(
-            templateType,
-            configWeb,
-            {
-                cliente: turno.cliente_nombre,
-                servicio: turno.servicio,
-                fecha: fechaLegible,
-                profesional: workerName || '',
-                precio_total: `$${finalPrice}`,
-                monto_senia: `$${depositAmount}`,
-                link_pago: paymentLink
-            }
-        );
-
-        // Si compileEmailTemplate retorna null, es porque el usuario deshabilitó este correo
-        if (emailData) {
-            const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
-            const messageParts = [
-                `To: ${turno.cliente_email}`,
-                'Content-Type: text/html; charset=utf-8',
-                'MIME-Version: 1.0',
-                `Subject: ${utf8Subject}`,
-                '',
-                emailData.html,
-            ];
-            const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            
-            try { 
-                await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
-            } catch(e) { 
-                console.error("Error enviando Gmail:", e); 
-            }
+        try { 
+            await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
+        } catch(e) { 
+            console.error("Error enviando Gmail:", e); 
         }
     }
+}
 
     // 5. Actualizar DB
     const { error } = await supabase
@@ -268,14 +266,42 @@ export async function markDepositPaid(turnoId: string) {
 
         // 3. Email confirmación final
         if (turno.cliente_email) {
-            // (Lógica de envío de mail de "Pago recibido"...)
-             const emailBody = `<p>Pago recibido. Tu turno para el ${new Date(turno.fecha_inicio).toLocaleDateString()} está 100% confirmado.</p>`;
-             // ... enviar mail ...
-             const utf8Subject = `=?utf-8?B?${Buffer.from("✅ Pago Recibido").toString('base64')}?=`;
-             const messageParts = [`To: ${turno.cliente_email}`, 'Content-Type: text/html; charset=utf-8', 'MIME-Version: 1.0', `Subject: ${utf8Subject}`, '', emailBody];
-             const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-             try { await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); } catch(e) {}
+    const configWeb = negocio.config_web || {};
+    
+    // Formatear Fecha
+    const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+
+    const emailData = compileEmailTemplate(
+        'confirmation', // Usamos el template de confirmación porque ya pagó
+        configWeb,
+        {
+            cliente: turno.cliente_nombre,
+            servicio: turno.servicio,
+            fecha: fechaLegible,
+            precio_total: 'PAGADO (Seña)',
+            // ... otros campos que necesites
         }
+    );
+
+    if (emailData) {
+        const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+        const messageParts = [
+            `To: ${turno.cliente_email}`,
+            'Content-Type: text/html; charset=utf-8',
+            'MIME-Version: 1.0',
+            `Subject: ${utf8Subject}`,
+            '',
+            emailData.html,
+        ];
+        const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        try { 
+            await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
+        } catch(e) { console.error("Error confirmación final:", e); }
+    }
+}
 
         // 4. Actualizar DB
         const { error } = await supabase
