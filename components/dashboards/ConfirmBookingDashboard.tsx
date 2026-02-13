@@ -695,6 +695,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
     const [currentDate, setCurrentDate] = useState(new Date());
     const supabase = createClient(); 
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null); // Estado para el menú
+    const [detailsModal, setDetailsModal] = useState<{show: boolean, data: any}>({ show: false, data: null });
 
     const handleDeleteFromMenu = async (id: string) => {
         if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
@@ -818,6 +819,14 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
                                                     <div className="absolute right-0 top-6 w-48 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                        {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
+                                                            <button 
+                                                                onClick={() => { setDetailsModal({ show: true, data: t }); setActiveMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-blue-600 flex items-center gap-2 border-b border-zinc-50"
+                                                            >
+                                                                <Eye size={14} /> Ver Solicitud
+                                                            </button>
+                                                        )}
                                                         <button 
                                                             onClick={() => { onReschedule(t.id, t.fecha_inicio); setActiveMenuId(null); }}
                                                             className="w-full text-left px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-indigo-600 flex items-center gap-2"
@@ -875,6 +884,78 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                     })}
                 </div>
             </div>
+
+            {/* 3. MODAL DE DETALLES: Renderizado condicional */}
+            {detailsModal.show && detailsModal.data && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
+                        {/* Botón cerrar */}
+                        <button 
+                            onClick={() => setDetailsModal({ show: false, data: null })}
+                            className="absolute top-4 right-4 p-2 text-zinc-400 hover:bg-zinc-100 rounded-full transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <h3 className="text-lg font-bold mb-1 text-zinc-900">Detalles de la Solicitud</h3>
+                        <p className="text-sm text-zinc-500 mb-6">Información enviada por {detailsModal.data.cliente_nombre}</p>
+
+                        <div className="space-y-6">
+                            {/* Mensaje */}
+                            {detailsModal.data.mensaje ? (
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-2">Mensaje del Cliente</label>
+                                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 italic text-zinc-600 text-sm">
+                                        "{detailsModal.data.mensaje}"
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-zinc-400 italic">Sin mensaje adjunto.</p>
+                            )}
+
+                            {/* Fotos */}
+                            {detailsModal.data.fotos && detailsModal.data.fotos.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-2 flex items-center gap-2">
+                                        <LinkIcon size={12}/> Archivos Adjuntos ({detailsModal.data.fotos.length})
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {detailsModal.data.fotos.map((url: string, index: number) => (
+                                            <a 
+                                                key={index} 
+                                                href={url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="relative aspect-square rounded-lg overflow-hidden border border-zinc-200 shadow-sm hover:ring-2 hover:ring-indigo-500 transition-all group"
+                                            >
+                                                <img 
+                                                    src={url} 
+                                                    alt={`Adjunto ${index + 1}`} 
+                                                    className="w-full h-full object-cover" 
+                                                />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                    <ExternalLink size={16} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-8">
+                             <button 
+                                onClick={() => setDetailsModal({ show: false, data: null })}
+                                className="w-full py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-colors"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
         </div>
     );
 }
