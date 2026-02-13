@@ -933,16 +933,16 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 <button 
                                                                     onClick={() => {
                                                                         const current = Number(item.duracion || 60);
-                                                                        // Lógica: Si es <= 60 baja de 15 en 15. Si es > 60 baja de 30 en 30. Minimo 15.
                                                                         let newVal = current;
                                                                         if (current <= 60) {
                                                                             newVal = Math.max(15, current - 15);
                                                                         } else {
                                                                             newVal = current - 30;
                                                                         }
-                                                                        updateArrayItem('servicios', index, 'duracion', newVal.toString());
+                                                                        // CAMBIO: de 'index' a 'i'
+                                                                        updateArrayItem('servicios', i, 'duracion', newVal.toString());
                                                                     }}
-                                                                    className="w-8 h-8 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-md transition-colors border border-zinc-100 active:scale-95"
+                                                                    className="w-8 h-8 flex items-center justify-center ..."
                                                                 >
                                                                     <Minus size={14} />
                                                                 </button>
@@ -967,16 +967,16 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 <button 
                                                                     onClick={() => {
                                                                         const current = Number(item.duracion || 60);
-                                                                        // Lógica: Si es < 60 sube 15. Si es >= 60 sube 30.
                                                                         let newVal = current;
                                                                         if (current < 60) {
                                                                             newVal = current + 15;
                                                                         } else {
                                                                             newVal = current + 30;
                                                                         }
-                                                                        updateArrayItem('servicios', index, 'duracion', newVal.toString());
+                                                                        // CAMBIO: de 'index' a 'i'
+                                                                        updateArrayItem('servicios', i, 'duracion', newVal.toString());
                                                                     }}
-                                                                    className="w-8 h-8 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-md transition-colors shadow-sm active:scale-95"
+                                                                    className="w-8 h-8 flex items-center justify-center ..."
                                                                 >
                                                                     <Plus size={14} />
                                                                 </button>
