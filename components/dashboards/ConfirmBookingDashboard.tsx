@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { 
@@ -72,69 +72,57 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
     }
   };
 
+  const fetchDashboardData = useCallback(async () => {
+    // 1. Cargar Reseñas
+    const { data: datosResenas } = await supabase
+      .from("resenas")
+      .select("*")
+      .eq("negocio_id", negocio.id)
+      .order('created_at', { ascending: false });
+    if (datosResenas) setResenas(datosResenas);
 
+    // 2. CARGAR TURNOS Y FILTRAR CLIENTES
+    const { data: datosTurnos } = await supabase
+      .from("turnos")
+      .select("*")
+      .eq("negocio_id", negocio.id)
+      .neq('estado', 'cancelado')
+      .order('fecha_inicio', { ascending: false }); // Mantenemos orden descendente
+      
+    if (datosTurnos) {
+      setTurnos(datosTurnos); 
+
+      // Mantenemos la lógica de Clientes Únicos (Leads)
+      const clientesUnicos = datosTurnos.filter((obj: any, index: number, self: any[]) =>
+          index === self.findIndex((t: any) => (
+              t.cliente_email?.trim().toLowerCase() === obj.cliente_email?.trim().toLowerCase() && t.cliente_email
+          ))
+      );
+      
+      setLeads(clientesUnicos);
+    }
+  }, [negocio.id, supabase]);
   // --- LÓGICA DE DATOS ESPECÍFICOS ---
   useEffect(() => {
-    async function cargarDatosEspecificos() {
+    async function init() {
       setLoading(true);
 
-      // Redirección de Google (se mantiene igual)
+      // Redirección de Google (se mantiene intacta)
       if (searchParams.get('google_connected') === 'true') {
         setActiveTab("calendario"); 
         router.replace(window.location.pathname, { scroll: false });
       }
 
-      // 1. Cargar Reseñas (se mantiene igual)
-      const { data: datosResenas } = await supabase
-        .from("resenas")
-        .select("*")
-        .eq("negocio_id", negocio.id)
-        .order('created_at', { ascending: false });
-      if (datosResenas) setResenas(datosResenas);
-
-      // 2. CARGAR TURNOS Y FILTRAR CLIENTES
-      const { data: datosTurnos } = await supabase
-        .from("turnos")
-        .select("*")
-        .eq("negocio_id", negocio.id)
-        .neq('estado', 'cancelado')
-        .order('fecha_inicio', { ascending: false }); // IMPORTANTE: Del más nuevo al más viejo
-        
-      if (datosTurnos) {
-        setTurnos(datosTurnos); // El calendario usa todos
-
-        // FILTRO MÁGICO: Dejamos solo el primer registro que aparezca de cada email
-        const clientesUnicos = datosTurnos.filter((obj: any, index: number, self: any[]) =>
-            index === self.findIndex((t: any) => (
-                t.cliente_email?.trim().toLowerCase() === obj.cliente_email?.trim().toLowerCase() && t.cliente_email
-            ))
-        );
-        
-        setLeads(clientesUnicos); // Guardamos la lista limpia en 'leads'
-      }
+      // Llamamos a nuestra función de datos
+      await fetchDashboardData();
       
       setLoading(false);
     }
-    cargarDatosEspecificos();
-  }, [negocio.id, searchParams, router]);
-
-useEffect(() => {
-    const fetchReviews = async () => {
-        if (!negocio?.id) return;
-        
-        const { data, error } = await supabase
-            .from('resenas')
-            .select('*')
-            .eq('negocio_id', negocio.id)
-            .order('created_at', { ascending: false }); // Las más nuevas primero
-
-        if (data) {
-            setReviews(data);
-        }
-    };
+    init();
+  }, [searchParams, router, fetchDashboardData]);
     
 
-    fetchReviews();}, [negocio?.id]); // Se ejecuta cuando carga el negocio
+ // Se ejecuta cuando carga el negocio
     const toggleVisibility = async (id: string, currentStatus: boolean) => {
     // 1. Actualizar en Supabase
     const { error } = await supabase
@@ -203,9 +191,9 @@ useEffect(() => {
       
       if (!res.success) {
           alert("Error: " + res.error);
-        } else {
-
-        router.refresh();
+      } else {
+        // SOFT REFRESH: Actualizamos los datos sin recargar la página
+        await fetchDashboardData();
       }
       
       setIsConfirming(false);
@@ -458,17 +446,20 @@ useEffect(() => {
                                                 onClick={async () => {
                                                     if(confirm("¿Confirmar que llegó el pago? Esto intentará reservar el lugar en Google Calendar.")) {
                                                         const res = await markDepositPaid(t.id);
-                                                        if(!res.success) alert(res.error);
-                                                    } else {
-                                                            router.refresh();
+                                                        if(!res.success) {
+                                                            alert(res.error);
+                                                        } else {
+                                                            // SOFT REFRESH AQUÍ
+                                                            await fetchDashboardData();
                                                         }
+                                                    } 
                                                 }}
                                                 className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-orange-200"
                                             >
                                                 <CreditCard size={16}/> Registrar Pago
                                             </button>
                                             <button 
-                                                onClick={async () => { if(confirm("¿Cancelar turno?")) await cancelAppointment(t.id); }}
+                                                onClick={async () => { if(confirm("¿Cancelar turno?")) await cancelAppointment(t.id); await fetchDashboardData(); }}
                                                 className="px-3 py-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                                             >
                                                 <X size={20}/>
@@ -542,7 +533,8 @@ useEffect(() => {
                                                     if(confirm("¿Rechazar esta solicitud?")) {
                                                         const res = await cancelAppointment(t.id);
                                                         if (res.success) {
-                                                            router.refresh(); // Refresca la página para que la solicitud desaparezca de la lista
+                                                            // SOFT REFRESH AQUÍ
+                                                            await fetchDashboardData(); 
                                                         } else {
                                                             alert("Error al rechazar: " + res.error);
                                                         }
