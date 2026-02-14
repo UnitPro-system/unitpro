@@ -728,7 +728,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
     const supabase = createClient(); 
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
-    
+
     // Estado para el modal de ver detalles (mensaje/fotos)
     const [detailsModal, setDetailsModal] = useState<{show: boolean, data: any}>({ show: false, data: null });
 
@@ -742,6 +742,35 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
         } else {
             alert("Error al cancelar: " + res.error);
         }
+    };
+    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+        e.stopPropagation();
+        
+        if (activeMenuId === id) {
+            setActiveMenuId(null);
+            return;
+        }
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const menuWidth = 208; // Ancho estimado del menú (w-52)
+        const menuHeight = 220; // Alto estimado
+
+        // Cálculo para que no se salga por la derecha
+        let left = rect.left;
+        if (left + menuWidth > screenWidth - 20) {
+            left = rect.right - menuWidth;
+        }
+
+        // Cálculo para que no se salga por abajo
+        let top = rect.bottom + 5;
+        if (top + menuHeight > screenHeight) {
+            top = rect.top - menuHeight - 5;
+        }
+
+        setMenuPos({ top, left });
+        setActiveMenuId(id);
     };
 
     if (!negocio.google_calendar_connected) {
@@ -864,10 +893,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
                                                 {/* MENÚ DE 3 PUNTOS */}
                                                 <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveMenuId(activeMenuId === t.id ? null : t.id);
-                                                    }}
+                                                    onClick={(e) => handleMenuClick(e, t.id)}
                                                     className="hover:bg-white/50 p-0.5 rounded transition-colors"
                                                 >
                                                     <MoreVertical size={14} />
@@ -877,8 +903,14 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                             {/* MENÚ DESPLEGABLE */}
                                             {activeMenuId === t.id && (
                                                 <>
-                                                    <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                                                    <div className="absolute right-0 top-8 w-52 bg-white rounded-lg shadow-xl border border-zinc-100 z-20 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                                    {/* Fondo transparente con z-40 */}
+                                                    <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
+                                                    
+                                                    {/* Menú con fixed, z-50 y style dinámico */}
+                                                    <div 
+                                                        className="fixed z-50 bg-white rounded-lg shadow-xl border border-zinc-100 py-1 w-52 animate-in fade-in zoom-in-95 duration-100"
+                                                        style={{ top: menuPos.top, left: menuPos.left }}
+                                                    >
                                                         
                                                         {/* OPCIÓN VER DETALLES (Condicional) */}
                                                         {(t.mensaje || (t.fotos && t.fotos.length > 0)) && (
