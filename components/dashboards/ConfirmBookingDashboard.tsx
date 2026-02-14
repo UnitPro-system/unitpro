@@ -726,6 +726,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
     const [currentDate, setCurrentDate] = useState(new Date());
     const supabase = createClient(); 
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
     
     // Estado para el modal de ver detalles (mensaje/fotos)
     const [detailsModal, setDetailsModal] = useState<{show: boolean, data: any}>({ show: false, data: null });
