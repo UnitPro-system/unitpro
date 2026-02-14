@@ -838,7 +838,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                     ))}
                 </div>
 
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px]">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px] pb-32">
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
                             const tDate = new Date(t.fecha_inicio);
@@ -1347,7 +1347,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
         }
     }; 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl space-y-12">
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100dvh-140px)] flex flex-col">
             
             {/* SECCIÓN 1: INTEGRACIONES (La que ya tenías) */}
             <section>
