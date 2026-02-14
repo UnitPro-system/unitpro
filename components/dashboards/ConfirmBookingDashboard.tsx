@@ -25,7 +25,7 @@ import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
 
 export default function ConfirmBookingDashboard({ initialData }: { initialData: any }) {
-  const negocio = initialData; // Usamos el negocio que nos pasa el Factory
+  const [negocio, setNegocio] = useState(initialData); // Usamos el negocio que nos pasa el Factory
   const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = createClient();
@@ -73,6 +73,14 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   };
 
   const fetchDashboardData = useCallback(async () => {
+
+    const { data: datosNegocio } = await supabase
+        .from('negocios')
+        .select('*')
+        .eq('id', initialData.id) // Usamos initialData.id porque es constante
+        .single();
+    
+    if (datosNegocio) setNegocio(datosNegocio);
     // 1. Cargar Reseñas
     const { data: datosResenas } = await supabase
       .from("resenas")
