@@ -74,13 +74,28 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
 
   const fetchDashboardData = useCallback(async () => {
 
-    const { data: datosNegocio } = await supabase
+    const { data: datosNegocio, error } = await supabase
         .from('negocios')
         .select('*')
         .eq('id', initialData.id) // Usamos initialData.id porque es constante
         .single();
     
-    if (datosNegocio) setNegocio(datosNegocio);
+    if (datosNegocio) {
+          // CORRECCIÓN CRÍTICA: Aseguramos que config_web sea un objeto
+          // A veces Supabase cliente lo devuelve como string JSON
+          if (typeof datosNegocio.config_web === 'string') {
+              try {
+                  datosNegocio.config_web = JSON.parse(datosNegocio.config_web);
+              } catch (e) {
+                  console.error("Error al parsear config_web", e);
+                  // Si falla, intentamos mantener el anterior o un objeto vacío
+                  datosNegocio.config_web = negocio.config_web || {}; 
+              }
+          }
+          setNegocio(datosNegocio);
+      } else if (error) {
+          console.error("Error fetching negocio:", error);
+      }
     // 1. Cargar Reseñas
     const { data: datosResenas } = await supabase
       .from("resenas")
