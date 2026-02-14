@@ -71,6 +71,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
         alert("Turno reprogramado y actualizado en Google Calendar.");
     }
   };
+  
 
   const fetchDashboardData = useCallback(async () => {
 
