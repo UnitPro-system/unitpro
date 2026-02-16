@@ -457,7 +457,14 @@ export default function DashboardAgencia() {
         </div>
       )}
 
-      {editingClient && <WebEditor negocio={editingClient} onClose={() => setEditingClient(null)} onSave={() => cargarClientes(agency.id)} />}
+      {editingClient && (
+        <WebEditor 
+            initialData={editingClient}    // <--- Cambio de nombre (antes 'negocio')
+            model="negocio"                // <--- Propiedad requerida que faltaba
+            onClose={() => setEditingClient(null)} 
+            onSave={() => cargarClientes(agency.id)} 
+        />
+        )}
     </div>
   );
 }

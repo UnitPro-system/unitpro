@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ArrowLeft } from "lucide-react";
 
 // Importamos tus editores específicos
 import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
@@ -11,13 +12,16 @@ import ProjectEditor from "@/components/editors/ProjectEditor";
 
 // Importamos el gestor de dominios
 import DomainManager from "@/components/dashboards/DomainManager"; 
+import { title } from "process";
 
 interface WebEditorProps {
   initialData: any; 
   model: "negocio" | "agencia";
+  onClose: () => void; // <--- 2. AGREGADO
+  onSave: () => void;  // <--- 3. AGREGADO
 }
 
-export default function WebEditor({ initialData, model }: WebEditorProps) {
+export default function WebEditor({ initialData, model, onClose, onSave }: WebEditorProps) {
   const [data, setData] = useState(initialData);
   const [activeTab, setActiveTab] = useState<"editor" | "domain">("editor"); // Estado para controlar la vista
   const router = useRouter();
@@ -35,6 +39,21 @@ export default function WebEditor({ initialData, model }: WebEditorProps) {
         <div className="p-5 border-b border-gray-100">
             <h2 className="font-bold text-xl text-gray-800">Panel de Control</h2>
             <p className="text-xs text-gray-400 mt-1">{data.nombre}</p>
+        </div>
+
+        {/* 5. MODIFICADO: Header con botón Volver */}
+        <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+            <button 
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
+                title="Volver al Dashboard"
+            >
+                <ArrowLeft size={20} />
+            </button>
+            <div>
+                <h2 className="font-bold text-lg text-gray-800 leading-tight">Editor</h2>
+                <p className="text-xs text-gray-400 truncate w-40">{data.nombre}</p>
+            </div>
         </div>
 
         {/* PESTAÑAS PRINCIPALES */}
@@ -151,8 +170,7 @@ export default function WebEditor({ initialData, model }: WebEditorProps) {
              <div className="w-full max-w-[1000px] bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300">
                 {/* Ejemplo: <LandingCliente initialData={data} /> */}
                 <div className="p-10 text-center opacity-50 mt-20">
-                    <p>Aquí se renderiza tu componente <code>LandingCliente</code> con los datos actuales.</p>
-                    <p className="text-sm mt-2">Título actual: <b>{data.nombre}</b></p>
+                    <p>Previsualización de: <b>{data.nombre}</b></p>
                 </div>
              </div>
         </div>
