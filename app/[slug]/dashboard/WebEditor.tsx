@@ -28,6 +28,10 @@ interface WebEditorProps {
 }
 
 export default function WebEditor({ initialData, model, onClose, onSave }: WebEditorProps) {
+  if (!initialData) {
+      console.error("WebEditor Error: Missing initialData");
+      return null;
+  }
   const [data, setData] = useState(initialData);
   const [activeTab, setActiveTab] = useState<"editor" | "domain">("editor"); // Estado para controlar la vista
   const router = useRouter();
