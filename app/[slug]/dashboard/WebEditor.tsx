@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 // Importamos tus editores específicos
 import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
@@ -176,27 +176,27 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
         <div className="flex-1 overflow-y-auto p-8 flex justify-center items-start bg-slate-100">
              <div className="w-full max-w-[1200px] bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300">
                 
-                {/* LÓGICA DE PREVIEW: Renderizamos el componente real pasando 'data' */}
+                <Suspense fallback={<div className="p-20 text-center text-gray-500">Cargando vista previa...</div>}>
                 
-                {data.category === "confirm_booking" && (
-                    // Asegúrate de pasar preview={true} si tus componentes soportan modo edición/preview
-                    <ConfirmBookingLanding initialData={data} />
-                )}
+                    {data.category === "confirm_booking" && (
+                        <ConfirmBookingLanding initialData={data} />
+                    )}
 
-                {data.category === "service_booking" && (
-                    <ServiceBookingLanding initialData={data} />
-                )}
+                    {data.category === "service_booking" && (
+                        <ServiceBookingLanding initialData={data} />
+                    )}
 
-                {(data.category === "project" || data.category === "project_portfolio") && (
-                    <ProjectLanding initialData={data} />
-                )}
+                    {(data.category === "project" || data.category === "project_portfolio") && (
+                        <ProjectLanding initialData={data} />
+                    )}
+                    
+                    {!["confirm_booking", "service_booking", "project", "project_portfolio"].includes(data.category) && (
+                        <div className="p-10 text-center opacity-50 mt-20">
+                            <p>No hay vista previa disponible para: <b>{data.category}</b></p>
+                        </div>
+                    )}
 
-                {!["confirm_booking", "service_booking", "project", "project_portfolio"].includes(data.category) && (
-                    <div className="p-10 text-center opacity-50 mt-20">
-                        <p>No hay vista previa disponible para: <b>{data.category}</b></p>
-                    </div>
-                )}
-
+                </Suspense>
              </div>
         </div>
       </div>
