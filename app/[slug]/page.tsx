@@ -7,17 +7,39 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const supabase = await createClient();
   const { slug } = await params;
   
+  const domainOrSlug = decodeURIComponent(slug).toLowerCase();
   // 1. INTENTO A: Buscar en tabla de NEGOCIOS (Clientes finales)
   // Si encontramos el slug aquí, mostramos la web del negocio
-  const { data: negocio } = await supabase
+  if (domainOrSlug.includes(".")) {
+    // Buscamos específicamente en la columna 'custom_domain'
+    const { data: negocioDominio } = await supabase
+      .from("negocios")
+      .select("*")
+      .eq("custom_domain", domainOrSlug)
+      .single();
+
+    if (negocioDominio) {
+      // ¡Éxito! Renderizamos la web del cliente bajo su propio dominio
+      return <LandingCliente initialData={negocioDominio} />;
+    }
+    
+    // Si parece un dominio pero no lo encontramos en la DB, es un 404 directo.
+    return notFound();
+  }
+
+  // --------------------------------------------------------------------------------
+  // 2. ESTRATEGIA SLUG INTERNO (Comportamiento Original)
+  // --------------------------------------------------------------------------------
+
+  // INTENTO A: Buscar en tabla de NEGOCIOS (Clientes finales por slug interno)
+  const { data: negocioSlug } = await supabase
     .from("negocios")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", domainOrSlug)
     .single();
 
-  if (negocio) {
-    // Renderizamos la Landing Pública del cliente
-    return <LandingCliente initialData={negocio} />;
+  if (negocioSlug) {
+    return <LandingCliente initialData={negocioSlug} />;
   }
 
   // 2. INTENTO B: Buscar en tabla de AGENCIAS (Tu SaaS)
@@ -25,7 +47,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const { data: agencia } = await supabase
     .from("agencies")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", domainOrSlug)
     .single();
 
   if (agencia) {

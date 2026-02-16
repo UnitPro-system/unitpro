@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Mail, ArrowRight, CheckCircle, AlertCircle, Loader2, Calendar } from "lucide-react";
+import { Users, Mail, ArrowRight, CheckCircle, AlertCircle, Loader2, Calendar,Image as ImageIcon, X } from "lucide-react";
 import { getCampaignAudience } from "@/app/actions/marketing/get-audience";
 import { sendCampaignBatch } from "@/app/actions/marketing/send-campaign";
+import {ImageUpload} from "@/components/ui/ImageUpload";
 
 export default function MarketingCampaign({ negocio }: { negocio: any }) {
   const [step, setStep] = useState(1); // 1: Filtro, 2: Selección, 3: Redacción, 4: Enviando
@@ -17,6 +18,7 @@ export default function MarketingCampaign({ negocio }: { negocio: any }) {
   // Contenido
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   // Estado de Envío
   const [progress, setProgress] = useState(0);
@@ -77,9 +79,10 @@ export default function MarketingCampaign({ negocio }: { negocio: any }) {
         email: c.cliente_email,
         nombre: c.cliente_nombre
       }));
+      
 
       // Llamada al Server Action
-      const res = await sendCampaignBatch(negocio.id, batch, subject, message);
+      const res = await sendCampaignBatch(negocio.id, batch, subject, message, imageUrl);
 
       if (res.success) {
         setStats(prev => ({
@@ -210,9 +213,37 @@ export default function MarketingCampaign({ negocio }: { negocio: any }) {
                         className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                     />
                 </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-zinc-500 mb-2 flex items-center gap-1">
+                        <ImageIcon size={14} /> Imagen de Cabecera (Opcional)
+                    </label>
+                    
+                    {imageUrl ? (
+                        <div className="relative w-fit group border border-zinc-200 rounded-xl overflow-hidden">
+                            <img src={imageUrl} alt="Preview" className="h-40 object-cover" />
+                            <button 
+                                onClick={() => setImageUrl("")}
+                                className="absolute top-2 right-2 bg-white text-zinc-600 p-1 rounded-full shadow hover:text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-md">
+                            {/* Componente ImageUpload corregido */}
+                            <ImageUpload 
+                                label="Subir imagen"      // <--- Agregamos el label obligatorio
+                                value={imageUrl}          // <--- Pasamos el string directo, no un array
+                                onChange={setImageUrl}    // <--- Simplificado
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <div>
                     <label className="block text-xs font-bold text-zinc-500 mb-1">Cuerpo del Mensaje (HTML simple)</label>
-                    <div className="text-xs text-zinc-400 mb-2">Tip: Usá <code className="bg-zinc-100 px-1 rounded">{"{nombre}"}</code> para que se reemplace por el nombre del cliente.</div>
+                    <div className="text-xs text-zinc-400 mb-2">Tip: Usá <code className="bg-zinc-100 px-1 rounded">{"{{nombre}}"}</code> para que se reemplace por el nombre del cliente.</div>
                     <textarea 
                         value={message}
                         onChange={e => setMessage(e.target.value)}

@@ -12,7 +12,8 @@ export async function sendCampaignBatch(
   negocioId: string,
   recipients: Recipient[],
   subject: string,
-  messageTemplate: string
+  messageTemplate: string,
+  imageUrl?: string
 ) {
   const supabase = await createClient();
 
@@ -45,10 +46,26 @@ export async function sendCampaignBatch(
     let sentCount = 0;
     const errors = [];
 
+    const imageHtml = imageUrl 
+      ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${imageUrl}" style="max-width: 100%; max-height: 400px; border-radius: 8px; object-fit: cover;" alt="Imagen" /></div>` 
+      : '';
+
     for (const recipient of recipients) {
       try {
-        // Personalizar mensaje (Reemplazar {{nombre}})
-        const personalizedMessage = messageTemplate.replace(/{{nombre}}/gi, recipient.nombre || "Cliente");
+        // Personalizar mensaje
+        let personalizedBody = messageTemplate.replace(/{{nombre}}/gi, recipient.nombre || "Cliente");
+        
+        // MODIFICACIÓN 3: Unimos la imagen con el texto y envolvemos en HTML básico
+        // Convertimos los saltos de línea (\n) del textarea en <br> para que se vean bien en el email
+        const finalHtmlContent = `
+          <!DOCTYPE html>
+          <html>
+            <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+              ${imageHtml}
+              <div>${personalizedBody.replace(/\n/g, '<br>')}</div>
+            </body>
+          </html>
+        `;
 
         // Codificar Asunto (UTF-8) para evitar caracteres raros
         const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
@@ -60,7 +77,7 @@ export async function sendCampaignBatch(
           'MIME-Version: 1.0',
           `Subject: ${utf8Subject}`,
           '',
-          personalizedMessage, // Aquí podrías envolverlo en un HTML base si quisieras
+          finalHtmlContent, // <--- Usamos el HTML con imagen
         ];
 
         const rawMessage = Buffer.from(messageParts.join('\n'))

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 
   // 2. Configuración (Igual que en auth)
-  const DOMINIO_REAL = "https://unitpro-system.vercel.app";
+  const DOMINIO_REAL = "https://unitpro-advance.vercel.app";
   const redirectUri = `${DOMINIO_REAL}/api/google/callback`;
 
   const oauth2Client = new google.auth.OAuth2(
@@ -52,11 +52,11 @@ export async function GET(request: Request) {
     if (dbError) throw dbError;
 
     // 5. ¡ÉXITO! Redirigir al dashboard para que el usuario vea "Conectado"
-    return NextResponse.redirect(new URL(`/${slug}?google_connected=true`, request.url));
+    return NextResponse.redirect(new URL(`/${slug}/dashboard?google_connected=true`, request.url));
 
   } catch (err: any) {
     console.error("Error OAuth Final:", err.message);
     // Si falla algo inesperado, redirigimos con error
-    return NextResponse.redirect(new URL(`/${slug}?error=auth_failed`, request.url));
+     return NextResponse.redirect(new URL(`/${slug}/dashboard?error=auth_failed`, request.url));
   }
 }

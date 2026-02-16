@@ -45,6 +45,7 @@ export default function RegisterAgency() {
         {
           user_id: authData.user.id,
           nombre_agencia: formData.nombreAgencia,
+          email: formData.email,
           slug: slugGenerado, // <--- CAMPO NUEVO IMPORTANTE
           plan: 'trial' 
         }

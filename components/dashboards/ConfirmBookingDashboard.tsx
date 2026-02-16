@@ -103,7 +103,10 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       .select("*")
       .eq("negocio_id", negocio.id)
       .order('created_at', { ascending: false });
-    if (datosResenas) setResenas(datosResenas);
+    if (datosResenas) {
+        setResenas(datosResenas); // Para el promedio (arriba)
+        setReviews(datosResenas); // <--- AGREGAR ESTO (Para la lista visual)
+    }
 
     // 2. CARGAR TURNOS Y FILTRAR CLIENTES
     const { data: datosTurnos } = await supabase
