@@ -95,36 +95,49 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
           
           {/* CASO A: ESTAMOS EN LA PESTAÑA DE EDITOR */}
           {activeTab === "editor" && (
-            <div className="h-full">
-                {/* Aquí renderizamos el editor específico según el tipo de negocio */}
-                {/* Estos componentes renderizarán SUS PROPIOS inputs en este espacio */}
+            <div className="h-full relative"> {/* Agregamos relative */}
                 
+                {/* NOTA IMPORTANTE: 
+                   Tus componentes 'ConfirmBookingEditor', 'ServiceBookingEditor', etc.
+                   ya traen su propio diseño de pantalla completa (Sidebar + Preview).
+                   
+                   Al renderizarlos aquí, tomarán el control de la pantalla.
+                   Pasamos 'negocio={data}' para arreglar el error de "undefined".
+                */}
+
                 {data.category === "confirm_booking" && (
-                  <ConfirmBookingEditor 
-                    data={data} 
-                    onChange={handleDataChange} 
-                    model={model}
-                  />
+                  <div className="fixed inset-0 z-[60] bg-white"> {/* Forzamos capa superior */}
+                      <ConfirmBookingEditor 
+                        negocio={data}       // <--- CORRECCIÓN CLAVE (antes era data={data})
+                        onClose={onClose}    // Pasamos la función de cerrar del padre
+                        onSave={onSave}      // Pasamos la función de guardar del padre
+                      />
+                  </div>
                 )}
 
                 {data.category === "service_booking" && (
-                  <ServiceBookingEditor 
-                    data={data} 
-                    onChange={handleDataChange} 
-                    model={model}
-                  />
+                  <div className="fixed inset-0 z-[60] bg-white">
+                      <ServiceBookingEditor 
+                        negocio={data} 
+                        onClose={onClose}
+                        onSave={onSave}
+                      />
+                  </div>
                 )}
 
-                {data.category === "project_portfolio" && (
-                  <ProjectEditor 
-                    data={data} 
-                    onChange={handleDataChange} 
-                    model={model}
-                  />
+                {/* Para portfolio usamos la misma lógica */}
+                {(data.category === "project" || data.category === "project_portfolio") && (
+                   <div className="fixed inset-0 z-[60] bg-white">
+                      <ProjectEditor 
+                        negocio={data} 
+                        onClose={onClose}
+                        onSave={onSave}
+                      />
+                   </div>
                 )}
 
-                {/* Si no coincide con ninguno, mostramos un aviso */}
-                {!["confirm_booking", "service_booking", "project_portfolio"].includes(data.category) && (
+                {/* Mensaje de error si no hay categoría */}
+                {!["confirm_booking", "service_booking", "project", "project_portfolio"].includes(data.category) && (
                     <div className="p-6 text-center text-gray-500">
                         Tipo de editor no reconocido: {data.category}
                     </div>
