@@ -10,6 +10,12 @@ import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
 import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor";
 import ProjectEditor from "@/components/editors/ProjectEditor";
 
+
+import ConfirmBookingLanding from "@/components/landings/ConfirmBookingLanding";
+import ServiceBookingLanding from "@/components/landings/ServiceBookingLanding";
+import ProjectLanding from "@/components/landings/ProjectLanding";
+
+
 // Importamos el gestor de dominios
 import DomainManager from "@/components/dashboards/DomainManager"; 
 import { title } from "process";
@@ -17,8 +23,8 @@ import { title } from "process";
 interface WebEditorProps {
   initialData: any; 
   model: "negocio" | "agencia";
-  onClose: () => void; // <--- 2. AGREGADO
-  onSave: () => void;  // <--- 3. AGREGADO
+  onClose: () => void; 
+  onSave: () => void;  
 }
 
 export default function WebEditor({ initialData, model, onClose, onSave }: WebEditorProps) {
@@ -32,7 +38,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden fixed inset-0 z-50"> 
       
       {/* 1. SIDEBAR IZQUIERDO (Navegación Global) */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg z-20">
@@ -42,7 +48,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
         </div>
 
         {/* 5. MODIFICADO: Header con botón Volver */}
-        <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+        <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-white">
             <button 
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
@@ -51,7 +57,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                 <ArrowLeft size={20} />
             </button>
             <div>
-                <h2 className="font-bold text-lg text-gray-800 leading-tight">Editor</h2>
+                <h2 className="font-bold text-lg text-gray-800 leading-tight">Editor Web</h2>
                 <p className="text-xs text-gray-400 truncate w-40">{data.nombre}</p>
             </div>
         </div>
@@ -89,7 +95,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                 {/* Aquí renderizamos el editor específico según el tipo de negocio */}
                 {/* Estos componentes renderizarán SUS PROPIOS inputs en este espacio */}
                 
-                {data.tipo === "confirm_booking" && (
+                {data.category === "confirm_booking" && (
                   <ConfirmBookingEditor 
                     data={data} 
                     onChange={handleDataChange} 
@@ -97,7 +103,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                   />
                 )}
 
-                {data.tipo === "service_booking" && (
+                {data.category === "service_booking" && (
                   <ServiceBookingEditor 
                     data={data} 
                     onChange={handleDataChange} 
@@ -105,7 +111,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                   />
                 )}
 
-                {data.tipo === "project" && (
+                {data.category === "project_portfolio" && (
                   <ProjectEditor 
                     data={data} 
                     onChange={handleDataChange} 
@@ -114,9 +120,9 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                 )}
 
                 {/* Si no coincide con ninguno, mostramos un aviso */}
-                {!["confirm_booking", "service_booking", "project"].includes(data.tipo) && (
+                {!["confirm_booking", "service_booking", "project_portfolio"].includes(data.category) && (
                     <div className="p-6 text-center text-gray-500">
-                        Tipo de editor no reconocido: {data.tipo}
+                        Tipo de editor no reconocido: {data.category}
                     </div>
                 )}
             </div>
@@ -164,14 +170,29 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
 
         {/* Área de renderizado (Iframe o Componente) */}
         <div className="flex-1 overflow-y-auto p-8 flex justify-center items-start bg-slate-100">
-             {/* NOTA: Aquí deberías renderizar la Landing REAL usando 'data'.
-                Como 'WebEditor' ya tiene 'data' actualizado, la preview cambiará en tiempo real.
-             */}
-             <div className="w-full max-w-[1000px] bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300">
-                {/* Ejemplo: <LandingCliente initialData={data} /> */}
-                <div className="p-10 text-center opacity-50 mt-20">
-                    <p>Previsualización de: <b>{data.nombre}</b></p>
-                </div>
+             <div className="w-full max-w-[1200px] bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300">
+                
+                {/* LÓGICA DE PREVIEW: Renderizamos el componente real pasando 'data' */}
+                
+                {data.category === "confirm_booking" && (
+                    // Asegúrate de pasar preview={true} si tus componentes soportan modo edición/preview
+                    <ConfirmBookingLanding initialData={data} />
+                )}
+
+                {data.category === "service_booking" && (
+                    <ServiceBookingLanding initialData={data} />
+                )}
+
+                {(data.category === "project" || data.category === "project_portfolio") && (
+                    <ProjectLanding initialData={data} />
+                )}
+
+                {!["confirm_booking", "service_booking", "project", "project_portfolio"].includes(data.category) && (
+                    <div className="p-10 text-center opacity-50 mt-20">
+                        <p>No hay vista previa disponible para: <b>{data.category}</b></p>
+                    </div>
+                )}
+
              </div>
         </div>
       </div>
