@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 
   // 2. Configuración (Igual que en auth)
-  const DOMINIO_REAL = "https://unitpro-advance.vercel.app";
+  const DOMINIO_REAL = process.env.NEXT_PUBLIC_APP_URL || "https://unitpro-advance.vercel.app";
   const redirectUri = `${DOMINIO_REAL}/api/google/callback`;
 
   const oauth2Client = new google.auth.OAuth2(

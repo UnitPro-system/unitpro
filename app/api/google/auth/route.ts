@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const slug = searchParams.get("slug");
 
   // 1. HARDCODE: Pon tu URL exacta de Vercel aquí (sin barra al final)
-  const DOMINIO_REAL = "https://unitpro-advance.vercel.app"; 
+  const DOMINIO_REAL = process.env.NEXT_PUBLIC_APP_URL || "https://unitpro-advance.vercel.app"; 
   const redirectUri = `${DOMINIO_REAL}/api/google/callback`;
 
   const oauth2Client = new google.auth.OAuth2(
