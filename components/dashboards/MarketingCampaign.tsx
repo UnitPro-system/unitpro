@@ -14,6 +14,8 @@ export default function MarketingCampaign({ negocio }: { negocio: any }) {
   const [dateLimit, setDateLimit] = useState("");
   const [audience, setAudience] = useState<any[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+
+  
   
   // Contenido
   const [subject, setSubject] = useState("");
