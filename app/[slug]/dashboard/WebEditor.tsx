@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 // Importamos tus editores específicos
 import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
@@ -33,18 +33,17 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
   const [activeTab, setActiveTab] = useState<"editor" | "domain">("editor"); 
   const router = useRouter();
 
-  const handleDataChange = (newData: any) => {
-    setData(newData);
-  };
-
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden fixed inset-0 z-50"> 
+    // CAMBIO 1: 'relative' en lugar de 'flex' para permitir superposición
+    <div className="h-screen w-screen bg-gray-50 overflow-hidden relative font-sans"> 
       
-      {/* 1. SIDEBAR IZQUIERDO (Navegación Global) */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg z-20 shrink-0">
+      {/* 1. PANEL DE CONTROL (Ahora es un bloque flotante, no una barra completa) 
+          Ocupa solo lo necesario y flota sobre el contenido (z-50)
+      */}
+      <div className="absolute top-0 left-0 w-80 bg-white z-50 shadow-xl border-r border-b border-gray-200 rounded-br-2xl overflow-hidden animate-in slide-in-from-left duration-300">
         
-        {/* Header del Dashboard */}
-        <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-white">
+        {/* Header con título y botón volver */}
+        <div className="p-4 flex items-center gap-3 bg-white">
             <button 
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
@@ -58,63 +57,39 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
             </div>
         </div>
 
-        {/* PESTAÑAS PRINCIPALES */}
-        <div className="flex border-b border-gray-200">
+        {/* PESTAÑAS (Diseñar / Dominio) */}
+        <div className="flex border-t border-gray-100">
           <button
             onClick={() => setActiveTab("editor")}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === "editor" 
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" 
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-blue-600 bg-blue-50/50 border-b-2 border-blue-600" 
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
             }`}
           >
-            🎨 Diseñar
+             Diseñar
           </button>
           <button
             onClick={() => setActiveTab("domain")}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === "domain" 
-                ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50/50" 
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-purple-600 bg-purple-50/50 border-b-2 border-purple-600" 
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
             }`}
           >
-            🌐 Dominio
+             Dominio
           </button>
         </div>
-
-        {/* CONTENIDO DEL SIDEBAR (Información de contexto) */}
-        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
-          {activeTab === "editor" && (
-             <div className="text-center text-gray-400 text-sm mt-4">
-                <p className="mb-2">Modo Edición Activo</p>
-                <p className="text-xs">Usa el panel derecho para modificar el contenido y el diseño.</p>
-             </div>
-          )}
-
-          {activeTab === "domain" && (
-            <div className="text-center text-gray-400 text-sm mt-4">
-               <p className="mb-2">Configuración DNS</p>
-               <p className="text-xs">Conecta tu propio dominio para profesionalizar tu marca.</p>
-            </div>
-          )}
-        </div>
+        
+        {/* HEMOS ELIMINADO EL CONTENIDO DE TEXTO AQUÍ ABAJO */}
       </div>
 
-      {/* 2. ÁREA PRINCIPAL (Donde se cargan los editores o el gestor de dominio) */}
-      <div className="flex-1 bg-gray-100 flex flex-col h-full relative overflow-hidden">
-        
-        {/* Header de la zona de trabajo */}
-        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
-            <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {activeTab === "editor" ? "Espacio de Trabajo" : "Gestión de Dominio"}
-                </span>
-            </div>
-        </div>
-
-        <div className="flex-1 overflow-hidden relative">
+      {/* 2. ÁREA DE TRABAJO (FONDO)
+          Ocupa el 100% de la pantalla. El panel de arriba tapa la esquina superior izquierda.
+      */}
+      <div className="w-full h-full bg-gray-100 relative">
              
-             {/* CASO A: Pestaña EDITOR (Renderizamos el editor AQUÍ DENTRO) */}
+             {/* CASO A: Pestaña EDITOR */}
              {activeTab === "editor" && (
                <div className="w-full h-full bg-white animate-in fade-in duration-300">
                   {data.category === "confirm_booking" && (
@@ -143,19 +118,23 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                </div>
              )}
 
-             {/* CASO B: Pestaña DOMINIO (Renderizamos DomainManager y una preview de fondo) */}
+             {/* CASO B: Pestaña DOMINIO */}
              {activeTab === "domain" && (
-                <div className="w-full h-full p-8 overflow-y-auto bg-slate-100">
-                   <div className="max-w-4xl mx-auto space-y-8">
+                <div className="w-full h-full p-8 overflow-y-auto bg-slate-100 pt-32"> 
+                   {/* Agregamos 'pt-32' (padding top) extra aquí para que el contenido 
+                      del dominio no quede oculto detrás del panel flotante al inicio 
+                   */}
+                   
+                   <div className="max-w-4xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
                       {/* Gestor de Dominio */}
-                      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 relative z-10">
                           <DomainManager 
                             negocioId={data.id} 
                             initialDomain={data.custom_domain} 
                           />
                       </div>
 
-                      {/* Preview estática de referencia */}
+                      {/* Preview estática de referencia (Fondo) */}
                       <div className="opacity-40 grayscale pointer-events-none border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white min-h-[500px]">
                          <div className="p-4 border-b text-xs font-bold text-gray-400 text-center uppercase">Vista Previa del Sitio</div>
                          <Suspense fallback={<div className="p-10 text-center">Cargando...</div>}>
@@ -167,7 +146,6 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                    </div>
                 </div>
              )}
-        </div>
       </div>
 
     </div>
