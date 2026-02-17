@@ -20,6 +20,7 @@ import BlockTimeManager from "@/components/dashboards/BlockTimeManager";
 import { PasswordManager } from "@/components/dashboards/PasswordManager";
 import ManualBookingManager from "./ManualBookingManager";
 import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/calendar-actions";
+import DomainManager from "@/components/dashboards/DomainManager";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -1351,8 +1352,22 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
     }; 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100dvh-140px)] flex flex-col">
+
+            {/* --- 1. SECCIÓN DOMINIO Y SEO (NUEVO) --- */}
+            <section>
+                <header className="mb-6"><h2 className="text-2xl font-bold">Dominio y Personalización</h2></header>
+                
+                {/* Aquí inyectamos los datos desde config_web */}
+                <DomainManager 
+                    negocioId={negocio.id}
+                    initialDomain={negocio.custom_domain}
+                    // Leemos la metadata desde config_web
+                    initialTitle={negocio.config_web?.metadata?.title || ""}
+                    initialFavicon={negocio.config_web?.metadata?.faviconUrl || ""}
+                />
+            </section>
             
-            {/* SECCIÓN 1: INTEGRACIONES (La que ya tenías) */}
+            {/* SECCIÓN 2: INTEGRACIONES (La que ya tenías) */}
             <section>
                 <header className="mb-6"><h2 className="text-2xl font-bold">Integraciones</h2></header>
                 <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex justify-between gap-6">

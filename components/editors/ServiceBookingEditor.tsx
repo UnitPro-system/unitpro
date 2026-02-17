@@ -272,7 +272,7 @@ export default function ServiceBookingEditor({ negocio, onClose, onSave }: any) 
       updateConfigField('root', 'sectionOrder', newOrder);
   };
   return (
-    <div className="fixed inset-0 z-[100] flex bg-zinc-100 font-sans h-screen w-screen overflow-hidden">
+    <div className="w-full h-full flex bg-zinc-100 font-sans overflow-hidden">
       
       {/* --- PREVIEW AREA --- */}
       <div className="flex-1 flex flex-col h-full relative border-r border-zinc-300">

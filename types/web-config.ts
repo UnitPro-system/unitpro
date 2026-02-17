@@ -129,6 +129,12 @@ export interface NotificationConfig {
   reminder: EmailTemplate;
   deposit?: EmailTemplate; // Para señas
 }
+
+export interface SiteMetadata {
+  title?: string;
+  description?: string;
+  faviconUrl?: string;
+}
 // ------------------------------------
 // LA CONFIGURACIÓN MAESTRA (WEB CONFIG)
 // ------------------------------------
@@ -163,6 +169,7 @@ export interface WebConfig {
   schedule?: WeeklySchedule;
   booking?: BookingConfig;
   notifications?: NotificationConfig;
+  metadata?: SiteMetadata;
 }
 
 export interface TimeRange {

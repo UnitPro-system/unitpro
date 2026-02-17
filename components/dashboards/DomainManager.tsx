@@ -1,19 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { addDomain, removeDomain, checkDomainStatus } from "@/app/actions/domain-actions";
+import { addDomain, removeDomain, checkDomainStatus, updateSiteMetadata } from "@/app/actions/domain-actions";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface DomainManagerProps {
   negocioId: string;
   initialDomain?: string | null;
+  initialTitle?: string;
+  initialFavicon?: string;
 }
 
-export default function DomainManager({ negocioId, initialDomain }: DomainManagerProps) {
+export default function DomainManager({ negocioId, initialDomain, initialTitle = '', initialFavicon = '' }: DomainManagerProps) {
   const [domain, setDomain] = useState(initialDomain || "");
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState<{ valid: boolean; status: string } | null>(null);
+  const [siteTitle, setSiteTitle] = useState(initialTitle);
+  const [favicon, setFavicon] = useState(initialFavicon);
+  const [savingMeta, setSavingMeta] = useState(false);
 
   // 1. Añadir Dominio
   const handleAdd = async () => {
@@ -74,6 +80,21 @@ export default function DomainManager({ negocioId, initialDomain }: DomainManage
     setLoading(false);
   };
 
+  const handleSaveMetadata = async () => {
+    setSavingMeta(true);
+    const result = await updateSiteMetadata(negocioId, { 
+        title: siteTitle, 
+        faviconUrl: favicon 
+    });
+    
+    if (result.error) {
+        alert("Error al guardar: " + result.error);
+    } else {
+        alert("¡Configuración guardada correctamente!");
+    }
+    setSavingMeta(false);
+  };
+
   // --- RENDERIZADO ---
 
   // A) VISTA: NO HAY DOMINIO (Formulario de Añadir)
@@ -109,7 +130,51 @@ export default function DomainManager({ negocioId, initialDomain }: DomainManage
 
   // B) VISTA: DOMINIO AÑADIDO (Panel de Configuración y Status)
   return (
+
     <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+      
+      {/* --- SECCIÓN 1: METADATA DEL SITIO (NUEVO) --- */}
+      <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Identidad del Sitio (SEO)</h3>
+        
+        <div className="space-y-4">
+            {/* Título de la Pestaña */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Título de la Pestaña (Navegador)
+                </label>
+                <input
+                    type="text"
+                    value={siteTitle}
+                    onChange={(e) => setSiteTitle(e.target.value)}
+                    placeholder="Ej: Mi Negocio - Los mejores servicios"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+            </div>
+
+            {/* Favicon Upload */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Favicon (Icono de pestaña)
+                </label>
+                <ImageUpload
+                    label="Subir Favicon (32x32 o PNG)"
+                    value={favicon}
+                    onChange={(url) => setFavicon(url)}
+                    bucket="sites" // O el bucket que uses
+                />
+            </div>
+
+            <button
+                onClick={handleSaveMetadata}
+                disabled={savingMeta}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+                {savingMeta ? "Guardando..." : "Guardar Cambios SEO"}
+            </button>
+        </div>
+      </div>
+
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Configuración de Dominio</h3>

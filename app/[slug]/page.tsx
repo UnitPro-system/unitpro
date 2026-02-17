@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import LandingCliente from "./LandingCliente";
 import LandingAgencia from "./LandingAgencia";
+import { Metadata, ResolvingMetadata } from "next";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient();
@@ -57,4 +58,53 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   // 3. No existe en ningún lado -> Error 404
   return notFound();
+}
+async function getNegocioData(slug: string) {
+  const supabase = await createClient();
+  const domainOrSlug = decodeURIComponent(slug).toLowerCase();
+
+  // 1. Buscar por dominio personalizado
+  if (domainOrSlug.includes(".")) {
+    const { data } = await supabase.from("negocios").select("*").eq("custom_domain", domainOrSlug).single();
+    return data;
+  }
+
+  // 2. Buscar por slug
+  const { data } = await supabase.from("negocios").select("*").eq("slug", domainOrSlug).single();
+  return data;
+}
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = await params;
+  const negocio = await getNegocioData(slug);
+
+  // Valores por defecto
+  const previousImages = (await parent).openGraph?.images || [];
+  
+  if (!negocio) {
+    return {
+      title: "Negocio no encontrado",
+    };
+  }
+
+  // Extraemos la metadata del JSON config
+  const meta = negocio.config?.metadata || {};
+  const siteName = meta.title || negocio.nombre || "Mi Negocio";
+  const favicon = meta.faviconUrl || "/favicon.ico"; // Fallback
+
+  return {
+    title: siteName,
+    description: meta.description || `Bienvenido a ${siteName}`,
+    icons: {
+      icon: favicon, // Esto cambia el favicon
+      shortcut: favicon,
+    },
+    openGraph: {
+      title: siteName,
+      images: [negocio.config?.hero?.imagenUrl || "", ...previousImages], // Usamos la imagen del hero para compartir en redes
+    },
+  };
 }
