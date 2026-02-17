@@ -56,7 +56,7 @@ export async function addDomain(domain: string, negocioId: string) {
       return { error: "Error guardando en base de datos. Intenta nuevamente." };
     }
 
-    revalidatePath("/dashboard"); // Actualiza la UI
+    revalidatePath("/", "layout"); // Actualiza la UI
     return { success: true, data };
 
   } catch (error: any) {
@@ -144,14 +144,14 @@ export async function updateSiteMetadata(negocioId: string, metadata: { title: s
     // 1. Obtenemos la config actual para no sobrescribir todo
     const { data: negocio, error: fetchError } = await supabase
       .from("negocios")
-      .select("config_web")
+      .select("web_config")
       .eq("id", negocioId)
       .single();
 
     if (fetchError) throw new Error("No se pudo obtener el negocio");
 
     // 2. Fusionamos la metadata nueva con la config existente
-    const currentConfig = negocio.config_web || {};
+    const currentConfig = negocio.web_config || {};
     const updatedConfig = {
       ...currentConfig,
       metadata: {
@@ -164,7 +164,7 @@ export async function updateSiteMetadata(negocioId: string, metadata: { title: s
     // 3. Guardamos
     const { error: updateError } = await supabase
       .from("negocios")
-      .update({ config_web: updatedConfig })
+      .update({ web_config: updatedConfig })
       .eq("id", negocioId);
 
     if (updateError) throw new Error(updateError.message);

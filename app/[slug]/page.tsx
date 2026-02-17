@@ -79,7 +79,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
-  const negocio = await getNegocioData(slug);
+  const negocio = await getNegocioData(slug); // Asegúrate de que esta función traiga '*' o 'web_config'
 
   // Valores por defecto
   const previousImages = (await parent).openGraph?.images || [];
@@ -90,21 +90,24 @@ export async function generateMetadata(
     };
   }
 
-  // Extraemos la metadata del JSON config
-  const meta = negocio.config?.metadata || {};
+  // --- CORRECCIÓN AQUÍ: Usar 'web_config' en lugar de 'config' ---
+  const config = negocio.web_config || {}; 
+  const meta = config.metadata || {};
+  
   const siteName = meta.title || negocio.nombre || "Mi Negocio";
-  const favicon = meta.faviconUrl || "/favicon.ico"; // Fallback
+  const favicon = meta.faviconUrl || "/favicon.ico"; 
 
   return {
     title: siteName,
     description: meta.description || `Bienvenido a ${siteName}`,
     icons: {
-      icon: favicon, // Esto cambia el favicon
+      icon: favicon, 
       shortcut: favicon,
     },
     openGraph: {
       title: siteName,
-      images: [negocio.config?.hero?.imagenUrl || "", ...previousImages], // Usamos la imagen del hero para compartir en redes
+      // Corrección aquí también para la imagen de redes sociales
+      images: [config.hero?.imagenUrl || "", ...previousImages], 
     },
   };
 }
