@@ -74,6 +74,7 @@ async function getNegocioData(slug: string) {
   return data;
 }
 
+
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
   parent: ResolvingMetadata
@@ -111,3 +112,4 @@ export async function generateMetadata(
     },
   };
 }
+
