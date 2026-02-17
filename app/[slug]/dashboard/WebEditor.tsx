@@ -111,64 +111,58 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
         </div>
       </div>
 
-      {/* 2. PREVIEW EN VIVO (Fondo del Dashboard) */}
+      {/* 2. AREA PRINCIPAL (Preview o Editor) */}
       <div className="flex-1 bg-gray-100 flex flex-col h-full relative overflow-hidden">
+        
+        {/* Header de la zona de trabajo (Opcional, para dar contexto) */}
         <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10">
             <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Vista Previa Actual</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {activeTab === "editor" ? "Modo Edición" : "Vista Previa"}
+                </span>
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 flex justify-center items-start bg-slate-100">
-             <div className="w-full max-w-[1200px] bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300 pointer-events-none opacity-50 grayscale">
-                {/* Mostramos una preview estática/desactivada en el fondo
-                    mientras el editor real se carga encima.
-                */}
-                <Suspense fallback={<div className="p-10">Cargando...</div>}>
-                    {data.category === "confirm_booking" && <ConfirmBookingLanding initialData={data} />}
-                    {data.category === "service_booking" && <ServiceBookingLanding initialData={data} />}
-                    {(data.category === "project" || data.category === "project_portfolio") && <ProjectLanding initialData={data} />}
-                </Suspense>
-             </div>
+        <div className="flex-1 overflow-y-auto p-0 flex justify-center items-start bg-slate-100 relative">
+            
+            {/* CASO A: Estamos en la pestaña DOMINIO (Mostramos preview estática de fondo) */}
+            {activeTab === "domain" && (
+              <div className="w-full h-full p-8 overflow-y-auto">
+                  <div className="w-full max-w-[1200px] mx-auto bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300 pointer-events-none opacity-50 grayscale">
+                      <Suspense fallback={<div className="p-10">Cargando...</div>}>
+                          {data.category === "confirm_booking" && <ConfirmBookingLanding initialData={data} />}
+                          {data.category === "service_booking" && <ServiceBookingLanding initialData={data} />}
+                          {(data.category === "project" || data.category === "project_portfolio") && <ProjectLanding initialData={data} />}
+                      </Suspense>
+                  </div>
+              </div>
+            )}
+
+            {/* CASO B: Estamos en la pestaña EDITOR (Renderizamos el Editor REAL aquí dentro) */}
+            {activeTab === "editor" && (
+              <div className="w-full h-full bg-white animate-in fade-in duration-300">
+                  {/* NOTA IMPORTANTE: 
+                      Tus componentes Editor (ConfirmBookingEditor, etc.) deben adaptarse al 100% del ancho/alto de su contenedor padre.
+                      Si esos componentes tienen 'fixed inset-0' dentro de ellos, deberás quitarlo también.
+                  */}
+                  
+                  {data.category === "confirm_booking" && (
+                      <ConfirmBookingEditor negocio={data} onClose={onClose} onSave={onSave} />
+                  )}
+
+                  {data.category === "service_booking" && (
+                      <ServiceBookingEditor negocio={data} onClose={onClose} onSave={onSave} />
+                  )}
+
+                  {(data.category === "project" || data.category === "project_portfolio") && (
+                      <ProjectEditor negocio={data} onClose={onClose} onSave={onSave} />
+                  )}
+              </div>
+            )}
         </div>
       </div>
 
-      {/* ----------------------------------------------------------------------- */}
-      {/* 3. CAPA DE EDITORES FULL SCREEN (MOVIDO AQUÍ - FUERA DEL SIDEBAR)       */}
-      {/* ----------------------------------------------------------------------- */}
-      {activeTab === "editor" && (
-        <>
-            {data.category === "confirm_booking" && (
-              <div className="fixed inset-0 z-[100] bg-white animate-in fade-in zoom-in-95 duration-200">
-                  <ConfirmBookingEditor 
-                    negocio={data} 
-                    onClose={onClose} 
-                    onSave={onSave} 
-                  />
-              </div>
-            )}
-
-            {data.category === "service_booking" && (
-              <div className="fixed inset-0 z-[100] bg-white animate-in fade-in zoom-in-95 duration-200">
-                  <ServiceBookingEditor 
-                    negocio={data} 
-                    onClose={onClose}
-                    onSave={onSave}
-                  />
-              </div>
-            )}
-
-            {(data.category === "project" || data.category === "project_portfolio") && (
-               <div className="fixed inset-0 z-[100] bg-white animate-in fade-in zoom-in-95 duration-200">
-                  <ProjectEditor 
-                    negocio={data} 
-                    onClose={onClose}
-                    onSave={onSave}
-                  />
-               </div>
-            )}
-        </>
-      )}
+      
 
     </div>
   );
