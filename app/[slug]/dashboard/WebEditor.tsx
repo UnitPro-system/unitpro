@@ -134,6 +134,8 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                           <DomainManager 
                             negocioId={data.id} 
                             initialDomain={data.custom_domain} 
+                            initialTitle={data.web_config?.metadata?.title}
+                            initialFavicon={data.web_config?.metadata?.faviconUrl}
                           />
                       </div>
 
