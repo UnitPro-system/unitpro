@@ -91,7 +91,7 @@ export async function generateMetadata(
   }
 
   // --- CORRECCIÓN AQUÍ: Usar 'web_config' en lugar de 'config' ---
-  const config = negocio.web_config || {}; 
+  const config = negocio.config_web || {}; 
   const meta = config.metadata || {};
   
   const siteName = meta.title || negocio.nombre || "Mi Negocio";
