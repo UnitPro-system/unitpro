@@ -9,7 +9,7 @@ import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
 import ServiceBookingEditor from "@/components/editors/ServiceBookingEditor";
 import ProjectEditor from "@/components/editors/ProjectEditor";
 
-// Importamos las Landings para la PREVIEW del panel general
+// Importamos las Landings para la PREVIEW (usadas de fondo en la pestaña dominio)
 import ConfirmBookingLanding from "@/components/landings/ConfirmBookingLanding";
 import ServiceBookingLanding from "@/components/landings/ServiceBookingLanding";
 import ProjectLanding from "@/components/landings/ProjectLanding";
@@ -41,7 +41,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
     <div className="flex h-screen bg-gray-50 overflow-hidden fixed inset-0 z-50"> 
       
       {/* 1. SIDEBAR IZQUIERDO (Navegación Global) */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg z-20">
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg z-20 shrink-0">
         
         {/* Header del Dashboard */}
         <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-white">
@@ -82,87 +82,93 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
           </button>
         </div>
 
-        {/* CONTENIDO DEL SIDEBAR (Solo DomainManager va aquí dentro) */}
-        <div className="flex-1 overflow-y-auto bg-gray-50/50">
-          
-          {/* CASO: Estamos en Pestaña Editor pero NO en modo full screen (estado intermedio o carga) */}
+        {/* CONTENIDO DEL SIDEBAR (Información de contexto) */}
+        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
           {activeTab === "editor" && (
-             <div className="p-6 text-center text-gray-400 text-sm mt-10">
-                <p>Abriendo editor de diseño...</p>
-                <Loader2 className="animate-spin mx-auto mt-2" size={20}/>
+             <div className="text-center text-gray-400 text-sm mt-4">
+                <p className="mb-2">Modo Edición Activo</p>
+                <p className="text-xs">Usa el panel derecho para modificar el contenido y el diseño.</p>
              </div>
           )}
 
-          {/* CASO: Pestaña Dominio */}
           {activeTab === "domain" && (
-            <div className="p-4 animate-in fade-in slide-in-from-left-4 duration-300">
-               <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                  <div className="mb-4">
-                    <h3 className="text-sm font-bold text-gray-900">Conexión de Dominio</h3>
-                    <p className="text-xs text-gray-500">Configura tu URL personalizada.</p>
-                  </div>
-                  <DomainManager 
-                    negocioId={data.id} 
-                    initialDomain={data.custom_domain} 
-                  />
-               </div>
+            <div className="text-center text-gray-400 text-sm mt-4">
+               <p className="mb-2">Configuración DNS</p>
+               <p className="text-xs">Conecta tu propio dominio para profesionalizar tu marca.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* 2. AREA PRINCIPAL (Preview o Editor) */}
+      {/* 2. ÁREA PRINCIPAL (Donde se cargan los editores o el gestor de dominio) */}
       <div className="flex-1 bg-gray-100 flex flex-col h-full relative overflow-hidden">
         
-        {/* Header de la zona de trabajo (Opcional, para dar contexto) */}
-        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10">
+        {/* Header de la zona de trabajo */}
+        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
             <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {activeTab === "editor" ? "Modo Edición" : "Vista Previa"}
+                    {activeTab === "editor" ? "Espacio de Trabajo" : "Gestión de Dominio"}
                 </span>
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-0 flex justify-center items-start bg-slate-100 relative">
-            
-            {/* CASO A: Estamos en la pestaña DOMINIO (Mostramos preview estática de fondo) */}
-            {activeTab === "domain" && (
-              <div className="w-full h-full p-8 overflow-y-auto">
-                  <div className="w-full max-w-[1200px] mx-auto bg-white shadow-2xl rounded-xl overflow-hidden min-h-[800px] border border-gray-200 transform origin-top transition-all duration-300 pointer-events-none opacity-50 grayscale">
-                      <Suspense fallback={<div className="p-10">Cargando...</div>}>
-                          {data.category === "confirm_booking" && <ConfirmBookingLanding initialData={data} />}
-                          {data.category === "service_booking" && <ServiceBookingLanding initialData={data} />}
-                          {(data.category === "project" || data.category === "project_portfolio") && <ProjectLanding initialData={data} />}
-                      </Suspense>
-                  </div>
-              </div>
-            )}
-
-            {/* CASO B: Estamos en la pestaña EDITOR (Renderizamos el Editor REAL aquí dentro) */}
-            {activeTab === "editor" && (
-              <div className="w-full h-full bg-white animate-in fade-in duration-300">
-                  {/* NOTA IMPORTANTE: 
-                      Tus componentes Editor (ConfirmBookingEditor, etc.) deben adaptarse al 100% del ancho/alto de su contenedor padre.
-                      Si esos componentes tienen 'fixed inset-0' dentro de ellos, deberás quitarlo también.
-                  */}
-                  
+        <div className="flex-1 overflow-hidden relative">
+             
+             {/* CASO A: Pestaña EDITOR (Renderizamos el editor AQUÍ DENTRO) */}
+             {activeTab === "editor" && (
+               <div className="w-full h-full bg-white animate-in fade-in duration-300">
                   {data.category === "confirm_booking" && (
-                      <ConfirmBookingEditor negocio={data} onClose={onClose} onSave={onSave} />
+                    <ConfirmBookingEditor 
+                      negocio={data} 
+                      onClose={onClose} 
+                      onSave={onSave} 
+                    />
                   )}
 
                   {data.category === "service_booking" && (
-                      <ServiceBookingEditor negocio={data} onClose={onClose} onSave={onSave} />
+                    <ServiceBookingEditor 
+                      negocio={data} 
+                      onClose={onClose}
+                      onSave={onSave}
+                    />
                   )}
 
                   {(data.category === "project" || data.category === "project_portfolio") && (
-                      <ProjectEditor negocio={data} onClose={onClose} onSave={onSave} />
+                     <ProjectEditor 
+                       negocio={data} 
+                       onClose={onClose}
+                       onSave={onSave}
+                     />
                   )}
-              </div>
-            )}
+               </div>
+             )}
+
+             {/* CASO B: Pestaña DOMINIO (Renderizamos DomainManager y una preview de fondo) */}
+             {activeTab === "domain" && (
+                <div className="w-full h-full p-8 overflow-y-auto bg-slate-100">
+                   <div className="max-w-4xl mx-auto space-y-8">
+                      {/* Gestor de Dominio */}
+                      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                          <DomainManager 
+                            negocioId={data.id} 
+                            initialDomain={data.custom_domain} 
+                          />
+                      </div>
+
+                      {/* Preview estática de referencia */}
+                      <div className="opacity-40 grayscale pointer-events-none border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white min-h-[500px]">
+                         <div className="p-4 border-b text-xs font-bold text-gray-400 text-center uppercase">Vista Previa del Sitio</div>
+                         <Suspense fallback={<div className="p-10 text-center">Cargando...</div>}>
+                            {data.category === "confirm_booking" && <ConfirmBookingLanding initialData={data} />}
+                            {data.category === "service_booking" && <ServiceBookingLanding initialData={data} />}
+                            {(data.category === "project" || data.category === "project_portfolio") && <ProjectLanding initialData={data} />}
+                        </Suspense>
+                      </div>
+                   </div>
+                </div>
+             )}
         </div>
       </div>
-
-      
 
     </div>
   );
