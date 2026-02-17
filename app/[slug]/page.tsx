@@ -4,6 +4,8 @@ import LandingCliente from "./LandingCliente";
 import LandingAgencia from "./LandingAgencia";
 import { Metadata, ResolvingMetadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient();
   const { slug } = await params;
@@ -85,18 +87,21 @@ export async function generateMetadata(
   // Valores por defecto
   const previousImages = (await parent).openGraph?.images || [];
   
-  if (!negocio) {
-    return {
-      title: "Negocio no encontrado",
-    };
-  }
+  if (!negocio) return { title: "No encontrado" };
 
-  // --- CORRECCIÓN AQUÍ: Usar 'web_config' en lugar de 'config' ---
+  // --- DEBUGGING (Mira tu terminal de Vercel/Localhost) ---
+  console.log(`[SEO DEBUG] Slug: ${slug}`);
+  console.log(`[SEO DEBUG] Config Web encontrada:`, negocio.config_web);
+  
+  // LEER DATOS
   const config = negocio.config_web || {}; 
   const meta = config.metadata || {};
   
+  // Aquí está la lógica: Si meta.title existe, lo usa. Si no, usa negocio.nombre.
   const siteName = meta.title || negocio.nombre || "Mi Negocio";
   const favicon = meta.faviconUrl || "/favicon.ico"; 
+
+  console.log(`[SEO DEBUG] Título final usado: ${siteName}`); 
 
   return {
     title: siteName,
