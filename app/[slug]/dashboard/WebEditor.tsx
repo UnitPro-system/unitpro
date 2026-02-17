@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2  } from "lucide-react";
 
 // Importamos tus editores específicos
 import ConfirmBookingEditor from "@/components/editors/ConfirmBookingEditor";
@@ -33,9 +33,13 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
   const [activeTab, setActiveTab] = useState<"editor" | "domain">("editor"); 
   const router = useRouter();
 
+  const handleDataChange = (newData: any) => {
+    setData(newData);
+  };
+
   return (
     // CAMBIO 1: 'relative' en lugar de 'flex' para permitir superposición
-    <div className="h-screen w-screen bg-gray-50 overflow-hidden relative font-sans"> 
+    <div className="fixed inset-0 z-50 h-screen w-screen bg-gray-50 overflow-hidden font-sans"> 
       
       {/* 1. PANEL DE CONTROL (Ahora es un bloque flotante, no una barra completa) 
           Ocupa solo lo necesario y flota sobre el contenido (z-50)
