@@ -44,8 +44,7 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
       {/* 1. PANEL DE CONTROL (Ahora es un bloque flotante, no una barra completa) 
           Ocupa solo lo necesario y flota sobre el contenido (z-50)
       */}
-      <div className="absolute top-0 left-0 w-80 bg-white z-50 shadow-xl border-r border-b border-gray-200 rounded-br-2xl overflow-hidden animate-in slide-in-from-left duration-300">
-        
+      <div className="absolute top-0 left-0 w-1/2 h-16 bg-white z-[60] shadow-xl border-b border-r border-gray-200 rounded-br-2xl flex items-center justify-between px-4 animate-in slide-in-from-left duration-300">
         {/* Header con título y botón volver */}
         <div className="p-4 flex items-center gap-3 bg-white">
             <button 
