@@ -11,7 +11,12 @@ interface DomainManagerProps {
   initialFavicon?: string;
 }
 
-export default function DomainManager({ negocioId, initialDomain, initialTitle = '', initialFavicon = '' }: DomainManagerProps) {
+export default function DomainManager({ 
+  negocioId, 
+  initialDomain, 
+  initialTitle = '', 
+  initialFavicon = '' 
+}: DomainManagerProps) {
   const [domain, setDomain] = useState(initialDomain || "");
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -128,133 +133,119 @@ export default function DomainManager({ negocioId, initialDomain, initialTitle =
     );
   }
 
-  // B) VISTA: DOMINIO AÑADIDO (Panel de Configuración y Status)
   return (
-
-    <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-      
-      {/* --- SECCIÓN 1: METADATA DEL SITIO (NUEVO) --- */}
-      <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Identidad del Sitio (SEO)</h3>
+      <div className="space-y-8">
         
-        <div className="space-y-4">
-            {/* Título de la Pestaña */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título de la Pestaña (Navegador)
-                </label>
-                <input
-                    type="text"
-                    value={siteTitle}
-                    onChange={(e) => setSiteTitle(e.target.value)}
-                    placeholder="Ej: Mi Negocio - Los mejores servicios"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-            </div>
-
-            {/* Favicon Upload */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Favicon (Icono de pestaña)
-                </label>
-                <ImageUpload
-                    label="Subir Favicon (32x32 o PNG)"
-                    value={favicon}
-                    onChange={(url) => setFavicon(url)}
-                    bucket="sites" // O el bucket que uses
-                />
-            </div>
-
-            <button
-                onClick={handleSaveMetadata}
-                disabled={savingMeta}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-                {savingMeta ? "Guardando..." : "Guardar Cambios SEO"}
-            </button>
+        {/* 1. SECCIÓN SEO (SIEMPRE VISIBLE) */}
+        <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Identidad del Sitio (SEO)</h3>
+          
+          <div className="space-y-4">
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Título de la Pestaña
+                  </label>
+                  <input
+                      type="text"
+                      value={siteTitle}
+                      onChange={(e) => setSiteTitle(e.target.value)}
+                      placeholder="Ej: Mi Negocio - Servicios Profesionales"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+              </div>
+  
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Favicon (Icono)
+                  </label>
+                  <div className="max-w-xs">
+                      <ImageUpload
+                          label="Subir Favicon (PNG/ICO)"
+                          value={favicon}
+                          onChange={(url) => setFavicon(url)}
+                          bucket="sites"
+                      />
+                  </div>
+              </div>
+  
+              <button
+                  onClick={handleSaveMetadata}
+                  disabled={savingMeta}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                  {savingMeta ? "Guardando..." : "Guardar Cambios SEO"}
+              </button>
+          </div>
         </div>
+  
+        {/* 2. SECCIÓN DOMINIO (CONDICIONAL) */}
+        <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+          
+          {!domain ? (
+              // A) VISTA: NO HAY DOMINIO
+              <>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Dominio Personalizado</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Conecta tu propio dominio (ej. <code>tuempresa.com</code>).
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="ej: minegocio.com"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value.toLowerCase())}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={loading}
+                    />
+                    <button
+                      onClick={handleAdd}
+                      disabled={loading || !inputValue}
+                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 font-medium"
+                    >
+                      {loading ? "..." : "Conectar"}
+                    </button>
+                  </div>
+                  {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+              </>
+          ) : (
+              // B) VISTA: DOMINIO YA CONECTADO
+              <>
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Configuración de Dominio</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Conectado a: <a href={`https://${domain}`} target="_blank" className="text-blue-600 font-medium hover:underline">{domain}</a>
+                    </p>
+                  </div>
+                  
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${status?.valid ? "bg-green-100 text-green-700 border-green-200" : "bg-yellow-100 text-yellow-700 border-yellow-200"}`}>
+                      {status?.valid ? "Activo SSL ✅" : "Pendiente ⏳"}
+                  </span>
+                </div>
+  
+                {/* Instrucciones DNS si no está validado */}
+                {!status?.valid && (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 text-sm">
+                      <p className="font-bold mb-2">Configura tus DNS en tu proveedor:</p>
+                      <p className="font-mono mb-1">Tipo A &rarr; 76.76.21.21</p>
+                      <p className="font-mono">CNAME www &rarr; cname.vercel-dns.com</p>
+                  </div>
+                )}
+  
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <button onClick={handleCheckStatus} disabled={loading} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                      {loading ? "Verificando..." : "🔄 Verificar DNS"}
+                  </button>
+                  <button onClick={handleRemove} disabled={loading} className="ml-auto px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium">
+                      Eliminar
+                  </button>
+                </div>
+                {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+              </>
+          )}
+        </div>
+  
       </div>
-
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Configuración de Dominio</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Tu sitio está accesible en: <a href={`https://${domain}`} target="_blank" className="text-blue-600 font-medium hover:underline">{domain}</a>
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-            {/* Badge de Estado */}
-            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                status?.valid 
-                ? "bg-green-100 text-green-700 border-green-200" 
-                : "bg-yellow-100 text-yellow-700 border-yellow-200"
-            }`}>
-                {status?.valid ? "Activo SSL ✅" : "Pendiente Configuración ⏳"}
-            </span>
-        </div>
-      </div>
-
-      {/* Instrucciones DNS (Solo si no está activo o si el usuario quiere verlas) */}
-      {!status?.valid && (
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">⚠️ Acción Requerida: Configura tus DNS</h4>
-            <p className="text-sm text-gray-600 mb-4">
-                Entra a tu proveedor de dominio (GoDaddy, Namecheap, etc.) y agrega estos 2 registros:
-            </p>
-            
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-gray-500 border-b">
-                        <tr>
-                            <th className="pb-2">Tipo</th>
-                            <th className="pb-2">Nombre (Host)</th>
-                            <th className="pb-2">Valor (Value)</th>
-                            <th className="pb-2">TTL</th>
-                        </tr>
-                    </thead>
-                    <tbody className="font-mono text-gray-800">
-                        <tr className="border-b last:border-0">
-                            <td className="py-2">A</td>
-                            <td className="py-2">@</td>
-                            <td className="py-2 select-all">76.76.21.21</td>
-                            <td className="py-2">Automático</td>
-                        </tr>
-                        <tr>
-                            <td className="py-2">CNAME</td>
-                            <td className="py-2">www</td>
-                            <td className="py-2 select-all">cname.vercel-dns.com</td>
-                            <td className="py-2">Automático</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <p className="text-xs text-gray-500 mt-3">
-                *Nota: Los cambios pueden tardar hasta 48 horas en propagarse, aunque suelen ser rápidos.
-            </p>
-        </div>
-      )}
-
-      {/* Botones de Acción */}
-      <div className="flex gap-3 pt-4 border-t border-gray-100">
-        <button
-            onClick={handleCheckStatus}
-            disabled={loading}
-            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-        >
-            {loading ? "Verificando..." : "🔄 Verificar Conexión DNS"}
-        </button>
-        
-        <button
-            onClick={handleRemove}
-            disabled={loading}
-            className="ml-auto px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-        >
-            Eliminar Dominio
-        </button>
-      </div>
-      
-      {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-    </div>
-  );
-}
+    );
+  }
