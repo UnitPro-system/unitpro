@@ -623,6 +623,58 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
           </section>
       )}
+
+      {/* --- SECCIONES DINÁMICAS (Nuevo Bloque) --- */}
+      {config.customSections?.map((section: any) => (
+        <section key={section.id} className="py-20 px-6 max-w-7xl mx-auto">
+            
+            {/* Si es QUIENES SOMOS */}
+            {section.type === 'about' && (
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                    <div className={section.imagenUrl ? 'order-1' : ''}>
+                        <h2 className="text-3xl font-bold mb-6 text-zinc-900">{section.titulo}</h2>
+                        {/* Usamos SafeHTML para que respete saltos de línea */}
+                        <SafeHTML as="div" html={section.texto} className="text-lg text-zinc-600 leading-relaxed whitespace-pre-line" />
+                    </div>
+                    {section.imagenUrl && (
+                        <div className={`overflow-hidden shadow-xl h-[400px] ${cardRadius}`}>
+                            <img src={section.imagenUrl} alt={section.titulo} className="w-full h-full object-cover"/>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Si es GALERÍA */}
+            {section.type === 'gallery' && (
+                <div>
+                    <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {section.imagenes?.map((img: any, i: number) => (
+                            <div 
+                                key={i} 
+                                onClick={() => setSelectedImage(img.url)} // <--- ESTO ES NUEVO
+                                className={`group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`} // <--- cursor-zoom-in AGREGADO
+                            >
+                                <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                
+                                {/* --- OVERLAY NUEVO (Icono al pasar mouse) --- */}
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                     <Maximize2 className="text-white drop-shadow-md" size={24} />
+                                </div>
+
+                                {img.descripcion && (
+                                    <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {img.descripcion}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </section>
+      ))}
+
       
       {/* --- NUEVA SECCIÓN: EQUIPO --- */}
       {config.equipo?.mostrar && (
@@ -745,56 +797,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
           </div>
       </section>
       )}
-      {/* --- SECCIONES DINÁMICAS (Nuevo Bloque) --- */}
-      {config.customSections?.map((section: any) => (
-        <section key={section.id} className="py-20 px-6 max-w-7xl mx-auto">
-            
-            {/* Si es QUIENES SOMOS */}
-            {section.type === 'about' && (
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className={section.imagenUrl ? 'order-1' : ''}>
-                        <h2 className="text-3xl font-bold mb-6 text-zinc-900">{section.titulo}</h2>
-                        {/* Usamos SafeHTML para que respete saltos de línea */}
-                        <SafeHTML as="div" html={section.texto} className="text-lg text-zinc-600 leading-relaxed whitespace-pre-line" />
-                    </div>
-                    {section.imagenUrl && (
-                        <div className={`overflow-hidden shadow-xl h-[400px] ${cardRadius}`}>
-                            <img src={section.imagenUrl} alt={section.titulo} className="w-full h-full object-cover"/>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Si es GALERÍA */}
-            {section.type === 'gallery' && (
-                <div>
-                    <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {section.imagenes?.map((img: any, i: number) => (
-                            <div 
-                                key={i} 
-                                onClick={() => setSelectedImage(img.url)} // <--- ESTO ES NUEVO
-                                className={`group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`} // <--- cursor-zoom-in AGREGADO
-                            >
-                                <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
-                                
-                                {/* --- OVERLAY NUEVO (Icono al pasar mouse) --- */}
-                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                     <Maximize2 className="text-white drop-shadow-md" size={24} />
-                                </div>
-
-                                {img.descripcion && (
-                                    <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {img.descripcion}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </section>
-      ))}
+      
 
       {/* --- UBICACIÓN (NUEVA SECCIÓN) --- */}
       {config.ubicacion?.mostrar && (
