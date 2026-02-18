@@ -9,6 +9,7 @@ export default async function DashboardPage(props: { params: Promise<{ slug: str
   // 1. AWAIT CRÍTICO: Soluciona el error de lectura del slug
   const params = await props.params; 
   const slug = params.slug;
+  const decodedSlug = decodeURIComponent(slug).toLowerCase();
 
   const cookieStore = await cookies();
   const supabase = createClient();
@@ -27,15 +28,35 @@ export default async function DashboardPage(props: { params: Promise<{ slug: str
     return <DashboardAgencia />;
   }
 
-  // 3. ¿Es un NEGOCIO?
-  const { data: negocio } = await supabase
-    .from("negocios")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+  let negocio = null;
 
+  // 3. ¿Es un NEGOCIO?
+  if (decodedSlug.includes(".")) {
+    // CASO A: Viene de una redirección de dominio (ej: zzartstudio.com)
+    // Buscamos por la columna 'custom_domain'
+    const { data } = await supabase
+      .from("negocios")
+      .select("id") // Solo necesitamos saber si existe
+      .eq("custom_domain", decodedSlug)
+      .single();
+      
+    negocio = data;
+  } else {
+    // CASO B: Es un slug normal (ej: barberia-pepe)
+    // Buscamos por la columna 'slug'
+    const { data } = await supabase
+      .from("negocios")
+      .select("id")
+      .eq("slug", decodedSlug)
+      .single();
+      
+    negocio = data;
+  }
+
+  // SI ENCONTRAMOS EL NEGOCIO, MOSTRAMOS SU DASHBOARD
   if (negocio) {
-    return <DashboardCliente />;
+    // Opcional: Podrías pasar el ID al componente para evitar otra consulta
+    return <DashboardCliente />; 
   }
 
   // 4. SI NO EXISTE -> 404

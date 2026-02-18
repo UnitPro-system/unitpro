@@ -300,7 +300,12 @@ export default function DashboardAgencia() {
                         <button onClick={() => setEditingClient(cliente)} className="flex-1 text-center py-2.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold text-indigo-700 flex items-center justify-center gap-2 transition-colors border border-indigo-100">
                             <Palette size={14}/> Diseñar
                         </button>
-                        <a href={`/${cliente.slug}`} target="_blank" className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-2 transition-colors border border-slate-200">
+                        {/* LÓGICA DE URL: Si tiene custom_domain, úsalo con https. Si no, usa el slug relativo */}
+                        <a 
+                            href={cliente.custom_domain ? `https://${cliente.custom_domain}` : `/${cliente.slug}`} 
+                            target="_blank" 
+                            className="flex-1 text-center py-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center gap-2 transition-colors border border-slate-200"
+                        >
                             <ExternalLink size={14}/> Ver Web
                         </a>
                     </div>

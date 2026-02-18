@@ -56,6 +56,14 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  if (hostname !== process.env.NEXT_PUBLIC_ROOT_DOMAIN && path.startsWith("/dashboard")) {
+    // Redirigimos a: https://app.tusoftware.com/zzartstudio.com/dashboard
+    // Nota: Pasamos el dominio actual como "slug" en la URL para que tu página sepa qué cargar.
+    return NextResponse.redirect(
+      new URL(`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${hostname}${path}`, request.url)
+    );
+  }
+
   return NextResponse.rewrite(
     new URL(`/${hostname}${path}`, request.url)
   );
