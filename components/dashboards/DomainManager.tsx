@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addDomain, removeDomain, checkDomainStatus, updateSiteMetadata } from "@/app/actions/domain-actions";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 
@@ -9,13 +9,15 @@ interface DomainManagerProps {
   initialDomain?: string | null;
   initialTitle?: string;
   initialFavicon?: string;
+  onMetadataUpdate?: (title: string, faviconUrl: string) => void;
 }
 
 export default function DomainManager({ 
   negocioId, 
   initialDomain, 
   initialTitle = '', 
-  initialFavicon = '' 
+  initialFavicon = '',
+  onMetadataUpdate 
 }: DomainManagerProps) {
   const [domain, setDomain] = useState(initialDomain || "");
   const [inputValue, setInputValue] = useState("");
@@ -25,6 +27,19 @@ export default function DomainManager({
   const [siteTitle, setSiteTitle] = useState(initialTitle);
   const [favicon, setFavicon] = useState(initialFavicon);
   const [savingMeta, setSavingMeta] = useState(false);
+
+  // Verificar estado automáticamente al cargar si hay un dominio
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      if (initialDomain) {
+        const result = await checkDomainStatus(initialDomain);
+        if (!result.error) {
+          setStatus({ valid: result.valid, status: result.status || "Pending" });
+        }
+      }
+    };
+    checkInitialStatus();
+  }, [initialDomain]);
 
   // 1. Añadir Dominio
   const handleAdd = async () => {
@@ -80,8 +95,15 @@ export default function DomainManager({
         title: siteTitle, 
         faviconUrl: favicon 
     });
-    if (result.error) alert("Error: " + result.error);
-    else alert("¡Configuración guardada correctamente!");
+    if (result.error) {
+        alert("Error: " + result.error);
+    } else {
+        alert("¡Configuración guardada correctamente!");
+        // Avisar al componente padre (WebEditor) que la data cambió
+        if (onMetadataUpdate) {
+            onMetadataUpdate(siteTitle, favicon);
+        }
+    }
     setSavingMeta(false);
   };
 
