@@ -1103,7 +1103,7 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                         {/* INPUT: LINK DE PAGO */}
                                                         <div className="bg-indigo-50 p-2 rounded border border-indigo-100">
                                                             <label className="text-[9px] font-bold text-indigo-800 uppercase block mb-1 flex items-center gap-1">
-                                                                <CreditCard size={10}/> Alias/CBU/CVU (MP)
+                                                                <CreditCard size={10}/> Link de pago (MP)
                                                             </label>
                                                             <input 
                                                                 value={item.paymentLink || ''} 
@@ -1112,7 +1112,7 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 placeholder="Ej: 1234567890"
                                                             />
                                                             <p className="text-[9px] text-indigo-600/80 mt-1 leading-tight">
-                                                                Alias/CBU/CVU que recibirá el cliente para abonar la seña.
+                                                                Link Mercado Pago (opcional).
                                                             </p>
                                                         </div>
                                                         {/* INPUT: ALIAS / CVU */}
