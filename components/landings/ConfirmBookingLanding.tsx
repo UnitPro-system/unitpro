@@ -487,7 +487,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             
             {/* Logo en el Hero (Condicional si se desea repetir o si no está en nav) */}
             {config.logoUrl && (
-                <div className="w-24 h-24 md:w-32 md:h-32 bg-white/10 backdrop-blur-md rounded-full p-4 mb-4 flex items-center justify-center shadow-2xl border border-white/20">
+                <div className="w-24 h-24 md:w-32 md:h-32 mb-4 flex items-center justify-center">
                      <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-md"/>
                 </div>
             )}
