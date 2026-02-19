@@ -67,6 +67,7 @@ export async function POST(request: Request) {
     const response = await calendar.events.insert({
       calendarId: 'primary', // Usa el calendario principal del usuario conectado
       requestBody: event,
+      sendUpdates: 'none'
     });
 
     return NextResponse.json({ success: true, eventLink: response.data.htmlLink });
