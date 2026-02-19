@@ -136,6 +136,20 @@ export default function WebEditor({ initialData, model, onClose, onSave }: WebEd
                             initialDomain={data.custom_domain} 
                             initialTitle={data.config_web?.metadata?.title}
                             initialFavicon={data.config_web?.metadata?.faviconUrl}
+                            onMetadataUpdate={(newTitle, newFavicon) => {
+                              // Actualizamos el estado de WebEditor para que no borre el Favicon ni el Título al guardar cambios en las otras pestañas
+                              setData((prevData: any) => ({
+                                ...prevData,
+                                config_web: {
+                                  ...prevData.config_web,
+                                  metadata: {
+                                    ...prevData.config_web?.metadata,
+                                    title: newTitle,
+                                    faviconUrl: newFavicon
+                                  }
+                                }
+                              }));
+                            }}
                           />
                       </div>
 
