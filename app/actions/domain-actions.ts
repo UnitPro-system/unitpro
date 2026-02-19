@@ -92,7 +92,7 @@ export async function removeDomain(domain: string, negocioId: string) {
 
     if (dbError) return { error: dbError.message };
 
-    revalidatePath("/dashboard");
+    revalidatePath("/", "layout");
     return { success: true };
 
   } catch (error: any) {
@@ -169,7 +169,7 @@ export async function updateSiteMetadata(negocioId: string, metadata: { title: s
 
     if (updateError) throw new Error(updateError.message);
 
-    revalidatePath("/dashboard"); // O la ruta que estés usando
+    revalidatePath("/", "layout"); // O la ruta que estés usando
     return { success: true };
 
   } catch (error: any) {

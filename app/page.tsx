@@ -1,364 +1,145 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  ArrowRight, 
-  Play, 
-  Building2, 
-  Globe, 
-  ShieldCheck, 
-  BarChart, 
-  Linkedin, 
-  ChevronLeft, 
-  ChevronRight,
-  Menu,
-  X
-} from "lucide-react";
+import { CheckCircle, ArrowRight, ShieldCheck, LayoutDashboard, Star, Smartphone } from "lucide-react";
 
-export default function CorporateLandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [activeTab, setActiveTab] = useState("consultoria");
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Manejo del scroll para el Navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Datos para las pestañas de servicios
-  const services = [
-    {
-      id: "consultoria",
-      title: "Consultoría Estratégica",
-      icon: <Building2 className="w-6 h-6 mb-4 text-[#f59e0b]" />,
-      content: "Alineamos su infraestructura tecnológica con sus objetivos comerciales globales. Nuestros consultores evalúan sus procesos actuales para diseñar hojas de ruta de transformación digital que garantizan escalabilidad y ventaja competitiva en mercados exigentes."
-    },
-    {
-      id: "auditoria",
-      title: "Auditoría de Sistemas",
-      icon: <ShieldCheck className="w-6 h-6 mb-4 text-[#f59e0b]" />,
-      content: "Evaluación exhaustiva de su ecosistema de TI para identificar vulnerabilidades de seguridad, ineficiencias operativas y brechas de cumplimiento. Entregamos reportes detallados nivel ejecutivo con planes de mitigación accionables."
-    },
-    {
-      id: "analitica",
-      title: "Analítica de Datos",
-      icon: <BarChart className="w-6 h-6 mb-4 text-[#f59e0b]" />,
-      content: "Transformamos volúmenes masivos de datos corporativos en inteligencia de negocios estructurada. Implementamos dashboards en tiempo real y modelos predictivos que empoderan a la junta directiva para la toma de decisiones críticas."
-    },
-    {
-      id: "expansion",
-      title: "Expansión Global",
-      icon: <Globe className="w-6 h-6 mb-4 text-[#f59e0b]" />,
-      content: "Facilitamos la integración tecnológica en fusiones, adquisiciones y aperturas en nuevos mercados. Aseguramos una transición sin fricciones unificando sistemas ERP, CRM y protocolos de seguridad a nivel internacional."
-    }
-  ];
-
-  // Datos para el equipo
-  const team = [
-    { name: "Elena Rostova", role: "Chief Executive Officer", image: "ER" },
-    { name: "Marcus Chen", role: "VP of Engineering", image: "MC" },
-    { name: "Sarah Jenkins", role: "Director of Analytics", image: "SJ" },
-    { name: "David Althaus", role: "Lead Auditor", image: "DA" }
-  ];
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev === team.length - 1 ? 0 : prev + 1));
-  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? team.length - 1 : prev - 1));
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-zinc-900 selection:bg-[#f59e0b]/30">
+    <div className="min-h-screen bg-white font-sans text-zinc-900 selection:bg-blue-100">
       
       {/* --- NAVBAR --- */}
-      <nav 
-        className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
-          scrolled 
-            ? "bg-[#0a192f]/95 backdrop-blur-md border-zinc-800 shadow-lg py-4" 
-            : "bg-[#0a192f] border-transparent py-6"
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter text-white">
-            <div className="w-8 h-8 bg-[#f59e0b] flex items-center justify-center text-[#0a192f]">
-              <Building2 size={20} />
+      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-zinc-100 z-50">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+              <ShieldCheck size={18} />
             </div>
-            Unit<span className="text-[#f59e0b]">Pro</span> Enterprise
+            Unit Pro
           </div>
-          
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300">
-            <Link href="#soluciones" className="hover:text-white transition-colors">Soluciones</Link>
-            <Link href="#servicios" className="hover:text-white transition-colors">Servicios</Link>
-            <Link href="#equipo" className="hover:text-white transition-colors">Nuestro Equipo</Link>
-            <div className="h-4 w-px bg-zinc-700"></div>
-            <Link href="/login" className="hover:text-white transition-colors">Portal de Clientes</Link>
+          <div className="flex items-center gap-4">
             <Link 
-              href="/demo" 
-              className="bg-[#f59e0b] text-[#0a192f] px-6 py-2.5 rounded font-bold hover:bg-[#d97706] transition-colors"
+              href="/login" 
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
             >
-              Solicitar Demo
+              Iniciar Sesión
+            </Link>
+            <Link 
+              href="/register" 
+              className="bg-zinc-900 text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-zinc-800 transition-all hover:scale-105"
+            >
+              Empezar Gratis
             </Link>
           </div>
-
-          {/* Mobile Menu Toggle */}
-          <button className="md:hidden text-white" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </button>
         </div>
       </nav>
 
       {/* --- HERO SECTION --- */}
-      <header className="relative pt-40 pb-32 px-6 bg-[#0a192f] overflow-hidden">
-        {/* Subtle background gradient pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#112240] via-[#0a192f] to-[#0a192f] opacity-80"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
-
-        <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-8 text-white">
-            Infraestructura Tecnológica para <br className="hidden md:block"/>
-            <span className="text-[#f59e0b]">Líderes de la Industria.</span>
-          </h1>
-          <p className="text-xl text-zinc-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
-            Soluciones de software corporativo y consultoría estratégica diseñadas para escalar operaciones, garantizar el cumplimiento y optimizar el rendimiento en entornos empresariales complejos.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link 
-              href="/demo" 
-              className="w-full sm:w-auto px-8 py-4 bg-[#f59e0b] text-[#0a192f] rounded font-bold text-lg hover:bg-[#d97706] transition-all flex items-center justify-center gap-2"
-            >
-              Solicitar demo <ArrowRight size={20} />
-            </Link>
-            <button 
-              className="w-full sm:w-auto px-8 py-4 bg-transparent text-white border border-zinc-600 rounded font-medium text-lg hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
-            >
-              <Play size={20} className="text-[#f59e0b]" /> Ver video
-            </button>
-          </div>
+      <header className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider mb-6 border border-blue-100">
+          Software para Profesionales
         </div>
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-[1.1] mb-6 text-zinc-900">
+          Profesionaliza tu negocio y <span className="text-blue-600">deja de perder clientes.</span>
+        </h1>
+        <p className="text-xl text-zinc-500 mb-10 max-w-2xl mx-auto leading-relaxed">
+          La plataforma todo en uno para técnicos y pymes. Consigue tu propia página web, gestiona tus clientes y mejora tu reputación en Google automáticamente.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link 
+            href="/register" 
+            className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white rounded-full font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:-translate-y-1 flex items-center justify-center gap-2"
+          >
+            Crear mi cuenta ahora <ArrowRight size={20} />
+          </Link>
+          <Link 
+            href="/login" 
+            className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-lg hover:bg-zinc-50 transition-all"
+          >
+            Ver Demo
+          </Link>
+        </div>
+        <p className="mt-6 text-xs text-zinc-400">Prueba gratuita de 14 días. No requiere tarjeta de crédito.</p>
       </header>
 
-      {/* --- TRUST STRIP --- */}
-      <section className="border-b border-zinc-200 bg-zinc-50 py-10">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-6">Con la confianza de empresas Fortune 500</p>
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale">
-            {/* Logos simulados con texto para el ejemplo */}
-            <span className="text-2xl font-black font-serif">AeroCorp</span>
-            <span className="text-2xl font-bold tracking-tighter">GLOBAL<span className="font-light">FINANCE</span></span>
-            <span className="text-2xl font-extrabold italic">NexusInd</span>
-            <span className="text-2xl font-bold uppercase tracking-widest">Vertex</span>
-            <span className="text-2xl font-medium">Quantum Logistics</span>
-          </div>
+      {/* --- MOCKUP VISUAL --- */}
+      <section className="px-4 mb-24">
+        <div className="max-w-5xl mx-auto bg-zinc-900 rounded-2xl p-2 shadow-2xl overflow-hidden ring-1 ring-zinc-900/10">
+            <div className="bg-zinc-800 rounded-xl overflow-hidden relative aspect-video flex items-center justify-center border border-zinc-700">
+                {/* Aquí podrías poner una captura real de tu dashboard luego */}
+                <div className="text-center">
+                    <LayoutDashboard className="mx-auto text-zinc-600 mb-4 w-16 h-16"/>
+                    <p className="text-zinc-500 font-medium">Panel de Control Inteligente</p>
+                </div>
+            </div>
         </div>
       </section>
 
-      {/* --- SERVICIOS (TABS) --- */}
-      <section id="servicios" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-16 md:flex md:justify-between md:items-end">
-            <div className="max-w-2xl">
-              <h2 className="text-sm font-bold text-[#f59e0b] uppercase tracking-widest mb-3">Nuestros Servicios</h2>
-              <h3 className="text-4xl font-bold text-[#0a192f] tracking-tight">Estrategias a la medida de su corporación.</h3>
+      {/* --- CARACTERÍSTICAS --- */}
+      <section className="py-20 bg-zinc-50 border-y border-zinc-200">
+        <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl font-bold tracking-tight mb-4">Todo lo que necesitas para crecer</h2>
+                <p className="text-zinc-500">Deja de usar cuaderno y lápiz. Pásate a la era digital.</p>
             </div>
-          </div>
 
-          <div className="grid md:grid-cols-12 gap-12 min-h-[400px]">
-            {/* Tab Navigation */}
-            <div className="md:col-span-4 flex flex-col gap-2">
-              {services.map((service) => (
-                <button
-                  key={service.id}
-                  onClick={() => setActiveTab(service.id)}
-                  className={`text-left px-6 py-5 border-l-4 transition-all duration-200 font-semibold text-lg ${
-                    activeTab === service.id
-                      ? "border-[#f59e0b] bg-zinc-50 text-[#0a192f]"
-                      : "border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                  }`}
+            <div className="grid md:grid-cols-3 gap-8">
+                <FeatureCard 
+                    icon={<Smartphone className="text-blue-600" />}
+                    title="Tu Web Profesional"
+                    desc="Generamos automáticamente una Landing Page optimizada para celular donde tus clientes pueden ver tus servicios y pedir presupuesto."
+                />
+                <FeatureCard 
+                    icon={<LayoutDashboard className="text-indigo-600" />}
+                    title="Gestión de Clientes (CRM)"
+                    desc="Nunca más pierdas un contacto. Todos los pedidos de presupuesto quedan guardados en tu panel privado para que hagas seguimiento."
+                />
+                <FeatureCard 
+                    icon={<Star className="text-yellow-500" />}
+                    title="Reputación Google"
+                    desc="Nuestro sistema inteligente filtra las malas reseñas para que te lleguen a ti, y envía las 5 estrellas directo a Google Maps."
+                />
+            </div>
+        </div>
+      </section>
+
+      {/* --- CTA FINAL --- */}
+      <section className="py-24 px-6 text-center">
+        <div className="max-w-3xl mx-auto bg-blue-600 rounded-3xl p-12 text-white shadow-2xl shadow-blue-900/20 relative overflow-hidden">
+            <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight">¿Listo para escalar tu negocio?</h2>
+                <p className="text-blue-100 mb-8 text-lg">Únete a cientos de profesionales que ya están digitalizando sus servicios.</p>
+                <Link 
+                    href="/register" 
+                    className="inline-block px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 transition-all hover:scale-105 shadow-lg"
                 >
-                  {service.title}
-                </button>
-              ))}
+                    Comenzar Gratis
+                </Link>
             </div>
-
-            {/* Tab Content */}
-            <div className="md:col-span-8 bg-zinc-50 p-10 md:p-16 border border-zinc-100 flex flex-col justify-center">
-              {services.map((service) => (
-                <div 
-                  key={service.id} 
-                  className={`transition-opacity duration-500 ${activeTab === service.id ? "block opacity-100" : "hidden opacity-0"}`}
-                >
-                  {service.icon}
-                  <h4 className="text-3xl font-bold text-[#0a192f] mb-6">{service.title}</h4>
-                  <p className="text-lg text-zinc-600 leading-relaxed mb-8">
-                    {service.content}
-                  </p>
-                  <Link href="#" className="inline-flex items-center gap-2 text-[#0a192f] font-bold hover:text-[#f59e0b] transition-colors">
-                    Descubrir más <ArrowRight size={16} />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
+            {/* Decoración de fondo */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-900 opacity-20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
         </div>
       </section>
 
-      {/* --- STATS (ANIMATED COUNTERS) --- */}
-      <section className="py-24 bg-[#0a192f] text-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 divide-x divide-zinc-800">
-            <AnimatedCounter end={500} suffix="+" label="Clientes Empresariales" />
-            <AnimatedCounter end={99.9} suffix="%" label="Tiempo de Actividad" isDecimal />
-            <AnimatedCounter end={25} suffix="" label="Países Operando" />
-            <AnimatedCounter end={2.4} suffix="B" label="Datos Procesados (TB)" isDecimal />
-          </div>
-        </div>
-      </section>
-
-      {/* --- TEAM SLIDER --- */}
-      <section id="equipo" className="py-24 bg-zinc-50 border-t border-zinc-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-end mb-16">
-            <div>
-              <h2 className="text-sm font-bold text-[#f59e0b] uppercase tracking-widest mb-3">Liderazgo</h2>
-              <h3 className="text-4xl font-bold text-[#0a192f] tracking-tight">El equipo detrás del éxito.</h3>
-            </div>
-            <div className="hidden md:flex gap-4">
-              <button onClick={prevSlide} className="p-3 border border-zinc-300 hover:border-[#0a192f] hover:bg-[#0a192f] hover:text-white transition-all">
-                <ChevronLeft size={24} />
-              </button>
-              <button onClick={nextSlide} className="p-3 border border-zinc-300 hover:border-[#0a192f] hover:bg-[#0a192f] hover:text-white transition-all">
-                <ChevronRight size={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-hidden relative">
-            <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-            >
-              {team.map((member, index) => (
-                <div key={index} className="min-w-full md:min-w-[50%] lg:min-w-[25%] px-4">
-                  <div className="bg-white border border-zinc-200 p-8 h-full group hover:shadow-xl transition-all">
-                    <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center text-2xl font-bold text-zinc-400 mb-6 group-hover:bg-[#0a192f] group-hover:text-white transition-colors">
-                      {member.image}
-                    </div>
-                    <h4 className="text-xl font-bold text-[#0a192f] mb-1">{member.name}</h4>
-                    <p className="text-zinc-500 text-sm mb-6">{member.role}</p>
-                    <a href="#" className="text-zinc-400 hover:text-[#0077b5] transition-colors inline-block">
-                      <Linkedin size={20} />
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Controles móviles */}
-          <div className="flex md:hidden justify-center gap-4 mt-8">
-            <button onClick={prevSlide} className="p-3 border border-zinc-300 hover:bg-zinc-100"><ChevronLeft size={24} /></button>
-            <button onClick={nextSlide} className="p-3 border border-zinc-300 hover:bg-zinc-100"><ChevronRight size={24} /></button>
-          </div>
-        </div>
-      </section>
-
-      {/* --- MEGA FOOTER --- */}
-      <footer className="bg-[#050c17] text-zinc-400 py-20 border-t border-zinc-800">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
-            <div className="lg:col-span-2">
-              <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter text-white mb-6">
-                <div className="w-8 h-8 bg-[#f59e0b] flex items-center justify-center text-[#0a192f]">
-                  <Building2 size={20} />
-                </div>
-                Unit<span className="text-[#f59e0b]">Pro</span>
-              </div>
-              <p className="text-sm leading-relaxed mb-6 max-w-sm">
-                Proveyendo infraestructura tecnológica robusta y consultoría estratégica para empresas Fortune 500 alrededor del mundo desde 2010.
-              </p>
-              <div className="flex gap-4">
-                <a href="#" className="hover:text-white transition-colors"><Linkedin size={20} /></a>
-                <a href="#" className="hover:text-white transition-colors"><Globe size={20} /></a>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Empresa</h4>
-              <ul className="space-y-4 text-sm">
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Acerca de Nosotros</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Liderazgo</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Inversores</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Carreras</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Soluciones</h4>
-              <ul className="space-y-4 text-sm">
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Consultoría</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Auditoría IT</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Transformación Cloud</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Ciberseguridad</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Legal</h4>
-              <ul className="space-y-4 text-sm">
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Privacidad</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Términos de Servicio</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Cumplimiento (Compliance)</Link></li>
-                <li><Link href="#" className="hover:text-[#f59e0b] transition-colors">Contacto</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-zinc-800 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
-            <p>© {new Date().getFullYear()} UnitPro Enterprise Systems. Todos los derechos reservados.</p>
-            <p>Sede Global: Nueva York, NY.</p>
-          </div>
+      {/* --- FOOTER --- */}
+      <footer className="bg-white border-t border-zinc-100 py-12 text-center text-sm text-zinc-500">
+        <p>© 2024 SaaS Pro. Todos los derechos reservados.</p>
+        <div className="flex justify-center gap-6 mt-4">
+            <Link href="#" className="hover:text-zinc-900">Términos</Link>
+            <Link href="#" className="hover:text-zinc-900">Privacidad</Link>
+            <Link href="#" className="hover:text-zinc-900">Contacto</Link>
         </div>
       </footer>
     </div>
   );
 }
 
-// Subcomponente para los contadores animados
-function AnimatedCounter({ end, suffix, label, isDecimal = false }: { end: number, suffix: string, label: string, isDecimal?: boolean }) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTimestamp: number | null = null;
-    const duration = 2000; // 2 seconds
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      // easeOutQuart
-      const easeProgress = 1 - Math.pow(1 - progress, 4);
-      setCount(easeProgress * end);
-
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      } else {
-        setCount(end);
-      }
-    };
-
-    window.requestAnimationFrame(step);
-  }, [end]);
-
-  return (
-    <div className="text-center px-4">
-      <div className="text-5xl font-bold text-[#f59e0b] mb-3 font-serif">
-        {isDecimal ? count.toFixed(1) : Math.floor(count)}{suffix}
-      </div>
-      <div className="text-zinc-400 text-sm uppercase tracking-widest font-semibold">{label}</div>
-    </div>
-  );
+function FeatureCard({ icon, title, desc }: any) {
+    return (
+        <div className="bg-white p-8 rounded-2xl border border-zinc-100 hover:border-zinc-200 hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center mb-6">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-zinc-900 mb-3">{title}</h3>
+            <p className="text-zinc-500 leading-relaxed">{desc}</p>
+        </div>
+    )
 }
