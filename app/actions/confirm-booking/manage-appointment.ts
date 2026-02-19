@@ -62,6 +62,7 @@ export async function createAppointment(slug: string, bookingData: any) {
     return { success: false, error: error.message }
   }
 }
+
 export async function approveAppointment(appointmentId: string, finalPrice?: number) {
   try {
     // 1. Obtener datos (se mantiene igual)
@@ -101,6 +102,9 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
         const parts = serviceString.split(" - ");
         const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
 
+        // --- MODIFICACIÓN 1: Buscar al profesional en la configuración ---
+        const trabajadorElegido = configWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
+
         const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
             timeZone: 'America/Argentina/Buenos_Aires',
             day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -118,7 +122,11 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
                 profesional: workerName || '',
                 precio_total: `$${precioNumerico}`, // Esto ahora tendrá el valor correcto
                 monto_senia: `$${depositAmount}`,
-                link_pago: "" // Tu lógica de link de pago original
+                link_pago: "", // Tu lógica de link de pago original
+                
+                // --- MODIFICACIÓN 2: Pasar las variables nuevas ---
+                alias: trabajadorElegido?.aliasCvu || '',
+                telefono_trabajador: trabajadorElegido?.telefono || ''
             }
         );
 
@@ -249,6 +257,12 @@ export async function markDepositPaid(turnoId: string) {
                 day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
             });
 
+            // --- MODIFICACIÓN PARA CONFIRMACIÓN: Buscar al profesional ---
+            const serviceString = turno.servicio || "";
+            const parts = serviceString.split(" - ");
+            const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
+            const trabajadorElegido = configWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
+
             const emailData = compileEmailTemplate(
                 'confirmation', 
                 configWeb,
@@ -259,6 +273,9 @@ export async function markDepositPaid(turnoId: string) {
                     precio_total: `$${precioTotal}`,     // <--- Precio Total Real
                     monto_senia: `$${montoPagado}`,      // <--- Lo que ya pagó
                     precio_a_pagar: `$${saldoRestante}`, // <--- Lo que falta pagar
+                    // --- MODIFICACIÓN 2: Pasar las variables nuevas ---
+                    alias: trabajadorElegido?.aliasCvu || '',
+                    telefono_trabajador: trabajadorElegido?.telefono || ''
                 }
             );
 
@@ -294,6 +311,7 @@ export async function markDepositPaid(turnoId: string) {
         return { success: false, error: error.message };
     }
 }
+
 // --- CANCEL ---
 export async function cancelAppointment(appointmentId: string) {
   try {

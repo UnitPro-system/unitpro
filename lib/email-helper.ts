@@ -14,6 +14,8 @@ export function compileEmailTemplate(
     monto_senia?: string;
     link_pago?: string;
     precio_a_pagar?: string;
+    alias?: string; 
+    telefono_trabajador?: string;
   }
 ) {
   // 1. Defaults (Tus textos originales convertidos a plantillas)
@@ -72,8 +74,10 @@ export function compileEmailTemplate(
       .replace(/{{monto_senia}}/g, data.monto_senia || '')
       .replace(/{{link_pago}}/g, data.link_pago || '#')
       .replace(/{{precio_a_pagar}}/g, data.precio_a_pagar || '')
-      .replace(/{{boton_pago}}/g, botonPagoHtml); // Inyecta el botón si existe link
+      .replace(/{{alias}}/g, data.alias || '')
+      .replace(/{{telefono_trabajador}}/g, data.telefono_trabajador || '');
   };
+
 
   subject = replaceVars(subject);
   body = replaceVars(body);

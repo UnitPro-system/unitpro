@@ -698,7 +698,9 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                         Mensaje
                                     </label>
                                     <div className="text-[9px] text-indigo-500 mb-1 bg-indigo-50 p-1.5 rounded border border-indigo-100">
-                                    Variables: {'{{cliente}}'}, {'{{fecha}}'}, {'{{servicio}}'}{activeType === 'deposit' || activeType === 'confirmation' ? ', {{precio_total}}' : ''}{activeType === 'deposit' ? ', {{monto_senia}}' : ''}
+                                        <strong>Generales:</strong> {'{{cliente}}'}, {'{{fecha}}'}, {'{{servicio}}'}{activeType === 'deposit' || activeType === 'confirmation' ? ', {{precio_total}}' : ''}{activeType === 'deposit' ? ', {{monto_senia}}' : ''}
+                                        <br />
+                                        <strong>Del profesional:</strong> {'{{alias}}'}, {'{{telefono_trabajador}}'}
                                     </div>
                                     <textarea 
                                         rows={6}
@@ -1101,17 +1103,55 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                         {/* INPUT: LINK DE PAGO */}
                                                         <div className="bg-indigo-50 p-2 rounded border border-indigo-100">
                                                             <label className="text-[9px] font-bold text-indigo-800 uppercase block mb-1 flex items-center gap-1">
-                                                                <CreditCard size={10}/> Link de Pago (MP)
+                                                                <CreditCard size={10}/> Alias/CBU/CVU (MP)
                                                             </label>
                                                             <input 
                                                                 value={item.paymentLink || ''} 
                                                                 onChange={(e) => updateArrayItem('equipo', i, 'paymentLink', e.target.value)} 
                                                                 className="w-full p-1 bg-white border border-indigo-200 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none"
-                                                                placeholder="Ej: https://mpago.la/..."
+                                                                placeholder="Ej: 1234567890"
                                                             />
                                                             <p className="text-[9px] text-indigo-600/80 mt-1 leading-tight">
-                                                                Link de Mercado Pago (o CBU) que recibirá el cliente para abonar la seña.
+                                                                Alias/CBU/CVU que recibirá el cliente para abonar la seña.
                                                             </p>
+                                                        </div>
+                                                        {/* INPUT: ALIAS / CVU */}
+                                                        <div className="bg-emerald-50 p-2 rounded border border-emerald-100 mt-2">
+                                                            <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-1">
+                                                                Alias / CBU / CVU para seña
+                                                            </label>
+                                                            <input 
+                                                                value={item.aliasCvu || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'aliasCvu', e.target.value)} 
+                                                                className="w-full p-1 bg-white border border-emerald-200 rounded text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
+                                                                placeholder="Ej: mi.alias.mp"
+                                                            />
+                                                        </div>
+
+                                                        {/* INPUT: TELÉFONO */}
+                                                        <div className="bg-zinc-50 p-2 rounded border border-zinc-200 mt-2">
+                                                            <label className="text-[9px] font-bold text-zinc-600 uppercase block mb-1">
+                                                                Teléfono (Trabajador)
+                                                            </label>
+                                                            <input 
+                                                                value={item.telefono || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'telefono', e.target.value)} 
+                                                                className="w-full p-1 bg-white border border-zinc-300 rounded text-[10px] focus:ring-1 focus:ring-zinc-500 outline-none"
+                                                                placeholder="Ej: +549112345678"
+                                                            />
+                                                        </div>
+
+                                                        {/* INPUT: INSTAGRAM */}
+                                                        <div className="bg-pink-50 p-2 rounded border border-pink-100 mt-2">
+                                                            <label className="text-[9px] font-bold text-pink-800 uppercase block mb-1">
+                                                                Instagram (Opcional)
+                                                            </label>
+                                                            <input 
+                                                                value={item.instagram || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'instagram', e.target.value)} 
+                                                                className="w-full p-1 bg-white border border-pink-200 rounded text-[10px] focus:ring-1 focus:ring-pink-500 outline-none"
+                                                                placeholder="Ej: @usuario"
+                                                            />
                                                         </div>
                                                         <div className="mt-2">
                                                             <ImageUpload label="Foto" value={item.imagenUrl} onChange={(url) => updateArrayItem('equipo', i, 'imagenUrl', url)} />

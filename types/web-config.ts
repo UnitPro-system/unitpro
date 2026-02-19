@@ -87,7 +87,10 @@ export interface WorkerItem {
   nombre: string;
   cargo: string;
   imagenUrl?: string;
-  paymentLink?: string; // ID del calendario de Google específico (opcional)
+  paymentLink?: string;
+  aliasCvu?: string;    // Alias/CVU/CBU del trabajador
+  telefono?: string;    // Teléfono del trabajador
+  instagram?: string;
 }
 
 export interface TeamSection {
