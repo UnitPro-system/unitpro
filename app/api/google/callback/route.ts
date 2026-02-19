@@ -33,13 +33,13 @@ export async function GET(request: Request) {
     const { tokens } = await oauth2Client.getToken(code);
     
     // 4. Guardar en Supabase
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
     // Actualizamos el negocio con los tokens
-    const { error: dbError } = await supabase
+    const { error: dbError } = await supabaseAdmin
       .from("negocios")
       .update({
         google_calendar_connected: true,
