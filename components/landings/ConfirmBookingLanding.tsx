@@ -491,7 +491,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                      <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-md"/>
                 </div>
             )}
-            
+
 
             <div className="bg-white/10 backdrop-blur-sm border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-700">
                 <SafeHTML as="h1" html={config.hero.titulo} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 drop-shadow-lg" />
@@ -697,6 +697,18 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         </div>
                         <h3 className="font-bold text-lg" style={{ color: textColor }}>{item.nombre}</h3>
                         <p className="text-zinc-500 max-w-2xl mx-auto">{item.cargo}</p>
+                        {item.instagram && (
+                            <a 
+                                href={`https://instagram.com/${item.instagram.replace('@', '').trim()}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 bg-pink-50 text-pink-600 rounded-full text-xs font-bold hover:bg-pink-100 hover:-translate-y-0.5 transition-all border border-pink-100"
+                            >
+                                <Instagram size={14} />
+                                {/* Asegura que siempre se vea con el @ por más que en el panel lo escriban sin el @ */}
+                                {item.instagram.startsWith('@') ? item.instagram : `@${item.instagram}`}
+                            </a>
+                        )}
                     </div>
                 ))}
             </div>

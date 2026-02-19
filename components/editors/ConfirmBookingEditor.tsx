@@ -1109,7 +1109,7 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 value={item.paymentLink || ''} 
                                                                 onChange={(e) => updateArrayItem('equipo', i, 'paymentLink', e.target.value)} 
                                                                 className="w-full p-1 bg-white border border-indigo-200 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none"
-                                                                placeholder="Ej: 1234567890"
+                                                                placeholder="Ej: https://mpago.la/123456789"
                                                             />
                                                             <p className="text-[9px] text-indigo-600/80 mt-1 leading-tight">
                                                                 Link Mercado Pago (opcional).
