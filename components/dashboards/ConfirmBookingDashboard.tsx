@@ -150,8 +150,8 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   }, [searchParams, router, fetchDashboardData]);
 
   useEffect(() => {
-    if (negocio?.nombre) {
-      document.title = `${negocio.nombre} - Dashboard`;
+    if (negocio?.config_web?.metadata?.title) {
+      document.title = `${negocio.config_web.metadata.title}`;
     }
     
     // Buscar favicon de config web, logo general, o nada.
@@ -319,14 +319,14 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       {/* Usamos h-16 (64px) fijo para poder calcular el top del menú después */}
       <div className="md:hidden bg-white border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
          <div className="flex items-center gap-2">
-            {(negocio.config_web?.logoUrl || negocio.logo_url) ? (
-                <img src={negocio.config_web?.logoUrl || negocio.logo_url} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
+            {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
+                <img src={negocio.config_web?.metadata?.faviconURL || negocio.config_web?.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
             ) : (
                 <div className="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {negocio.nombre ? negocio.nombre.substring(0,1) : "N"}
                 </div>
             )}
-            <span className="font-bold tracking-tight text-sm truncate max-w-[150px]">{negocio.nombre}</span>
+            <span className="font-bold tracking-tight text-sm truncate max-w-[150px]">{negocio.config_web?.hero?.titulo || negocio.nombre}</span>
          </div>
          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-lg active:scale-95 transition-transform">
             {mobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
@@ -373,14 +373,14 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">
-            {(negocio.config_web?.logoUrl || negocio.logo_url) ? (
-                <img src={negocio.config_web?.logoUrl || negocio.logo_url} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
+            {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
+                <img src={negocio.config_web?.metadata?.faviconURL || negocio.config_web?.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
             ) : (
                 <div className="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center text-white font-bold shrink-0">
                     {negocio.nombre ? negocio.nombre.substring(0,1) : "N"}
                 </div>
             )}
-            <span className="font-bold tracking-tight truncate">{negocio.nombre}</span>
+            <span className="font-bold tracking-tight truncate">{negocio.config_web?.hero?.titulo || negocio.nombre}</span>
           </div>
 
           <nav className="space-y-1">
