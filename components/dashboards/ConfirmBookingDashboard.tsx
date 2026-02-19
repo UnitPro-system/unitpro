@@ -151,7 +151,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
 
   useEffect(() => {
     if (negocio?.config_web?.metadata?.title) {
-      document.title = `${negocio.config_web.metadata.title}`;
+      document.title = `${negocio.config_web.metadata.title} - Dashboard`;
     }
     
     // Buscar favicon de config web, logo general, o nada.
