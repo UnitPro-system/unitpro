@@ -731,9 +731,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                  <h2 className="text-3xl font-bold mt-2 mb-4" style={{ color: textColor }}>{config.equipo.titulo}</h2>
                  {config.equipo.subtitulo && <p className="text-zinc-500 max-w-2xl mx-auto">{config.equipo.subtitulo}</p>}
             </div>
-            <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
+            <div className="max-w-7xl mx-auto flex flex-wrap justify-center gap-8">
                 {config.equipo.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex flex-col items-center text-center p-6 bg-white rounded-2xl shadow-sm border border-zinc-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                    <div key={i} className="w-full sm:w-[calc(50%-2rem)] md:w-[280px] flex flex-col items-center text-center p-6 bg-white rounded-2xl shadow-sm border border-zinc-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                         <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-zinc-100 border-2 border-white shadow-md">
                              {item.imagenUrl ? (
                                 <img src={item.imagenUrl} className="w-full h-full object-cover" alt={item.nombre}/>
