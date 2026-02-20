@@ -1429,23 +1429,31 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
     )
 }
 function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negocioId: string }) {
-    const [config, setConfig] = useState(initialConfig || { services: [] });
+    // Inicializamos apuntando a la estructura correcta (servicios.items)
+    const [config, setConfig] = useState(initialConfig || { servicios: { items: [] } });
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
     
-    // Estado para el formulario de nueva promoción
+    // Cambiamos a español para coincidir con ConfirmBookingEditor (titulo, desc, precio)
     const [newPromo, setNewPromo] = useState({
-        name: '',
-        description: '',
-        price: '',
-        duration: '60',
+        titulo: '',
+        desc: '',
+        precio: '',
+        duracion: '60',
         isPromo: true,
-        promoEndDate: '' // Fecha límite (YYYY-MM-DD)
+        promoEndDate: ''
     });
 
-    const handleSave = async (updatedServices: any[]) => {
+    const handleSave = async (updatedItems: any[]) => {
         setLoading(true);
-        const newConfig = { ...config, services: updatedServices };
+        // Actualizamos de forma inmutable el array correcto
+        const newConfig = { 
+            ...config, 
+            servicios: {
+                ...config.servicios,
+                items: updatedItems
+            }
+        };
         
         const { error } = await supabase
             .from('negocios')
@@ -1457,36 +1465,43 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
         } else {
             setConfig(newConfig);
             alert("Cambios guardados correctamente");
-            // Limpiar formulario si fue una creación
-            setNewPromo({ ...newPromo, name: '', description: '', price: '', promoEndDate: '' });
+            setNewPromo({ titulo: '', desc: '', precio: '', duracion: '60', isPromo: true, promoEndDate: '' });
         }
         setLoading(false);
     };
 
     const handleAddPromo = () => {
-        if (!newPromo.name || !newPromo.price || !newPromo.promoEndDate) {
+        if (!newPromo.titulo || !newPromo.precio || !newPromo.promoEndDate) {
             alert("Completa los campos obligatorios (Nombre, Precio, Fecha Límite)");
             return;
         }
 
         const promoService = {
-            id: crypto.randomUUID(), // Generar ID único
-            ...newPromo,
-            price: Number(newPromo.price),
-            duration: Number(newPromo.duration)
+            titulo: newPromo.titulo,
+            desc: newPromo.desc,
+            precio: newPromo.precio, // Se guarda como string o número según prefieras
+            duracion: Number(newPromo.duracion),
+            isPromo: true,
+            promoEndDate: newPromo.promoEndDate
         };
 
-        handleSave([...(config.services || []), promoService]);
+        const currentItems = config.servicios?.items || [];
+        handleSave([...currentItems, promoService]);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = (indexToDelete: number) => {
         if(!confirm("¿Eliminar esta promoción?")) return;
-        const filtered = (config.services || []).filter((s: any) => s.id !== id);
+        const currentItems = config.servicios?.items || [];
+        // Filtramos usando el índice original
+        const filtered = currentItems.filter((_: any, idx: number) => idx !== indexToDelete);
         handleSave(filtered);
     };
 
-    // Filtrar solo las promociones actuales
-    const promos = (config.services || []).filter((s: any) => s.isPromo);
+    // Mapeamos para obtener el index real dentro de config_web.servicios.items
+    const currentItems = config.servicios?.items || [];
+    const promos = currentItems
+        .map((item: any, index: number) => ({ ...item, originalIndex: index }))
+        .filter((s: any) => s.isPromo);
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 space-y-8 max-w-4xl">
@@ -1505,79 +1520,55 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
                     <input 
                         placeholder="Nombre de la Promoción (Ej: 2x1 Corte)" 
                         className="p-2 border rounded-lg w-full"
-                        value={newPromo.name}
-                        onChange={e => setNewPromo({...newPromo, name: e.target.value})}
+                        value={newPromo.titulo}
+                        onChange={e => setNewPromo({...newPromo, titulo: e.target.value})}
                     />
                     <input 
                         type="number" 
                         placeholder="Precio Promocional ($)" 
                         className="p-2 border rounded-lg w-full"
-                        value={newPromo.price}
-                        onChange={e => setNewPromo({...newPromo, price: e.target.value})}
+                        value={newPromo.precio}
+                        onChange={e => setNewPromo({...newPromo, precio: e.target.value})}
                     />
                     <div className="md:col-span-2">
                         <textarea 
                             placeholder="Descripción breve..." 
                             className="p-2 border rounded-lg w-full h-20 resize-none"
-                            value={newPromo.description}
-                            onChange={e => setNewPromo({...newPromo, description: e.target.value})}
+                            value={newPromo.desc}
+                            onChange={e => setNewPromo({...newPromo, desc: e.target.value})}
                         />
                     </div>
                     
-                    {/* NUEVO SELECTOR DE DURACIÓN (STEPPER) */}
+                    {/* SELECTOR DE DURACIÓN (STEPPER) */}
                     <div>
                         <label className="block text-xs font-bold text-zinc-500 mb-2">Duración del Servicio</label>
-                        
                         <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-zinc-200 w-full max-w-[250px]">
-                            {/* Botón Restar */}
                             <button 
                                 onClick={() => {
-                                    const current = Number(newPromo.duration);
-                                    // Lógica: Si es <= 60 baja de 15 en 15. Si es > 60 baja de 30 en 30. Minimo 15.
-                                    let newVal = current;
-                                    if (current <= 60) {
-                                        newVal = Math.max(15, current - 15);
-                                    } else {
-                                        newVal = current - 30;
-                                    }
-                                    setNewPromo({ ...newPromo, duration: newVal.toString() });
+                                    const current = Number(newPromo.duracion);
+                                    let newVal = current <= 60 ? Math.max(15, current - 15) : current - 30;
+                                    setNewPromo({ ...newPromo, duracion: newVal.toString() });
                                 }}
                                 className="w-10 h-10 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-lg transition-colors border border-zinc-100 active:scale-95"
                             >
                                 <Minus size={18} />
                             </button>
-
-                            {/* Visualizador */}
                             <div className="flex-1 text-center">
                                 <span className="text-lg font-bold text-zinc-900 block">
-                                    {Number(newPromo.duration) < 60 
-                                        ? `${newPromo.duration} min`
-                                        : Number(newPromo.duration) === 60 
+                                    {Number(newPromo.duracion) < 60 
+                                        ? `${newPromo.duracion} min`
+                                        : Number(newPromo.duracion) === 60 
                                             ? "1 hora"
-                                            : (() => {
-                                                const h = Math.floor(Number(newPromo.duration) / 60);
-                                                const m = Number(newPromo.duration) % 60;
-                                                return `${h}h ${m > 0 ? `${m}m` : ''}`;
-                                              })()
+                                            : `${Math.floor(Number(newPromo.duracion) / 60)}h ${Number(newPromo.duracion) % 60 > 0 ? `${Number(newPromo.duracion) % 60}m` : ''}`
                                     }
                                 </span>
-                                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">
-                                    Tiempo
-                                </span>
+                                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Tiempo</span>
                             </div>
-
-                            {/* Botón Sumar */}
                             <button 
                                 onClick={() => {
-                                    const current = Number(newPromo.duration);
-                                    // Lógica: Si es < 60 sube 15. Si es >= 60 sube 30.
-                                    let newVal = current;
-                                    if (current < 60) {
-                                        newVal = current + 15;
-                                    } else {
-                                        newVal = current + 30;
-                                    }
-                                    setNewPromo({ ...newPromo, duration: newVal.toString() });
+                                    const current = Number(newPromo.duracion);
+                                    let newVal = current < 60 ? current + 15 : current + 30;
+                                    setNewPromo({ ...newPromo, duracion: newVal.toString() });
                                 }}
                                 className="w-10 h-10 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-colors shadow-sm active:scale-95"
                             >
@@ -1613,19 +1604,19 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
                 ) : (
                     <div className="grid gap-4">
                         {promos.map((promo: any) => (
-                            <div key={promo.id} className="bg-white p-4 rounded-xl border border-l-4 border-l-pink-500 shadow-sm flex justify-between items-center">
+                            <div key={promo.originalIndex} className="bg-white p-4 rounded-xl border border-l-4 border-l-pink-500 shadow-sm flex justify-between items-center">
                                 <div>
-                                    <h4 className="font-bold text-zinc-900">{promo.name}</h4>
-                                    <p className="text-sm text-zinc-500 line-clamp-1">{promo.description}</p>
+                                    <h4 className="font-bold text-zinc-900">{promo.titulo}</h4>
+                                    <p className="text-sm text-zinc-500 line-clamp-1">{promo.desc}</p>
                                     <div className="flex items-center gap-4 mt-2 text-xs font-medium">
-                                        <span className="text-green-600 bg-green-50 px-2 py-1 rounded">${promo.price}</span>
+                                        <span className="text-green-600 bg-green-50 px-2 py-1 rounded">${promo.precio}</span>
                                         <span className="text-pink-600 bg-pink-50 px-2 py-1 rounded flex items-center gap-1">
                                             <Clock size={12}/> Vence: {promo.promoEndDate}
                                         </span>
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => handleDelete(promo.id)}
+                                    onClick={() => handleDelete(promo.originalIndex)}
                                     className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                     title="Eliminar promoción"
                                 >
