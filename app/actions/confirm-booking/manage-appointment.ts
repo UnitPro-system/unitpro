@@ -102,7 +102,7 @@ export async function createAppointment(slug: string, bookingData: any) {
 
 export async function approveAppointment(appointmentId: string, finalPrice?: number) {
   try {
-    // 1. Obtener datos (se mantiene igual)
+    // 1. Obtener datos
     const { data: turno, error: tErr } = await supabase
       .from('turnos')
       .select('*, negocios(*)')
@@ -112,34 +112,63 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     if (tErr || !turno) throw new Error('Turno no encontrado')
     const negocio = turno.negocios
     
-    // ... (validaciones y auth de Google se mantienen igual) ...
+    // 2. Auth y Validación de Google Calendar
+    if (!negocio?.google_refresh_token) {
+        throw new Error('El negocio no tiene conectado Google Calendar')
+    }
 
-    // 3. Determinar flujo (se mantiene igual)
+    const auth = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID, 
+        process.env.GOOGLE_CLIENT_SECRET
+    );
+    auth.setCredentials({ refresh_token: negocio.google_refresh_token });
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // 3. Determinar flujo
     const configWeb = negocio.config_web || {};
     const teamConfig = configWeb.equipo || {};
     const bookingConfig = configWeb.booking || { requestDeposit: false, depositPercentage: 50 };
-    const availabilityMode = teamConfig.availabilityMode || 'global';
     
     const necesitaSenia = bookingConfig.requestDeposit && bookingConfig.depositPercentage > 0;
     
     let nuevoEstado = necesitaSenia ? 'esperando_senia' : 'confirmado';
     let googleEventId = null;
 
-    // ... (Lógica del CASO A y CASO B se mantiene igual) ...
-    // Solo me aseguro de que uses el precioNumerico correctamente aquí abajo
+    // --- CREACIÓN DEL EVENTO EN GOOGLE CALENDAR ---
+    // Solo creamos el evento AHORA si NO necesita seña. 
+    // Si necesita seña, se crea después cuando pagan.
+    if (!necesitaSenia) {
+        try {
+            const event = await calendar.events.insert({
+                calendarId: 'primary',
+                requestBody: {
+                    summary: `Turno: ${turno.cliente_nombre}`,
+                    description: `Servicio: ${turno.servicio}\nTel: ${turno.cliente_telefono}\nCONFIRMADO`,
+                    start: { dateTime: turno.fecha_inicio, timeZone: 'America/Argentina/Buenos_Aires' },
+                    end: { dateTime: turno.fecha_fin, timeZone: 'America/Argentina/Buenos_Aires' },
+                    attendees: turno.cliente_email ? [{ email: turno.cliente_email }] : [],
+                    extendedProperties: { shared: { saas_service_type: 'confirm_booking' } },
+                    reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 1440 }] }
+                }
+            });
+            // Guardamos el ID para actualizar Supabase
+            googleEventId = event.data.id;
+        } catch (calendarError) {
+            console.error("Error al crear evento en Calendar:", calendarError);
+            // Opcional: podrías lanzar un error aquí si quieres que falle todo si Google falla
+        }
+    }
+    // ---------------------------------------------
 
     // 4. Enviar Email
     if (turno.cliente_email) {
-        // Calculamos montos (si finalPrice es undefined usamos 0)
         const precioNumerico = finalPrice || 0;
         const depositAmount = necesitaSenia ? (precioNumerico * bookingConfig.depositPercentage) / 100 : 0;
         
-        // ... (resto de lógica de preparación del servicio y workerName) ...
         const serviceString = turno.servicio || "";
         const parts = serviceString.split(" - ");
         const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
 
-        // --- MODIFICACIÓN 1: Buscar al profesional en la configuración ---
         const trabajadorElegido = configWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
 
         const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
@@ -157,59 +186,51 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
                 servicio: turno.servicio,
                 fecha: fechaLegible,
                 profesional: workerName || '',
-                precio_total: `$${precioNumerico}`, // Esto ahora tendrá el valor correcto
+                precio_total: `$${precioNumerico}`, 
                 monto_senia: `$${depositAmount}`,
-                link_pago: "", // Tu lógica de link de pago original
-                
-                // --- MODIFICACIÓN 2: Pasar las variables nuevas ---
+                link_pago: "", 
                 alias: trabajadorElegido?.aliasCvu || '',
                 telefono_trabajador: trabajadorElegido?.telefono || ''
             }
         );
 
-        if (emailData && turno.cliente_email) {
-    // 1. Necesitas configurar el cliente de Auth (esto falta en tu función actual)
-    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-    auth.setCredentials({ refresh_token: negocio.google_refresh_token });
-    const gmail = google.gmail({ version: 'v1', auth });
+        if (emailData) {
+            const gmail = google.gmail({ version: 'v1', auth });
 
-    // 2. Preparar el mensaje RFC 2822
-    const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
-    const messageParts = [
-        `To: ${turno.cliente_email}`,
-        'Content-Type: text/html; charset=utf-8',
-        'MIME-Version: 1.0',
-        `Subject: ${utf8Subject}`,
-        '',
-        emailData.html,
-    ];
-    
-    const rawMessage = Buffer.from(messageParts.join('\n'))
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+            const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+            const messageParts = [
+                `To: ${turno.cliente_email}`,
+                'Content-Type: text/html; charset=utf-8',
+                'MIME-Version: 1.0',
+                `Subject: ${utf8Subject}`,
+                '',
+                emailData.html,
+            ];
+            
+            const rawMessage = Buffer.from(messageParts.join('\n'))
+                .toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
 
-    // 3. ENVIAR EL CORREO
-    try {
-        await gmail.users.messages.send({ 
-            userId: 'me', 
-            requestBody: { raw: rawMessage } 
-        });
-    } catch (e) {
-        console.error("Error enviando correo de aprobación/seña:", e);
-        // Opcional: podrías decidir si lanzar el error o solo loguearlo
-    }
-}
+            try {
+                await gmail.users.messages.send({ 
+                    userId: 'me', 
+                    requestBody: { raw: rawMessage } 
+                });
+            } catch (e) {
+                console.error("Error enviando correo:", e);
+            }
+        }
     }
 
-    // 5. Actualizar DB (CORRECCIÓN CRÍTICA AQUÍ)
+    // 5. Actualizar DB 
     const { error } = await supabase
       .from('turnos')
       .update({ 
           estado: nuevoEstado, 
-          google_event_id: googleEventId,
-          precio_total: finalPrice || 0 // <--- ¡AQUÍ GUARDAMOS EL PRECIO!
+          google_event_id: googleEventId, // Guardamos el ID del calendario aquí
+          precio_total: finalPrice || 0 
       })
       .eq('id', appointmentId)
 
