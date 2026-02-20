@@ -651,9 +651,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {section.type === 'about' && (
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className={section.imagenUrl ? 'order-1' : ''}>
-                        <h2 className="text-3xl font-bold mb-6 text-zinc-900">{section.titulo}</h2>
-                        {/* Usamos SafeHTML para que respete saltos de línea */}
-                        <SafeHTML as="div" html={section.texto} className="text-lg text-zinc-600 leading-relaxed whitespace-pre-line" />
+                        <h2 className="text-3xl font-bold mb-6">{section.titulo}</h2>
+                        <SafeHTML as="div" html={section.texto} className="text-lg opacity-80 leading-relaxed whitespace-pre-line" />
                     </div>
                     {section.imagenUrl && (
                         <div className={`overflow-hidden shadow-xl h-[400px] ${cardRadius}`}>
@@ -667,7 +666,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             {/* Si es GALERÍA */}
             {section.type === 'gallery' && (
                 <div>
-                    <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
+                    <h2 className="text-3xl font-bold mb-12 text-center">{section.titulo}</h2>
                     <div className="relative">
                         
                         {/* Botón Izquierda */}
@@ -742,7 +741,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                              )}
                         </div>
                         <h3 className="font-bold text-lg" style={{ color: textColor }}>{item.nombre}</h3>
-                        <p className="text-zinc-500 max-w-2xl mx-auto">{item.cargo}</p>
+                        <p className="opacity-70 max-w-2xl mx-auto">{item.cargo}</p>
                         {item.instagram && (
                             <a 
                                 href={`https://instagram.com/${item.instagram.replace('@', '').trim()}`}
@@ -770,7 +769,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 <h2 className="text-3xl font-bold mb-4" style={{ color: textColor }}>
                     Lo que dicen nuestros clientes
                 </h2>
-                <p className="text-zinc-500 mb-8">
+                <p className="opacity-70 mb-8">
                     La confianza de nuestros clientes es nuestra mejor carta de presentación.
                 </p>
                 <button 
@@ -1353,8 +1352,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 function Modal({ children, onClose, radiusClass }: any) {
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-md animate-in fade-in">
-          <div className={`bg-white shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 ${radiusClass}`}>
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-zinc-600"><X size={20} /></button>
+          {/* Agregamos text-zinc-900 aquí para que todo el texto dentro sea oscuro por defecto */}
+          <div className={`bg-white text-zinc-900 shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 ${radiusClass}`}>
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-zinc-900 transition-colors"><X size={20} /></button>
             {children}
           </div>
         </div>

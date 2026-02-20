@@ -21,7 +21,9 @@ export interface ServiceItem {
   desc: string;
   precio?: string;       
   duracion: number;      // En minutos,
-  imagenUrl?: string;    
+  imagenUrl?: string;
+  isPromo?: boolean;
+  promoEndDate?: string | null;    
 }
 
 export interface ServicesSection {
