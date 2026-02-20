@@ -71,6 +71,20 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         scrollContainerRef.current.scrollBy({ left: 340, behavior: 'smooth' });
     }
   };
+
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollGalleryPrev = () => {
+    if (galleryScrollRef.current) {
+        galleryScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollGalleryNext = () => {
+    if (galleryScrollRef.current) {
+        galleryScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
   
   // Mostrar valoraciones
   useEffect(() => {
@@ -532,8 +546,12 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     {[...(config.servicios?.items || []), ...(negocio.config_web?.services || [])].map((service: any, i: number) => {
                         
                         // LÓGICA DE PROMOCIÓN
-                        const isPromo = service.isPromo && service.promoEndDate;
-                        const isExpired = isPromo && new Date(service.promoEndDate) < new Date();
+                        let isPromo = service.isPromo && service.promoEndDate;
+
+                        // Si la promo expiró (sumamos T23:59:59 para evitar bugs de zona horaria), vuelve a ser un servicio normal
+                        if (isPromo && new Date(service.promoEndDate + 'T23:59:59') < new Date()) {
+                            isPromo = false; 
+                        }
 
                         // Normalizamos nombres de campos
                         const titulo = service.name || service.titulo;
@@ -543,7 +561,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         const imagenUrl = service.image || service.imagenUrl; // Soporte para ambos campos
 
                         // Si la promo expiró, no la mostramos
-                        if (isExpired) return null;
+                        
 
                         return (
                             <div 
@@ -646,30 +664,58 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             )}
 
             {/* Si es GALERÍA */}
+            {/* Si es GALERÍA */}
             {section.type === 'gallery' && (
                 <div>
                     <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{section.titulo}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {section.imagenes?.map((img: any, i: number) => (
-                            <div 
-                                key={i} 
-                                onClick={() => setSelectedImage(img.url)} // <--- ESTO ES NUEVO
-                                className={`group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`} // <--- cursor-zoom-in AGREGADO
+                    <div className="relative">
+                        
+                        {/* Botón Izquierda */}
+                        {section.imagenes?.length > 3 && (
+                            <button 
+                                onClick={scrollGalleryPrev}
+                                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 z-20 bg-white p-3 rounded-full shadow-lg border border-zinc-100 text-zinc-600 hover:text-indigo-600 hover:scale-110 transition-all"
                             >
-                                <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
-                                
-                                {/* --- OVERLAY NUEVO (Icono al pasar mouse) --- */}
-                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                     <Maximize2 className="text-white drop-shadow-md" size={24} />
-                                </div>
+                                <ChevronLeft size={24} />
+                            </button>
+                        )}
 
-                                {img.descripcion && (
-                                    <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {img.descripcion}
+                        {/* Contenedor Scrollable */}
+                        <div 
+                            ref={galleryScrollRef}
+                            className={`flex gap-4 overflow-x-auto pb-8 px-2 snap-x snap-mandatory ${section.imagenes?.length > 3 ? 'cursor-grab active:cursor-grabbing' : 'justify-center'}`}
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            {section.imagenes?.map((img: any, i: number) => (
+                                <div 
+                                    key={i} 
+                                    onClick={() => setSelectedImage(img.url)}
+                                    className={`snap-center shrink-0 w-[70vw] md:w-[250px] lg:w-[300px] group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`}
+                                >
+                                    <img src={img.url} alt={img.descripcion} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"/>
+                                    
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                         <Maximize2 className="text-white drop-shadow-md" size={24} />
                                     </div>
-                                )}
-                            </div>
-                        ))}
+
+                                    {img.descripcion && (
+                                        <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {img.descripcion}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Botón Derecha */}
+                        {section.imagenes?.length > 3 && (
+                            <button 
+                                onClick={scrollGalleryNext}
+                                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-5 z-20 bg-white p-3 rounded-full shadow-lg border border-zinc-100 text-zinc-600 hover:text-indigo-600 hover:scale-110 transition-all"
+                            >
+                                <ChevronRight size={24} />
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
@@ -967,16 +1013,19 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
                         return allServices.map((item: any, i: number) => {
                             // LÓGICA DE PROMO
-                            const isPromo = item.isPromo && item.promoEndDate;
-                            const isExpired = isPromo && new Date(item.promoEndDate) < new Date();
-                            
+                            let isPromo = item.isPromo && item.promoEndDate;
+
+                            // Si la promo expiró, vuelve a ser un servicio normal en lugar de desaparecer
+                            if (isPromo && new Date(item.promoEndDate + 'T23:59:59') < new Date()) {
+                                isPromo = false; 
+                            }
+
                             // Normalizar datos
                             const titulo = item.name || item.titulo;
                             const precio = item.price || item.precio;
                             const desc = item.description || item.desc;
                             const duracion = item.duration || item.duracion || 60;
 
-                            if (isExpired) return null; // No mostrar promos vencidas
 
                             return (
                                 <button 

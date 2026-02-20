@@ -1034,11 +1034,24 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 type="checkbox" 
                                                                 checked={item.isPromo || false}
                                                                 onChange={(e) => {
-                                                                    updateArrayItem('servicios', i, 'isPromo', e.target.checked);
-                                                                    // Si la desactiva, limpiamos la fecha para evitar bugs
-                                                                    if(!e.target.checked) {
-                                                                        updateArrayItem('servicios', i, 'promoEndDate', null);
-                                                                    }
+                                                                    const checked = e.target.checked;
+                                                                    setConfig((prev: any) => {
+                                                                        const newItems = [...(prev.servicios?.items || [])];
+                                                                        newItems[i] = { ...newItems[i], isPromo: checked };
+                                                                        
+                                                                        // Si activa la promo y no hay fecha, le damos 30 días por defecto
+                                                                        if (checked && !newItems[i].promoEndDate) {
+                                                                            const future = new Date();
+                                                                            future.setDate(future.getDate() + 30);
+                                                                            newItems[i].promoEndDate = future.toISOString().split('T')[0];
+                                                                        } else if (!checked) {
+                                                                            newItems[i].promoEndDate = null; // Limpiamos si desactiva
+                                                                        }
+                                                                        
+                                                                        const newConfig = { ...prev, servicios: { ...prev.servicios, items: newItems } };
+                                                                        sendConfigUpdate(newConfig);
+                                                                        return newConfig;
+                                                                    });
                                                                 }}
                                                                 className="w-4 h-4 accent-pink-600 rounded cursor-pointer"
                                                             />
