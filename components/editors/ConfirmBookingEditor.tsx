@@ -41,7 +41,8 @@ const DEFAULT_CONFIG = {
   },
   booking: {
     requestDeposit: false,
-    depositPercentage: 50
+    depositPercentage: 50,
+    requireManualConfirmation: true
   },
   equipo: { 
     mostrar: false, 
@@ -607,23 +608,41 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 </div>
             </div>
-            {/* BLOQUE: POLÍTICA DE SEÑAS Y PAGOS (NUEVO) */}
-                <div className="pt-4 border-t border-zinc-100 mt-4">
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
-                        <DollarSign size={12}/> Política de Reservas
-                    </label>
+            {/* BLOQUE: POLÍTICA DE SEÑAS Y PAGOS Y RESERVAS */}
+            <div className="pt-4 border-t border-zinc-100 mt-4">
+                <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
+                    <DollarSign size={12}/> Política de Reservas
+                </label>
+                
+                <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-3">
                     
-                    <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 space-y-3">
-                        {/* Switch: Pedir Seña */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-zinc-700">Solicitar Seña/Depósito</span>
-                            <button 
-                                onClick={() => updateConfigField('booking', 'requestDeposit', !config.booking?.requestDeposit)}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config.booking?.requestDeposit ? 'bg-indigo-600' : 'bg-zinc-300'}`}
-                            >
-                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.booking?.requestDeposit ? 'translate-x-5' : 'translate-x-1'}`}/>
-                            </button>
+                    {/* --- NUEVO: Switch Confirmación Manual --- */}
+                    <div className="flex items-center justify-between pb-3 border-b border-zinc-200/60">
+                        <div className="pr-4">
+                            <span className="text-sm font-medium text-zinc-700">Confirmación Manual</span>
+                            <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">
+                                Si está activo, deberás aprobar cada turno. Si lo apagas, se confirmarán al instante.
+                            </p>
                         </div>
+                        <button 
+                            onClick={() => updateConfigField('booking', 'requireManualConfirmation', !(config.booking?.requireManualConfirmation ?? true))}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${(config.booking?.requireManualConfirmation ?? true) ? 'bg-indigo-600' : 'bg-zinc-300'}`}
+                        >
+                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${(config.booking?.requireManualConfirmation ?? true) ? 'translate-x-5' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
+                    {/* --- FIN NUEVO --- */}
+
+                    {/* Switch: Pedir Seña (Este es el que ya tenías) */}
+                    <div className="flex items-center justify-between pt-1">
+                        <span className="text-sm font-medium text-zinc-700">Solicitar Seña/Depósito</span>
+                        <button 
+                            onClick={() => updateConfigField('booking', 'requestDeposit', !config.booking?.requestDeposit)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${config.booking?.requestDeposit ? 'bg-indigo-600' : 'bg-zinc-300'}`}
+                        >
+                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.booking?.requestDeposit ? 'translate-x-5' : 'translate-x-1'}`}/>
+                        </button>
+                    </div>
 
                         {/* Input: Porcentaje (Solo si está activo) */}
                         {config.booking?.requestDeposit && (

@@ -46,16 +46,53 @@ export async function createAppointment(slug: string, bookingData: any) {
     
     const turnoExistente = turnosExistentes && turnosExistentes.length > 0 ? turnosExistentes[0] : null;
 
+    let turnoGuardadoId = null;
+
     if (turnoExistente) {
       const { error } = await supabase.from('turnos').update(turnoData).eq('id', turnoExistente.id)
       if (error) throw error
+      turnoGuardadoId = turnoExistente.id;
     } else {
-      const { error } = await supabase.from('turnos').insert(turnoData)
+      const { data: nuevoTurno, error } = await supabase.from('turnos').insert(turnoData).select('id').single()
       if (error) throw error
+      turnoGuardadoId = nuevoTurno.id;
     }
 
+    // --- NUEVO: LÓGICA DE AUTO-CONFIRMACIÓN DESDE EL BACKEND ---
+    const configWeb = negocio.config_web || {};
+    const requireManual = configWeb.booking?.requireManualConfirmation ?? true;
+
+    if (!requireManual && turnoGuardadoId) {
+        
+        // 1. Buscamos el servicio en la configuración del negocio
+        const allServices = [
+            ...(configWeb.servicios?.items || []), 
+            ...(configWeb.services || [])
+        ];
+        
+        // Comparamos el nombre que llegó con los títulos de los servicios guardados
+        const serviceFound = allServices.find((s: any) => 
+            (s.titulo === bookingData.service || s.name === bookingData.service)
+        );
+
+        // 2. Extraemos el precio y lo convertimos a número limpio
+        const rawPrice = serviceFound?.precio || serviceFound?.price || 0;
+        const finalPrice = typeof rawPrice === 'string' ? Number(rawPrice.replace(/[^0-9.-]+/g,"")) : Number(rawPrice);
+
+        // 3. Ejecutamos la aprobación automática internamente
+        const approvalRes = await approveAppointment(turnoGuardadoId, finalPrice);
+        
+        if (!approvalRes.success) {
+            console.error("Error en auto-confirmación:", approvalRes.error);
+        }
+        
+        revalidatePath('/dashboard')
+        return { success: true, pending: false } // Avisamos al frontend que NO quedó pendiente
+    }
+    // ------------------------------------------------------------
+
     revalidatePath('/dashboard')
-    return { success: true, pending: true } // Avisamos que quedó pendiente
+    return { success: true, pending: true } // Avisamos al frontend que SÍ quedó pendiente
 
   } catch (error: any) {
     console.error('Error creating request:', error)

@@ -118,7 +118,8 @@ export interface LocationSection {
 }
 export interface BookingConfig {
   requestDeposit: boolean;     // ¿Pide seña?
-  depositPercentage?: number;  // Porcentaje (ej: 50)
+  depositPercentage?: number;
+  requireManualConfirmation?: boolean;  // Porcentaje (ej: 50)
 }
 export interface EmailTemplate {
   enabled: boolean;
@@ -158,6 +159,7 @@ export interface WebConfig {
     background?: string;
     accent?: string;
   };
+  
 
   // Secciones de la Landing Page
   hero: HeroSection;
