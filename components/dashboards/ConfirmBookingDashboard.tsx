@@ -484,9 +484,23 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                                     <div key={t.id} className="bg-white p-5 rounded-2xl border border-orange-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
                                         <div className="flex-1 pl-2">
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
                                                 <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
-                                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full uppercase">Falta Seña</span>
+                                                <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-full uppercase">Nuevo</span>
+                                                
+                                                {/* NUEVO BOTÓN DE WHATSAPP */}
+                                                {t.cliente_telefono && (
+                                                    <a 
+                                                        href={`https://wa.me/${t.cliente_telefono.replace(/\D/g, '')}`}
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="ml-1 flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-100 transition-colors"
+                                                        title="Contactar por WhatsApp"
+                                                    >
+                                                        <MessageCircle size={14} />
+                                                        WhatsApp
+                                                    </a>
+                                                )}
                                             </div>
                                             <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
                                             <div className="flex gap-4 mt-2 text-xs text-zinc-400">
@@ -540,9 +554,23 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                             turnos.filter(t => t.estado === 'pendiente').map((t) => (
                                 <div key={t.id} className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
                                                 <span className="font-bold text-lg text-zinc-900">{t.cliente_nombre}</span>
                                                 <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-full uppercase">Nuevo</span>
+                                                
+                                                {/* NUEVO BOTÓN DE WHATSAPP */}
+                                                {t.cliente_telefono && (
+                                                    <a 
+                                                        href={`https://wa.me/${t.cliente_telefono.replace(/\D/g, '')}`}
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="ml-1 flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-100 transition-colors"
+                                                        title="Contactar por WhatsApp"
+                                                    >
+                                                        <MessageCircle size={14} />
+                                                        WhatsApp
+                                                    </a>
+                                                )}
                                             </div>
                                             <p className="text-zinc-600 text-sm font-medium">{t.servicio}</p>
                                             <div className="flex flex-wrap gap-4 mt-3 text-xs text-zinc-400 font-mono">
