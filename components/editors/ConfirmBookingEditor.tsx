@@ -1024,6 +1024,45 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                             onChange={(url) => updateArrayItem('servicios', i, 'imagenUrl', url)} 
                                                         />
                                                     </div>
+                                                    {/* --- LÓGICA DE PROMOCIONES (NUEVO) --- */}
+                                                    <div className="mt-3 pt-3 border-t border-zinc-100">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-1">
+                                                                ¿Es una promoción especial?
+                                                            </label>
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={item.isPromo || false}
+                                                                onChange={(e) => {
+                                                                    updateArrayItem('servicios', i, 'isPromo', e.target.checked);
+                                                                    // Si la desactiva, limpiamos la fecha para evitar bugs
+                                                                    if(!e.target.checked) {
+                                                                        updateArrayItem('servicios', i, 'promoEndDate', null);
+                                                                    }
+                                                                }}
+                                                                className="w-4 h-4 accent-pink-600 rounded cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        
+                                                        {/* Mostrar el selector de fecha SOLO si el checkbox está activo */}
+                                                        {item.isPromo && (
+                                                            <div className="animate-in fade-in slide-in-from-top-1 mt-2">
+                                                                <label className="text-[10px] font-bold text-pink-600 uppercase mb-1 block">
+                                                                    Fecha de Vencimiento de Promo
+                                                                </label>
+                                                                <input 
+                                                                    type="date"
+                                                                    min={new Date().toISOString().split('T')[0]} // No permite fechas pasadas
+                                                                    value={item.promoEndDate || ''}
+                                                                    onChange={(e) => updateArrayItem('servicios', i, 'promoEndDate', e.target.value)}
+                                                                    className="w-full p-2 border border-pink-200 rounded-lg text-sm bg-pink-50 text-pink-900 focus:ring-2 focus:ring-pink-500 outline-none"
+                                                                />
+                                                                <p className="text-[9px] text-pink-600/80 mt-1">
+                                                                    La oferta desaparecerá automáticamente cuando pase esta fecha.
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -1032,7 +1071,7 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                     {/* BOTÓN AGREGAR SERVICIO */}
                                     <button 
                                         onClick={() => {
-                                            const newItem = { titulo: "Nuevo Servicio", desc: "", precio: "", duracion: 60 };
+                                            const newItem = { titulo: "Nuevo Servicio", desc: "", precio: "", duracion: 60, isPromo: false, promoEndDate: null };
                                             const newItems = [...(config.servicios.items || []), newItem];
                                             updateConfigField('servicios', 'items', newItems);
                                         }}
