@@ -187,6 +187,7 @@ export default function DashboardAgencia() {
 
         // 2. Insertar en Base de Datos
         const { error: dbError } = await supabase.from("negocios").insert([{
+            user_id: authData.user.id,
             email: newClientData.email,
             agency_id: agency.id,
             nombre: newClientData.nombre,
