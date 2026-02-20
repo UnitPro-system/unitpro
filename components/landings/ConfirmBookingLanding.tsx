@@ -179,6 +179,18 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         return;
     }
 
+    if (bookingData.service?.isPromo && bookingData.service?.promoEndDate) {
+        const selectedDate = new Date(`${dateStr}T00:00:00`);
+        const limitDate = new Date(`${bookingData.service.promoEndDate}T23:59:59`);
+        
+        if (selectedDate > limitDate) {
+            alert(`Esta promoción solo es válida para turnos hasta el ${limitDate.toLocaleDateString('es-AR')}. Por favor elige una fecha anterior.`);
+            setBookingData(prev => ({ ...prev, date: "" })); 
+            setBusySlots([]);
+            return;
+        }
+    }
+
     // Flujo normal
     setBookingData(prev => ({ ...prev, date: dateStr, time: "" })); 
     setBusySlots([]); 
@@ -286,7 +298,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     const serviceName = bookingData.service?.name || bookingData.service?.titulo || "Servicio Agendado";
 
     const payload = {
-        service: serviceName, // <--- Aquí enviamos el nombre correcto
+        service: serviceName, 
+        precio: bookingData.service?.price || bookingData.service?.precio || 0, // <--- NUEVO: Enviamos el precio
         date: bookingData.date,
         time: bookingData.time,
         clientName: bookingData.clientName,

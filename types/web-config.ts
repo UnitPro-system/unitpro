@@ -26,6 +26,7 @@ export interface ServiceItem {
   promoEndDate?: string | null;    
 }
 
+
 export interface ServicesSection {
   mostrar: boolean;
   titulo: string;
@@ -167,6 +168,7 @@ export interface WebConfig {
   hero: HeroSection;
   proyectos?: ProjectsSection;
   servicios?: ServicesSection;
+  services?: ServiceItem[];
   equipo?: TeamSection;
   ubicacion?: LocationSection;
   testimonios?: TestimonialsSection; // Opcional
