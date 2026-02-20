@@ -727,7 +727,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         <section id="equipo" className="py-24 px-6 bg-zinc-50 border-t border-zinc-200">
             <div className="max-w-7xl mx-auto text-center mb-12">
                  <span className="text-sm font-bold uppercase tracking-wider opacity-60">Nuestro Equipo</span>
-                 <h2 className="text-3xl font-bold mt-2 mb-4" style={{ color: textColor }}>{config.equipo.titulo}</h2>
+                 <h2 className="text-3xl font-bold mt-2 mb-4 text-zinc-900">{config.equipo.titulo}</h2>
                  {config.equipo.subtitulo && <p className="text-zinc-500 max-w-2xl mx-auto">{config.equipo.subtitulo}</p>}
             </div>
             <div className="max-w-7xl mx-auto flex flex-wrap justify-center gap-8">
@@ -766,7 +766,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
           <div className="max-w-7xl mx-auto">
               <div className="text-center mb-12 max-w-3xl mx-auto">
                 <span className="text-sm font-bold uppercase tracking-wider opacity-60 block mb-2">Testimonios</span>
-                <h2 className="text-3xl font-bold mb-4" style={{ color: textColor }}>
+                <h2 className="text-3xl font-bold mb-4 text-zinc-900">
                     Lo que dicen nuestros clientes
                 </h2>
                 <p className="opacity-70 mb-8">
