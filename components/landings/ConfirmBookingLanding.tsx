@@ -514,7 +514,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             
             {/* Logo en el Hero ajustado (más grande y bajado sutilmente) */}
             {config.logoUrl && (
-                <div className="w-42 h-42 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
+                <div className="w-46 h-46 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
                      <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]"/>
                 </div>
             )}
