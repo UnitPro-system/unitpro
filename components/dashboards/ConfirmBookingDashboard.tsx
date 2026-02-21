@@ -806,10 +806,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   );
 }
 
-// --- SUBCOMPONENTES (Copia aquí los mismos subcomponentes que tenías: CalendarTab, SidebarItem, etc.) ---
-// ... (Aquí pegas las funciones CalendarTab, ClientesTable, SidebarItem, etc. del archivo original)
-// Para ahorrar espacio en la respuesta, asumo que copiarás las funciones auxiliares al final de este archivo.
-// Asegúrate de exportar o definir CalendarTab, ClientesTable, etc. aquí dentro.
+
 
 function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact, onReschedule }: any) {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -817,8 +814,8 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
 
-    // Estado para el modal de ver detalles (mensaje/fotos)
     const [detailsModal, setDetailsModal] = useState<{show: boolean, data: any}>({ show: false, data: null });
+    const [filtroCalendario, setFiltroCalendario] = useState<string>("Todos");
 
     const handleDeleteFromMenu = async (id: string) => {
         if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
@@ -897,21 +894,53 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
         const today = new Date();
         return date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
     };
+    const equipo = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
+    const nombresTrabajadores = equipo.map((m: any) => m.name || m.nombre).filter(Boolean);
+
+    const turnoPasaFiltro = (t: any) => {
+        if (filtroCalendario === "Todos") return true;
+        const workerNameFromService = typeof t.servicio === 'string' && t.servicio.includes(" - ") 
+            ? t.servicio.split(" - ")[1].trim() 
+            : "";
+        const tWorker = t.worker_name?.trim() || workerNameFromService;
+        return tWorker === filtroCalendario;
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
             {/* HEADER DEL CALENDARIO */}
-            <header className="flex justify-between items-center mb-6">
+            <header className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Tu Calendario</h1>
                     <p className="text-zinc-500 text-sm">Gestiona tus turnos de la semana.</p>
                 </div>
-                <div className="flex items-center gap-4 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
-                    <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()-7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronLeft size={20}/></button>
-                    <span className="text-sm font-bold min-w-[140px] text-center capitalize">
-                        {days[0].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })} - {days[6].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })}
-                    </span>
-                    <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()+7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronRight size={20}/></button>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* ---> NUEVO: Selector de Profesional */}
+                    {nombresTrabajadores.length > 0 && (
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-zinc-200 shadow-sm">
+                            <label className="text-xs font-bold text-zinc-500 uppercase">Profesional:</label>
+                            <select 
+                                className="bg-transparent text-sm font-bold text-indigo-600 outline-none cursor-pointer"
+                                value={filtroCalendario}
+                                onChange={(e) => setFiltroCalendario(e.target.value)}
+                            >
+                                <option value="Todos">Todos</option>
+                                {nombresTrabajadores.map((nombre: string, idx: number) => (
+                                    <option key={idx} value={nombre}>{nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Botones de navegación de fecha originales */}
+                    <div className="flex items-center gap-4 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
+                        <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()-7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronLeft size={20}/></button>
+                        <span className="text-sm font-bold min-w-[140px] text-center capitalize">
+                            {days[0].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })} - {days[6].toLocaleDateString('es-AR', { month: 'long', day: 'numeric' })}
+                        </span>
+                        <button onClick={() => {const d = new Date(currentDate); d.setDate(d.getDate()+7); setCurrentDate(d)}} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600"><ChevronRight size={20}/></button>
+                    </div>
                 </div>
             </header>
 
@@ -930,7 +959,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
                             const tDate = new Date(t.fecha_inicio);
-                            return tDate.getDate() === day.getDate() && tDate.getMonth() === day.getMonth() && tDate.getFullYear() === day.getFullYear();
+                            return tDate.getDate() === day.getDate() && tDate.getMonth() === day.getMonth() && tDate.getFullYear() === day.getFullYear() && turnoPasaFiltro(t);
                         });
 
                         return (

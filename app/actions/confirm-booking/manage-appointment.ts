@@ -120,12 +120,12 @@ export async function createAppointment(slug: string, bookingData: any) {
                 day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
             });
 
-            const subject = `Reserva Confirmada: ${bookingData.service} - ${bookingData.clientName}`;
+            const subject = `Nueva REserva: ${bookingData.service} - ${bookingData.clientName}`;
             const htmlBody = `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #2563eb;">Nueva Cita en Agenda</h2>
                     <p>Hola <strong>${trabajador?.nombre || 'Equipo'}</strong>,</p>
-                    <p>Se ha confirmado un nuevo turno:</p>
+                    <p>Tienes un nuevo turno:</p>
                     <ul style="list-style: none; padding: 0;">
                         <li><strong>Servicio:</strong> ${bookingData.service}</li>
                         <li><strong>Fecha:</strong> ${textoFecha}</li>
