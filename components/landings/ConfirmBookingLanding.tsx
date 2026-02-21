@@ -501,7 +501,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       </nav>
 
       {/* --- HERO SECTION --- */}
-      <header id="inicio" className="relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden" onClick={(e) => handleEditClick(e, 'hero')}>
+      <header id="inicio" className="relative w-full h-screen min-h-[700px] flex flex-col items-center justify-center overflow-hidden" onClick={(e) => handleEditClick(e, 'hero')}>
          
          {/* Fondo con Overlay */}
          <div className="absolute inset-0 w-full h-full z-0">
@@ -510,29 +510,30 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
          </div>
 
          {/* Contenido Central */}
-         <div className={`relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-6 ${editableClass}`}>
+         <div className={`relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-24 md:pt-32 ${editableClass}`}>
             
-            {/* Logo en el Hero (Condicional si se desea repetir o si no está en nav) */}
+            {/* Logo en el Hero ajustado (más grande y bajado sutilmente) */}
             {config.logoUrl && (
-                <div className="w-24 h-24 md:w-32 md:h-32 mb-4 flex items-center justify-center">
-                     <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-md"/>
+                <div className="w-32 h-32 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
+                     <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]"/>
                 </div>
             )}
 
-
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-700">
-                <SafeHTML as="h1" html={config.hero.titulo} className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 drop-shadow-lg" />
-                <SafeHTML as="p" html={config.hero.subtitulo} className="text-lg md:text-xl text-zinc-200 max-w-2xl mx-auto mb-8 leading-relaxed" />
+            {/* Contenedor Refinado con Glassmorphism fuerte y ajustado para jerarquía */}
+            <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 sm:p-8 md:p-10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-2xl mt-4 md:mt-6">
+                <SafeHTML as="h1" html={config.hero.titulo} className="text-3xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight" />
+                <SafeHTML as="p" html={config.hero.subtitulo} className="text-base md:text-lg text-white/90 max-w-xl mx-auto mb-8 leading-relaxed font-medium drop-shadow-sm" />
                 
+                {/* Botones accesibles con mayor Target Area (min-h-[48px]) */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button 
                         onClick={() => setIsBookingModalOpen(true)} 
-                        className={`w-full sm:w-auto px-8 py-4 text-white font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 ${btnRadius}`} 
+                        className={`w-full sm:w-auto px-8 py-3.5 min-h-[48px] text-white font-bold text-base shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 ${btnRadius}`} 
                         style={{ backgroundColor: brandColor }}
                     >
                         <CalendarIcon size={20}/> {config.hero.ctaTexto || "Reservar Turno"}
                     </button>
-                    <button onClick={() => scrollToSection('servicios')} className="text-white hover:text-zinc-200 font-medium px-6 py-3 transition-colors">
+                    <button onClick={() => scrollToSection('servicios')} className={`w-full sm:w-auto text-white hover:bg-white/10 hover:text-white border border-transparent hover:border-white/30 font-semibold px-8 py-3.5 min-h-[48px] transition-all duration-300 ${btnRadius}`}>
                         Ver Servicios
                     </button>
                 </div>
