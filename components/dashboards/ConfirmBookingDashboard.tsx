@@ -47,6 +47,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [confirmModal, setConfirmModal] = useState<{show: boolean, turnoId: string | null}>({ show: false, turnoId: null });
   const [priceInput, setPriceInput] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+  const [filtroTrabajador, setFiltroTrabajador] = useState<string>("Todos");
 
   const [rescheduleModal, setRescheduleModal] = useState({ show: false, turnoId: '', currentStart: '' });
   const [newDate, setNewDate] = useState('');
@@ -305,6 +306,18 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
         </div>
     </div>
   );
+
+  const equipo = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
+  const nombresTrabajadores = equipo.map((m: any) => m.name || m.nombre).filter(Boolean);
+
+  const turnoPasaFiltro = (t: any) => {
+      if (filtroTrabajador === "Todos") return true;
+      const workerNameFromService = typeof t.servicio === 'string' && t.servicio.includes(" - ") 
+          ? t.servicio.split(" - ")[1].trim() 
+          : "";
+      const tWorker = t.worker_name?.trim() || workerNameFromService;
+      return tWorker === filtroTrabajador;
+  };
   
 
 
@@ -467,20 +480,37 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
             {activeTab === "clientes" && <div className="animate-in fade-in"><h1 className="text-2xl font-bold mb-4">Base de Clientes</h1><ClientesTable turnos={turnos} setContactModal={setContactModal} /></div>}
             {activeTab === "solicitudes" && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
-                    <header className="mb-4">
-                        <h1 className="text-2xl font-bold tracking-tight mb-1">Centro de Solicitudes</h1>
-                        <p className="text-zinc-500 text-sm">Gestiona pagos pendientes y nuevas reservas.</p>
+                    <header className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight mb-1">Centro de Solicitudes</h1>
+                            <p className="text-zinc-500 text-sm">Gestiona pagos pendientes y nuevas reservas.</p>
+                        </div>
+                        {nombresTrabajadores.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-bold text-zinc-500">Filtrar por:</label>
+                                <select 
+                                    className="p-2 border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                                    value={filtroTrabajador}
+                                    onChange={(e) => setFiltroTrabajador(e.target.value)}
+                                >
+                                    <option value="Todos">Todos</option>
+                                    {nombresTrabajadores.map((nombre: string, idx: number) => (
+                                        <option key={idx} value={nombre}>{nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </header>
 
                     {/* --- ZONA 1: ESPERANDO SEÑA (Naranja) --- */}
                     {/* Estos turnos NO están en Google Calendar aún */}
-                    {turnos.some(t => t.estado === 'esperando_senia') && (
+                    {turnos.some(t => t.estado === 'esperando_senia' && turnoPasaFiltro(t)) && (
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-orange-600 uppercase tracking-wide flex items-center gap-2 bg-orange-50 w-fit px-3 py-1 rounded-full border border-orange-100">
                                 <Clock size={14} /> Esperando Pago de Seña
                             </h3>
                             <div className="grid gap-4">
-                                {turnos.filter(t => t.estado === 'esperando_senia').map((t) => (
+                                {turnos.filter(t => t.estado === 'esperando_senia' && turnoPasaFiltro(t)).map((t) => (
                                     <div key={t.id} className="bg-white p-5 rounded-2xl border border-orange-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
                                         <div className="flex-1 pl-2">
@@ -543,15 +573,15 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                     {/* --- ZONA 2: NUEVAS SOLICITUDES (Gris/Blanco) --- */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-2 px-1">
-                             Nuevas Solicitudes ({turnos.filter(t => t.estado === 'pendiente').length})
+                             Nuevas Solicitudes ({turnos.filter(t => t.estado === 'pendiente' && turnoPasaFiltro(t)).length})
                         </h3>
                         
-                        {turnos.filter(t => t.estado === 'pendiente').length === 0 ? (
+                        {turnos.filter(t => t.estado === 'pendiente' && turnoPasaFiltro(t)).length === 0 ? (
                             <div className="py-12 text-center bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
                                 <p className="text-zinc-400 text-sm">No hay nuevas solicitudes pendientes.</p>
                             </div>
                         ) : (
-                            turnos.filter(t => t.estado === 'pendiente').map((t) => (
+                            turnos.filter(t => t.estado === 'pendiente' && turnoPasaFiltro(t)).map((t) => (
                                 <div key={t.id} className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                                         <div className="flex-1">
                                             <div className="flex flex-wrap items-center gap-2 mb-1">
