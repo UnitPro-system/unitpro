@@ -89,7 +89,72 @@ export async function createAppointment(slug: string, bookingData: any) {
         revalidatePath('/dashboard')
         return { success: true, pending: false } // Avisamos al frontend que NO quedó pendiente
     }
-    // ------------------------------------------------------------
+    
+    // notificacion profesional
+
+    try {
+        const configWeb = negocio.config_web;
+        const profesionales = configWeb?.equipo?.items || [];
+        
+        // Buscamos los datos del profesional usando el workerId de la reserva
+        const trabajador = profesionales.find((p: any) => String(p.id) === String(bookingData.workerId));
+        
+        // Destinatario: prioridad al mail del profesional, fallback al mail del negocio
+        const emailDestino = trabajador?.email || negocio.email_contacto || negocio.usuario_email;
+
+        if (emailDestino && negocio.google_refresh_token) {
+            
+            // --- AGREGAMOS LA AUTENTICACIÓN AQUÍ PARA EVITAR EL ERROR ---
+            const auth = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID, 
+                process.env.GOOGLE_CLIENT_SECRET
+            );
+            auth.setCredentials({ refresh_token: negocio.google_refresh_token });
+            // -----------------------------------------------------------
+
+            const gmail = google.gmail({ version: 'v1', auth });
+            
+            // Formateamos la fecha para que se lea bien en Argentina
+            const textoFecha = new Date(bookingData.start).toLocaleString('es-AR', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+
+            const subject = `Reserva Confirmada: ${bookingData.service} - ${bookingData.clientName}`;
+            const htmlBody = `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #2563eb;">Nueva Cita en Agenda</h2>
+                    <p>Hola <strong>${trabajador?.nombre || 'Equipo'}</strong>,</p>
+                    <p>Se ha confirmado un nuevo turno:</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><strong>Servicio:</strong> ${bookingData.service}</li>
+                        <li><strong>Fecha:</strong> ${textoFecha}</li>
+                        <li><strong>Cliente:</strong> ${bookingData.clientName}</li>
+                        <li><strong>Teléfono:</strong> ${bookingData.clientPhone}</li>
+                    </ul>
+                </div>
+            `;
+
+            const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+            const messageParts = [
+                `To: ${emailDestino}`,
+                'Content-Type: text/html; charset=utf-8',
+                'MIME-Version: 1.0',
+                `Subject: ${utf8Subject}`,
+                '',
+                htmlBody,
+            ];
+
+            const raw = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            
+            await gmail.users.messages.send({
+                userId: 'me',
+                requestBody: { raw },
+            });
+        }
+    } catch (errorNotificacion) {
+        console.error("No se pudo notificar al profesional/negocio:", errorNotificacion);
+    }
 
     revalidatePath('/dashboard')
     return { success: true, pending: true } // Avisamos al frontend que SÍ quedó pendiente

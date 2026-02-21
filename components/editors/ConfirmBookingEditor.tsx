@@ -1171,6 +1171,18 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                             className="w-full p-1.5 border rounded text-xs text-zinc-500"
                                                             placeholder="Cargo / Rol"
                                                         />
+                                                        {/* Nuevo campo de Email */}
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 bg-gray-100 rounded">
+                                                                <Mail size={14} className="text-gray-500"/>
+                                                            </div>
+                                                            <input 
+                                                                value={item.email || ''} 
+                                                                onChange={(e) => updateArrayItem('equipo', i, 'email', e.target.value)} 
+                                                                className="w-full p-1.5 border rounded text-xs"
+                                                                placeholder="Email para avisos de turnos"
+                                                            />
+                                                        </div>
                                                         {/* INPUT: LINK DE PAGO */}
                                                         <div className="bg-indigo-50 p-2 rounded border border-indigo-100">
                                                             <label className="text-[9px] font-bold text-indigo-800 uppercase block mb-1 flex items-center gap-1">

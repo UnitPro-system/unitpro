@@ -90,6 +90,7 @@ export interface WorkerItem {
   nombre: string;
   cargo: string;
   imagenUrl?: string;
+  email?: string;
   paymentLink?: string;
   aliasCvu?: string;    // Alias/CVU/CBU del trabajador
   telefono?: string;    // Teléfono del trabajador
