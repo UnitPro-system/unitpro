@@ -753,7 +753,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                 <Users className="w-full h-full p-6 text-zinc-300"/>
                              )}
                         </div>
-                        <h3 className="font-bold text-lg" style={{ color: textColor }}>{item.nombre}</h3>
+                        <h3 className="font-bold text-lg text-zinc-900">{item.nombre}</h3>
                         <p className="opacity-70 max-w-2xl mx-auto">{item.cargo}</p>
                         {item.instagram && (
                             <a 
