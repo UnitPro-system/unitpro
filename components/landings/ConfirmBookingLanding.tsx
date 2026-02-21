@@ -514,13 +514,13 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             
             {/* Logo en el Hero ajustado (más grande y bajado sutilmente) */}
             {config.logoUrl && (
-                <div className="w-32 h-32 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
+                <div className="w-38 h-38 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
                      <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]"/>
                 </div>
             )}
 
             {/* Contenedor Refinado con Glassmorphism fuerte y ajustado para jerarquía */}
-            <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 sm:p-8 md:p-10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-2xl mt-4 md:mt-6">
+            <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 md:p-8 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-xl mt-4 md:mt-6">
                 <SafeHTML as="h1" html={config.hero.titulo} className="text-3xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight" />
                 <SafeHTML as="p" html={config.hero.subtitulo} className="text-base md:text-lg text-white/90 max-w-xl mx-auto mb-8 leading-relaxed font-medium drop-shadow-sm" />
                 
