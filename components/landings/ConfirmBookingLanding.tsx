@@ -754,7 +754,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                              )}
                         </div>
                         <h3 className="font-bold text-lg text-zinc-900">{item.nombre}</h3>
-                        <p className="opacity-70 max-w-2xl mx-auto">{item.cargo}</p>
+                        <p className="text-zinc-500 max-w-2xl mx-auto">{item.cargo}</p>
                         {item.instagram && (
                             <a 
                                 href={`https://instagram.com/${item.instagram.replace('@', '').trim()}`}
