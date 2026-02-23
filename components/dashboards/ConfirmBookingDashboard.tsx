@@ -1005,14 +1005,17 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                             
                                             {/* HEADER DE LA TARJETA CON COLOR DINÁMICO */}
                                             <div className={`flex justify-between items-start mb-2 p-1.5 rounded ${estadoStyles.bgHeader} ${estadoStyles.textHeader}`}>
-                                                <div className="flex flex-col">
-                                                    <p className="text-xs font-bold flex items-center gap-1">
-                                                        <Clock size={12}/> 
-                                                        {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                                                <div className="flex flex-col w-full">
+                                                    <p className="text-[11px] font-bold flex flex-wrap items-center gap-1 leading-tight">
+                                                        <Clock size={12} className="shrink-0" /> 
+                                                        
+                                                        <span>
+                                                            {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                                                        </span>
                                                         
                                                         {/* MOSTRAR HORA DE FIN EN LUGAR DE LA DURACIÓN */}
                                                         {t.fecha_fin && (
-                                                            <span>
+                                                            <span className="font-medium opacity-80 whitespace-nowrap">
                                                                 - {new Date(t.fecha_fin).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                                             </span>
                                                         )}
