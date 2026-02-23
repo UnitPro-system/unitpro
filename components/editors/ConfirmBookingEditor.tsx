@@ -89,6 +89,8 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
     footer: useRef<HTMLDivElement>(null),
   };
 
+  const [galleryTab, setGalleryTab] = useState<"upload" | "manage">("upload");
+
   // ESTADO DE LA CONFIGURACIÓN VISUAL (JSONB)
   const [config, setConfig] = useState({ ...DEFAULT_CONFIG, ...(negocio.config_web || {}) });
   
@@ -1341,46 +1343,68 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                     className="w-full p-2 border border-zinc-200 rounded-lg text-sm font-bold mb-2"
                                     placeholder="Título de la galería"
                                 />
-                                
-                                {/* Lista de Imágenes */}
-                                <div className="space-y-2">
-                                    {customSection.imagenes?.map((img: any, i: number) => (
-                                        <div key={i} className="flex gap-2 items-center bg-zinc-50 p-2 rounded-lg border border-zinc-200">
-                                            <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200" />
-                                            <input 
-                                                value={img.descripcion || ''} 
-                                                onChange={(e) => {
-                                                    const newImages = [...customSection.imagenes];
-                                                    newImages[i].descripcion = e.target.value;
-                                                    updateCustomSection(customSection.id, 'imagenes', newImages);
-                                                }}
-                                                className="flex-1 p-1 bg-transparent text-xs border-b border-transparent focus:border-zinc-300 outline-none"
-                                                placeholder="Descripción..."
-                                            />
-                                            <button 
-                                                onClick={() => {
-                                                    const newImages = customSection.imagenes.filter((_:any, idx:number) => idx !== i);
-                                                    updateCustomSection(customSection.id, 'imagenes', newImages);
-                                                }}
-                                                className="text-zinc-400 hover:text-red-500"
-                                            >
-                                                <X size={14}/>
-                                            </button>
-                                        </div>
-                                    ))}
+
+                                {/* --- NUEVO: SELECTOR DE PESTAÑAS --- */}
+                                <div className="flex bg-zinc-100 p-1 rounded-lg border border-zinc-200">
+                                    <button 
+                                        onClick={() => setGalleryTab("upload")}
+                                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${galleryTab === "upload" ? "bg-white shadow text-indigo-600" : "text-zinc-500"}`}
+                                    >
+                                        Subir Foto
+                                    </button>
+                                    <button 
+                                        onClick={() => setGalleryTab("manage")}
+                                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${galleryTab === "manage" ? "bg-white shadow text-indigo-600" : "text-zinc-500"}`}
+                                    >
+                                        Gestionar ({customSection.imagenes?.length || 0})
+                                    </button>
                                 </div>
 
-                                {/* Botón subir nueva imagen a la galería */}
-                                <div className="pt-2">
-                                    <ImageUpload 
-                                        label="Agregar Imagen" 
-                                        value="" // Siempre vacío para que detecte cambios nuevos
-                                        onChange={(url) => {
-                                            const newImages = [...(customSection.imagenes || []), { url, descripcion: "" }];
-                                            updateCustomSection(customSection.id, 'imagenes', newImages);
-                                        }} 
-                                    />
-                                </div>
+                                {/* --- CONTENIDO DINÁMICO --- */}
+                                {galleryTab === "upload" ? (
+                                    <div className="pt-2 animate-in fade-in duration-200">
+                                        <ImageUpload 
+                                            label="Agregar Imagen a la Galería" 
+                                            value="" 
+                                            onChange={(url) => {
+                                                const newImages = [...(customSection.imagenes || []), { url, descripcion: "" }];
+                                                updateCustomSection(customSection.id, 'imagenes', newImages);
+                                                setGalleryTab("manage"); // Te lleva a ver la foto recién subida
+                                            }} 
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 animate-in fade-in duration-200">
+                                        {customSection.imagenes?.length > 0 ? (
+                                            customSection.imagenes.map((img: any, i: number) => (
+                                                <div key={i} className="flex gap-2 items-center bg-zinc-50 p-2 rounded-lg border border-zinc-200">
+                                                    <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200 shrink-0" />
+                                                    <input 
+                                                        value={img.descripcion || ''} 
+                                                        onChange={(e) => {
+                                                            const newImages = [...customSection.imagenes];
+                                                            newImages[i].descripcion = e.target.value;
+                                                            updateCustomSection(customSection.id, 'imagenes', newImages);
+                                                        }}
+                                                        className="flex-1 p-1 bg-transparent text-[11px] border-b border-transparent focus:border-zinc-300 outline-none truncate"
+                                                        placeholder="Descripción..."
+                                                    />
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newImages = customSection.imagenes.filter((_:any, idx:number) => idx !== i);
+                                                            updateCustomSection(customSection.id, 'imagenes', newImages);
+                                                        }}
+                                                        className="text-zinc-400 hover:text-red-500"
+                                                    >
+                                                        <X size={14}/>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-center py-4 text-[11px] text-zinc-400 italic">No hay fotos subidas.</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
