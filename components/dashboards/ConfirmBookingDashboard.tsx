@@ -906,18 +906,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
         return tWorker === filtroCalendario;
     };
 
-    const calcularDuracion = (inicio: string, fin: string) => {
-        if (!inicio || !fin) return null;
-        const diffMs = new Date(fin).getTime() - new Date(inicio).getTime();
-        const diffMins = Math.round(diffMs / 60000);
-        
-        if (diffMins <= 0) return null;
-        if (diffMins < 60) return `${diffMins} min`;
-        
-        const hours = Math.floor(diffMins / 60);
-        const mins = diffMins % 60;
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    };
+
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-[calc(100vh-140px)] flex flex-col">
@@ -1021,10 +1010,10 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                                                         <Clock size={12}/> 
                                                         {new Date(t.fecha_inicio).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                                         
-                                                        {/* AGREGAMOS LA DURACIÓN AQUÍ */}
+                                                        {/* MOSTRAR HORA DE FIN EN LUGAR DE LA DURACIÓN */}
                                                         {t.fecha_fin && (
-                                                            <span className="font-normal text-[10px] opacity-80 ml-1 bg-white/40 px-1.5 py-0.5 rounded-full">
-                                                                {calcularDuracion(t.fecha_inicio, t.fecha_fin)}
+                                                            <span>
+                                                                - {new Date(t.fecha_fin).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
                                                             </span>
                                                         )}
                                                     </p>
