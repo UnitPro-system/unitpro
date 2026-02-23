@@ -434,17 +434,6 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                         <Phone size={14} className="absolute left-2.5 top-2.5 text-zinc-400"/>
                     </div>
                 </div>
-                {/* HORARIOS */}
-                <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase mb-1 block">Horarios</label>
-                    <input 
-                        type="text" 
-                        value={dbFields.horarios} 
-                        onChange={(e) => updateDbField('horarios', e.target.value)} 
-                        className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="Ej: Lun-Vie 9:00 - 18:00"
-                    />
-                </div>
                 {/* BLOQUE DE CONFIGURACIÓN DE AGENDA (Nuevo) */}
                 <div className="pt-4 border-t border-zinc-100 mt-4">
                     <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">

@@ -893,9 +893,65 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         </div>
                         <div className="flex items-start gap-4">
                             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Clock size={20}/></div>
-                            <div>
-                                <h4 className="font-bold" style={{ color: textColor }}>Horarios de Atención</h4>
-                                <p className="opacity-70">{negocio.horarios || "Lunes a Viernes 9:00 - 18:00"}</p>
+                            <div className="w-full max-w-sm">
+                                <h4 className="font-bold mb-3" style={{ color: textColor }}>Horarios de Atención</h4>
+                                <div className="space-y-2 text-sm opacity-90">
+                                    {(() => {
+                                        const dayNames = { "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves", "5": "Viernes", "6": "Sábado", "0": "Domingo" };
+                                        const order = ["1", "2", "3", "4", "5", "6", "0"];
+                                        const groups: { scheduleStr: string, days: string[], isOpen: boolean }[] = [];
+
+                                        order.forEach(dayKey => {
+                                            const dayConfig = config.schedule?.[dayKey];
+                                            const name = dayNames[dayKey as keyof typeof dayNames];
+                                            let scheduleStr = "";
+                                            let isOpen = false;
+
+                                            if (dayConfig && dayConfig.isOpen) {
+                                                isOpen = true;
+                                                if (dayConfig.ranges && dayConfig.ranges.length > 0) {
+                                                    scheduleStr = dayConfig.ranges.map((r: any) => `de ${r.start} a ${r.end}`).join(' y ');
+                                                } else {
+                                                    // Fallback seguro para configuraciones viejas en la DB
+                                                    const oldConfig = dayConfig as any;
+                                                    scheduleStr = `de ${oldConfig.start || '09:00'} a ${oldConfig.end || '18:00'}`;
+                                                }
+                                            } else {
+                                                scheduleStr = "Cerrado";
+                                            }
+
+                                            const existingGroup = groups.find(g => g.scheduleStr === scheduleStr);
+                                            if (existingGroup) {
+                                                existingGroup.days.push(name);
+                                            } else {
+                                                groups.push({ scheduleStr, days: [name], isOpen });
+                                            }
+                                        });
+
+                                        return groups.map((g, i) => {
+                                            let daysText = g.days.join(' / ');
+                                            
+                                            if (g.days.length === 5 && g.days[0] === "Lunes" && g.days[4] === "Viernes") {
+                                                daysText = "Lunes a Viernes";
+                                            } else if (g.days.length === 7) {
+                                                daysText = "Todos los días";
+                                            } else if (g.days.length === 2 && g.days[0] === "Sábado" && g.days[1] === "Domingo") {
+                                                daysText = "Fines de semana";
+                                            }
+
+                                            return (
+                                                <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 sm:gap-4 pb-2 border-b border-zinc-500/10 last:border-0 last:pb-0">
+                                                    <span className="font-medium min-w-[120px]" style={{ color: textColor }}>{daysText}</span>
+                                                    {g.isOpen ? (
+                                                        <span className="text-[13px] sm:text-right opacity-80 leading-snug">{g.scheduleStr}</span>
+                                                    ) : (
+                                                        <span className="text-[13px] sm:text-right text-red-500 italic">Cerrado</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
