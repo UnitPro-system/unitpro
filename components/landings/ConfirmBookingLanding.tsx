@@ -902,7 +902,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                                         const groups: { scheduleStr: string, days: string[], isOpen: boolean }[] = [];
 
                                         order.forEach(dayKey => {
-                                            const dayConfig = config.schedule?.[dayKey];
+                                            const dayConfig = rawConfig.schedule?.[dayKey];
                                             const name = dayNames[dayKey as keyof typeof dayNames];
                                             let scheduleStr = "";
                                             let isOpen = false;
