@@ -258,18 +258,21 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       try { configWebSeguro = JSON.parse(configWebSeguro); } catch(e) { configWebSeguro = {}; }
   }
 
-  // 2. Extraemos los valores (soportando tanto booleanos reales como strings "true")
-  const reqManual = configWebSeguro?.booking?.requireManualConfirmation;
-  const reqDeposit = configWebSeguro?.booking?.requestDeposit;
+  let mostrarSolicitudes = true;
 
-  const pideConfirmacionManual = reqManual === true || reqManual === "true";
-  const pideSena = reqDeposit === true || reqDeposit === "true";
+  if (configWebSeguro.booking) {
+      const pideSena = configWebSeguro.booking.requestDeposit === true || configWebSeguro.booking.requestDeposit === "true";
+      const pideManual = configWebSeguro.booking.requireManualConfirmation === true || configWebSeguro.booking.requireManualConfirmation === "true";
+      
+      if (!pideSena && !pideManual) {
+          mostrarSolicitudes = false; // Este es el único caso donde se oculta
+      }
+  }
+  if (turnos.some((t: any) => t.estado === 'pendiente' || t.estado === 'esperando_senia')) {
+      mostrarSolicitudes = true;
+  }
 
-  // 3. Verificamos si hay turnos pendientes (para nunca ocultar la pestaña si hay clientes esperando)
-  const tieneTurnosPendientes = turnos.some((t: any) => t.estado === 'pendiente' || t.estado === 'esperando_senia');
 
-  // 4. Decisión final exacta a tu regla:
-  const mostrarSolicitudes = pideConfirmacionManual || pideSena || tieneTurnosPendientes;
 
   const menuItems = [
     { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
