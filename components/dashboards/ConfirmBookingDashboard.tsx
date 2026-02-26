@@ -253,6 +253,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   })) || [];
   const promoServices = negocio.config_web?.services || [];
   const allServices = [...regularServices, ...promoServices];
+  const mostrarSolicitudes = negocio.config_web?.booking?.requireManualConfirmation || negocio.config_web?.booking?.requestDeposit;
 
   const menuItems = [
     { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
@@ -264,12 +265,14 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
     },
     { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
     { 
-        id: "solicitudes", 
-        label: "Solicitudes", 
-        icon: <Bell size={18} />, 
-        badge: turnos.filter(t => t.estado === 'pendiente').length > 0 
-            ? turnos.filter(t => t.estado === 'pendiente').length 
-            : undefined 
+        ...(mostrarSolicitudes ? [{ 
+            id: "solicitudes", 
+            label: "Solicitudes", 
+            icon: <Bell size={18} />, 
+            badge: turnos.filter((t: any) => t.estado === 'pendiente').length > 0 
+                ? turnos.filter((t: any) => t.estado === 'pendiente').length 
+                : undefined 
+        }] : []),
     },
     { 
       id: "resenas", 
