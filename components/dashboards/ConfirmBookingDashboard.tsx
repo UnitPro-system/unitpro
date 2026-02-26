@@ -253,7 +253,23 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   })) || [];
   const promoServices = negocio.config_web?.services || [];
   const allServices = [...regularServices, ...promoServices];
-  const mostrarSolicitudes = negocio.config_web?.booking?.requireManualConfirmation || negocio.config_web?.booking?.requestDeposit;
+  let configWebSeguro = negocio?.config_web || {};
+  if (typeof configWebSeguro === 'string') {
+      try { configWebSeguro = JSON.parse(configWebSeguro); } catch(e) { configWebSeguro = {}; }
+  }
+
+  // 2. Extraemos los valores (soportando tanto booleanos reales como strings "true")
+  const reqManual = configWebSeguro?.booking?.requireManualConfirmation;
+  const reqDeposit = configWebSeguro?.booking?.requestDeposit;
+
+  const pideConfirmacionManual = reqManual === true || reqManual === "true";
+  const pideSena = reqDeposit === true || reqDeposit === "true";
+
+  // 3. Verificamos si hay turnos pendientes (para nunca ocultar la pestaña si hay clientes esperando)
+  const tieneTurnosPendientes = turnos.some((t: any) => t.estado === 'pendiente' || t.estado === 'esperando_senia');
+
+  // 4. Decisión final exacta a tu regla:
+  const mostrarSolicitudes = pideConfirmacionManual || pideSena || tieneTurnosPendientes;
 
   const menuItems = [
     { id: "resumen", label: "General", icon: <LayoutDashboard size={18} /> },
