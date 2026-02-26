@@ -331,13 +331,6 @@ export default function DashboardAgencia() {
                             {/* Opción 1: Servicios (Activa) */}
                             <button 
                                 type="button"
-                                onClick={() => setNewClientCategory('service_booking')}
-                                className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'service_booking' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
-                            >
-                                <span></span> Citas / Servicios
-                            </button>
-                            <button 
-                                type="button"
                                 onClick={() => setNewClientCategory('project_portfolio')}
                                 className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'project_portfolio' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
                             >
@@ -348,7 +341,7 @@ export default function DashboardAgencia() {
                                 onClick={() => setNewClientCategory('confirm_booking')}
                                 className={`p-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${newClientCategory === 'confirm_booking' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}
                             >
-                                <span></span> Citas / Servicios (Confirm Booking)
+                                <span></span> Citas / Servicios 
                             </button>
                             
                         </div>
