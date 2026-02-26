@@ -283,16 +283,15 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       badge: !negocio.google_calendar_connected ? "!" : undefined 
     },
     { id: "clientes", label: "Clientes", icon: <UserCheck size={18} /> },
-    { 
-        ...(mostrarSolicitudes ? [{ 
-            id: "solicitudes", 
-            label: "Solicitudes", 
-            icon: <Bell size={18} />, 
-            badge: turnos.filter((t: any) => t.estado === 'pendiente').length > 0 
+    
+    ...(mostrarSolicitudes ? [{ 
+        id: "solicitudes", 
+        label: "Solicitudes", 
+        icon: <Bell size={18} />, 
+        badge: turnos.filter((t: any) => t.estado === 'pendiente').length > 0 
                 ? turnos.filter((t: any) => t.estado === 'pendiente').length 
                 : undefined 
-        }] : []),
-    },
+    }] : []),
     { 
       id: "resenas", 
       label: "Reseñas", 
