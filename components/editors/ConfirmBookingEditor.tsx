@@ -56,18 +56,24 @@ const DEFAULT_CONFIG = {
   notifications: {
     confirmation: {
       enabled: true,
+      sendViaEmail: true,
+      sendViaWhatsapp: false,
       subject: "✅ Turno Confirmado: {{servicio}}",
       body: "Hola {{cliente}}, tu turno ha sido confirmado. Precio final: {{precio_total}}.",
       bannerUrl: ""
     },
     reminder: {
       enabled: true,
+      sendViaEmail: true,
+      sendViaWhatsapp: false,
       subject: "⏰ Recordatorio: Turno mañana",
       body: "Hola {{cliente}}, te esperamos mañana a las {{fecha}}.",
       bannerUrl: ""
     },
     deposit: {
       enabled: true,
+      sendViaEmail: true,
+      sendViaWhatsapp: false,
       subject: "📢 Solicitud recibida: Falta Seña",
       body: "Hola {{cliente}}, para confirmar tu turno debes abonar una seña de {{monto_senia}}.",
       bannerUrl: ""
@@ -660,14 +666,14 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                     </div>
                 </div>
 
-            {/* BLOQUE: NOTIFICACIONES POR CORREO */}
+            {/* BLOQUE: NOTIFICACIONES POR CANALES */}
             <div className="pt-4 border-t border-zinc-100 mt-4">
                 <label className="text-[11px] font-bold text-zinc-400 uppercase mb-3 block flex items-center gap-2">
-                    <Mail size={12}/> Personalizar Correos
+                    <Mail size={12}/> Personalizar Notificaciones
                 </label>
                 
                 <div className="bg-zinc-50 p-1 rounded-lg border border-zinc-200">
-                    {/* Pestañas de tipos de correo */}
+                    {/* Pestañas de tipos de notificación */}
                     <div className="flex p-1 gap-1 mb-2">
                         <button onClick={() => updateConfigField('root', '_mailTab', 'confirmation')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${(!config._mailTab || config._mailTab === 'confirmation') ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Confirmación</button>
                         <button onClick={() => updateConfigField('root', '_mailTab', 'deposit')} className={`flex-1 py-1.5 text-[10px] font-bold rounded ${config._mailTab === 'deposit' ? 'bg-white shadow text-indigo-600' : 'text-zinc-500'}`}>Seña</button>
@@ -681,9 +687,9 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                         
                         return (
                             <div className="p-2 space-y-3 animate-in fade-in">
-                                {/* Switch Enabled */}
+                                {/* Switch Enabled Principal */}
                                 <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                    <span className="text-xs font-bold text-zinc-700">Activar este envío</span>
+                                    <span className="text-xs font-bold text-zinc-700">Activar esta notificación</span>
                                     <input 
                                         type="checkbox" 
                                         checked={template.enabled}
@@ -692,9 +698,33 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                     />
                                 </div>
 
+                                {/* NUEVO: Checkboxes de Canales (Solo visibles si la notificación general está activa) */}
+                                {template.enabled && (
+                                    <div className="flex gap-4 pb-2 border-b border-zinc-200 border-dashed">
+                                        <label className="flex items-center gap-2 text-xs text-zinc-600 font-medium cursor-pointer hover:text-indigo-600 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={template.sendViaEmail !== false} // true por defecto
+                                                onChange={(e) => updateConfigField('notifications', activeType, { ...template, sendViaEmail: e.target.checked })}
+                                                className="accent-indigo-600 rounded w-3.5 h-3.5"
+                                            />
+                                            ✉️ Por Email
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs text-zinc-600 font-medium cursor-pointer hover:text-green-600 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={template.sendViaWhatsapp === true}
+                                                onChange={(e) => updateConfigField('notifications', activeType, { ...template, sendViaWhatsapp: e.target.checked })}
+                                                className="accent-green-600 rounded w-3.5 h-3.5"
+                                            />
+                                            💬 Por WhatsApp
+                                        </label>
+                                    </div>
+                                )}
+
                                 {/* Asunto */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto</label>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Asunto (Para Email / Título WA)</label>
                                     <input 
                                         value={template.subject}
                                         onChange={(e) => updateConfigField('notifications', activeType, { ...template, subject: e.target.value })}
@@ -721,13 +751,15 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                 </div>
 
                                 {/* Banner */}
-                                <div className="pt-2">
-                                    <ImageUpload 
-                                        label="Banner / Cabecera (Opcional)" 
-                                        value={template.bannerUrl} 
-                                        onChange={(url) => updateConfigField('notifications', activeType, { ...template, bannerUrl: url })} 
-                                    />
-                                </div>
+                                {template.sendViaEmail !== false && (
+                                    <div className="pt-2">
+                                        <ImageUpload 
+                                            label="Banner / Cabecera (Solo Email)" 
+                                            value={template.bannerUrl} 
+                                            onChange={(url) => updateConfigField('notifications', activeType, { ...template, bannerUrl: url })} 
+                                        />
+                                    </div>
+                                )}
                             </div>
                         );
                     })()}

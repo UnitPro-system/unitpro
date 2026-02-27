@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 import { revalidatePath } from 'next/cache'
 import { compileEmailTemplate } from '@/lib/email-helper'
+import { sendWhatsAppNotification } from '@/lib/whatsapp-helper'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -226,7 +227,10 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     // ---------------------------------------------
 
     // 4. Enviar Email
-    if (turno.cliente_email) {
+    const templateType = necesitaSenia ? 'deposit' : 'confirmation';
+    const notifConfig = configWeb.notifications?.[templateType] || { enabled: true, sendViaEmail: true, sendViaWhatsapp: false };
+
+    if (notifConfig.enabled) {
         const precioNumerico = finalPrice || 0;
         const depositAmount = necesitaSenia ? (precioNumerico * bookingConfig.depositPercentage) / 100 : 0;
         
@@ -241,50 +245,51 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
             day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
         });
 
-        const templateType = necesitaSenia ? 'deposit' : 'confirmation';
-        
-        const emailData = compileEmailTemplate(
-            templateType,
-            configWeb,
-            {
-                cliente: turno.cliente_nombre,
-                servicio: turno.servicio,
-                fecha: fechaLegible,
-                profesional: workerName || '',
-                precio_total: `$${precioNumerico}`, 
-                monto_senia: `$${depositAmount}`,
-                link_pago: "", 
-                alias: trabajadorElegido?.aliasCvu || '',
-                telefono_trabajador: trabajadorElegido?.telefono || ''
-            }
-        );
+        // Variables comunes para ambos canales
+        const variablesNotificacion = {
+            cliente: turno.cliente_nombre,
+            servicio: turno.servicio,
+            fecha: fechaLegible,
+            profesional: workerName || '',
+            precio_total: `$${precioNumerico}`, 
+            monto_senia: `$${depositAmount}`,
+            link_pago: "", 
+            alias: trabajadorElegido?.aliasCvu || '',
+            telefono_trabajador: trabajadorElegido?.telefono || ''
+        };
 
-        if (emailData) {
-            const gmail = google.gmail({ version: 'v1', auth });
+        // --- CANAL: WHATSAPP ---
+        if (notifConfig.sendViaWhatsapp && turno.cliente_telefono) {
+            await sendWhatsAppNotification(
+                turno.cliente_telefono, 
+                templateType, 
+                variablesNotificacion
+            );
+        }
 
-            const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
-            const messageParts = [
-                `To: ${turno.cliente_email}`,
-                'Content-Type: text/html; charset=utf-8',
-                'MIME-Version: 1.0',
-                `Subject: ${utf8Subject}`,
-                '',
-                emailData.html,
-            ];
-            
-            const rawMessage = Buffer.from(messageParts.join('\n'))
-                .toString('base64')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
+        // --- CANAL: EMAIL ---
+        if (notifConfig.sendViaEmail !== false && turno.cliente_email) {
+            const emailData = compileEmailTemplate(templateType, configWeb, variablesNotificacion);
 
-            try {
-                await gmail.users.messages.send({ 
-                    userId: 'me', 
-                    requestBody: { raw: rawMessage } 
-                });
-            } catch (e) {
-                console.error("Error enviando correo:", e);
+            if (emailData) {
+                const gmail = google.gmail({ version: 'v1', auth });
+                const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+                const messageParts = [
+                    `To: ${turno.cliente_email}`,
+                    'Content-Type: text/html; charset=utf-8',
+                    'MIME-Version: 1.0',
+                    `Subject: ${utf8Subject}`,
+                    '',
+                    emailData.html,
+                ];
+                
+                const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+                try {
+                    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } });
+                } catch (e) {
+                    console.error("Error enviando correo:", e);
+                }
             }
         }
     }

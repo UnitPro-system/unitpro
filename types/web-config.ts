@@ -131,6 +131,8 @@ export interface EmailTemplate {
   subject: string;
   body: string; // Soporta HTML básico o texto plano
   bannerUrl?: string; // Imagen de cabecera
+  sendViaEmail?: boolean;      // NUEVO: Switch para Email
+  sendViaWhatsapp?: boolean;   // NUEVO: Switch para WhatsApp
 }
 
 export interface NotificationConfig {
