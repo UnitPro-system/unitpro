@@ -1554,15 +1554,25 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
     const [config, setConfig] = useState(initialConfig || { services: [] });
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
+    const equipo = config?.equipo?.members || config?.equipo?.items || [];
     
     // Estado para el formulario de nueva promoción
-    const [newPromo, setNewPromo] = useState({
+    const [newPromo, setNewPromo] = useState<{
+        name: string;
+        description: string;
+        price: string;
+        duration: string;
+        isPromo: boolean;
+        promoEndDate: string;
+        workerIds: string[]; // <-- NUEVO
+    }>({
         name: '',
         description: '',
         price: '',
         duration: '60',
         isPromo: true,
-        promoEndDate: '' // Fecha límite (YYYY-MM-DD)
+        promoEndDate: '',
+        workerIds: [] // <-- NUEVO
     });
 
     const handleSave = async (updatedServices: any[]) => {
@@ -1580,7 +1590,7 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
             setConfig(newConfig);
             alert("Cambios guardados correctamente");
             // Limpiar formulario si fue una creación
-            setNewPromo({ ...newPromo, name: '', description: '', price: '', promoEndDate: '' });
+            setNewPromo({ ...newPromo, name: '', description: '', price: '', promoEndDate: '', workerIds: [] });
         }
         setLoading(false);
     };
@@ -1718,6 +1728,41 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
                         />
                     </div>
                 </div>
+                {/* --- NUEVO: SELECCIÓN DE PROFESIONALES --- */}
+                    {equipo.length > 0 && (
+                        <div className="md:col-span-2 bg-zinc-50 p-4 rounded-xl border border-zinc-200 mt-2">
+                            <label className="block text-xs font-bold text-zinc-500 mb-3 uppercase tracking-wider flex items-center gap-2">
+                                <Users size={14}/> ¿Qué profesionales realizan esta promoción?
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {equipo.map((worker: any) => {
+                                    const isChecked = newPromo.workerIds.includes(worker.id);
+                                    return (
+                                        <label key={worker.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-colors select-none ${isChecked ? 'bg-pink-50 border-pink-200 text-pink-700' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                    const currentIds = newPromo.workerIds;
+                                                    const newIds = e.target.checked 
+                                                        ? [...currentIds, worker.id] 
+                                                        : currentIds.filter(id => id !== worker.id);
+                                                    setNewPromo({ ...newPromo, workerIds: newIds });
+                                                }}
+                                            />
+                                            <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${isChecked ? 'bg-pink-500 border-pink-500' : 'bg-zinc-100 border-zinc-300'}`}>
+                                                {isChecked && <Check size={8} className="text-white"/>}
+                                            </div>
+                                            {worker.nombre || worker.name}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-[10px] text-zinc-400 mt-2">Si no seleccionas ninguno, la promoción estará disponible para todos.</p>
+                        </div>
+                    )}
+                    {/* --- FIN NUEVO --- */}
                 <button 
                     onClick={handleAddPromo}
                     disabled={loading}
@@ -1739,11 +1784,17 @@ function PromotionsTab({ initialConfig, negocioId }: { initialConfig: any, negoc
                                 <div>
                                     <h4 className="font-bold text-zinc-900">{promo.name}</h4>
                                     <p className="text-sm text-zinc-500 line-clamp-1">{promo.description}</p>
-                                    <div className="flex items-center gap-4 mt-2 text-xs font-medium">
+                                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-medium">
                                         <span className="text-green-600 bg-green-50 px-2 py-1 rounded">${promo.price}</span>
                                         <span className="text-pink-600 bg-pink-50 px-2 py-1 rounded flex items-center gap-1">
                                             <Clock size={12}/> Vence: {promo.promoEndDate}
                                         </span>
+                                        {/* Badge de profesionales */}
+                                        {promo.workerIds && promo.workerIds.length > 0 && (
+                                            <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded flex items-center gap-1">
+                                                <Users size={12}/> {promo.workerIds.length} prof.
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <button 

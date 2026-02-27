@@ -24,6 +24,7 @@ export interface ServiceItem {
   imagenUrl?: string;
   isPromo?: boolean;
   promoEndDate?: string | null;    
+  workerIds?: string[];  // NUEVO: Arreglo para guardar los IDs de los profesionales asignados
 }
 
 

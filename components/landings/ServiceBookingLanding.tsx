@@ -954,39 +954,59 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         <button onClick={() => setBookingStep(1)} className="text-xs text-zinc-400">← Volver</button>
                         <h4 className="font-bold text-lg">¿Con quién te quieres atender?</h4>
                         
-                        {config.equipo?.mostrar && config.equipo?.items?.length > 0 ? (
-                            <div className="grid gap-3">
-                                <button 
-                                    onClick={() => { setBookingData({...bookingData, worker: null}); setBookingStep(3); }}
-                                    className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-zinc-50 flex items-center gap-3"
-                                >
-                                    <div className="bg-zinc-100 p-2 rounded-full"><Users size={20}/></div>
-                                    <div>
-                                        <span className="font-bold block text-zinc-900">Cualquiera disponible</span>
-                                        <span className="text-xs text-zinc-500">Máxima disponibilidad</span>
+                        {(() => {
+                            // NUEVO: Filtrado de trabajadores asignados al servicio
+                            const allowedWorkers = (config.equipo?.items || []).filter((worker: any) => {
+                                const requiredIds = bookingData.service?.workerIds;
+                                // Si el servicio no tiene workerIds o está vacío, asumimos que todos están habilitados
+                                if (!requiredIds || requiredIds.length === 0) return true;
+                                return requiredIds.includes(worker.id);
+                            });
+
+                            if (config.equipo?.mostrar && allowedWorkers.length > 0) {
+                                return (
+                                    <div className="grid gap-3">
+                                        <button 
+                                            onClick={() => { setBookingData({...bookingData, worker: null}); setBookingStep(3); }}
+                                            className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-zinc-50 flex items-center gap-3"
+                                        >
+                                            <div className="bg-zinc-100 p-2 rounded-full"><Users size={20}/></div>
+                                            <div>
+                                                <span className="font-bold block text-zinc-900">Cualquiera disponible</span>
+                                                <span className="text-xs text-zinc-500">Máxima disponibilidad</span>
+                                            </div>
+                                        </button>
+                                        
+                                        {allowedWorkers.map((worker: any) => (
+                                            <button 
+                                                key={worker.id}
+                                                onClick={() => { setBookingData({...bookingData, worker: worker}); setBookingStep(3); }}
+                                                className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-indigo-50 hover:border-indigo-200 flex items-center gap-3"
+                                            >
+                                                <img src={worker.imagenUrl || "/default-avatar.png"} className="w-10 h-10 rounded-full object-cover bg-zinc-200"/>
+                                                <div>
+                                                    <span className="font-bold block text-zinc-900">{worker.nombre}</span>
+                                                    <span className="text-xs text-zinc-500">{worker.cargo}</span>
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
-                                </button>
-                                {config.equipo.items.map((worker: any) => (
-                                    <button 
-                                        key={worker.id}
-                                        onClick={() => { setBookingData({...bookingData, worker: worker}); setBookingStep(3); }}
-                                        className="p-4 border border-zinc-200 rounded-xl text-left hover:bg-indigo-50 hover:border-indigo-200 flex items-center gap-3"
-                                    >
-                                        <img src={worker.imagenUrl || "/default-avatar.png"} className="w-10 h-10 rounded-full object-cover bg-zinc-200"/>
-                                        <div>
-                                            <span className="font-bold block text-zinc-900">{worker.nombre}</span>
-                                            <span className="text-xs text-zinc-500">{worker.cargo}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            // SI NO HAY EQUIPO, SALTAMOS AUTOMÁTICAMENTE
-                            <div className="text-center py-4">
-                                <p className="text-zinc-500">No hay profesionales específicos.</p>
-                                <button onClick={() => setBookingStep(3)} className="mt-2 text-blue-600 font-bold">Continuar</button>
-                            </div>
-                        )}
+                                );
+                            } else {
+                                // Si no hay equipo, o si ningún trabajador hace este servicio, saltamos automáticamente
+                                return (
+                                    <div className="text-center py-4">
+                                        <p className="text-zinc-500 text-sm">No hay profesionales específicos para este servicio.</p>
+                                        <button 
+                                            onClick={() => { setBookingData({...bookingData, worker: null}); setBookingStep(3); }} 
+                                            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold"
+                                        >
+                                            Continuar fecha y hora
+                                        </button>
+                                    </div>
+                                );
+                            }
+                        })()}
                 </div>
             )}
             {/* PASO 3 */}

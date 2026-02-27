@@ -1065,8 +1065,42 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                     La oferta desaparecerá automáticamente cuando pase esta fecha.
                                                                 </p>
                                                             </div>
+
                                                         )}
                                                     </div>
+                                                    {/* --- NUEVO: ASIGNACIÓN DE PROFESIONALES --- */}
+                                                {config.equipo?.mostrar && config.equipo?.items?.length > 0 && (
+                                                    <div className="mt-3 pt-3 border-t border-zinc-100">
+                                                        <label className="text-[10px] font-bold text-zinc-400 uppercase mb-2 block flex items-center gap-1">
+                                                            <Users size={12}/> Profesionales que lo realizan
+                                                        </label>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {config.equipo.items.map((worker: any) => {
+                                                                const isChecked = item.workerIds?.includes(worker.id) || false;
+                                                                return (
+                                                                    <label key={worker.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-medium cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-zinc-200 text-zinc-500 hover:bg-zinc-50'}`}>
+                                                                        <input 
+                                                                            type="checkbox" 
+                                                                            className="hidden"
+                                                                            checked={isChecked}
+                                                                            onChange={(e) => {
+                                                                                const currentIds = item.workerIds || [];
+                                                                                const newIds = e.target.checked 
+                                                                                    ? [...currentIds, worker.id] 
+                                                                                    : currentIds.filter((id: string) => id !== worker.id);
+                                                                                updateArrayItem('servicios', i, 'workerIds', newIds);
+                                                                            }}
+                                                                        />
+                                                                        <div className={`w-2 h-2 rounded-full ${isChecked ? 'bg-indigo-500' : 'bg-zinc-300'}`}></div>
+                                                                        {worker.nombre}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <p className="text-[9px] text-zinc-400 mt-1">Si no seleccionas ninguno, se asume que todos pueden hacerlo.</p>
+                                                    </div>
+                                                )}
+                                                {/* --- FIN NUEVO --- */}
                                                 </div>
                                             </div>
                                         ))}
