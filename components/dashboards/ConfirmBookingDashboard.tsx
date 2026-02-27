@@ -1473,6 +1473,8 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
     const supabase = createClient();
     const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
 
+    
+
     const handleDisconnect = async () => {
         const confirmacion = window.confirm("¿Estás seguro de que quieres desconectar Google Calendar? Dejarás de sincronizar tus turnos.");
         
