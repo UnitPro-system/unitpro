@@ -1472,6 +1472,70 @@ function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
 function ConfigTab({ negocio, handleConnectGoogle }: any) {
     const supabase = createClient();
     const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
+    const [isConnectingWhatsApp, setIsConnectingWhatsApp] = useState(false);
+    const isWhatsAppConnected = !!negocio?.whatsapp_access_token;
+
+    useEffect(() => {
+        (window as any).fbAsyncInit = function() {
+            (window as any).FB.init({
+                appId            : 'TU_META_APP_ID', // <-- REEMPLAZAR CON TU APP ID
+                autoLogAppEvents : true,
+                xfbml            : true,
+                version          : 'v19.0'
+            });
+        };
+
+        (function(d, s, id) {
+            var js: any, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/es_LA/sdk.js";
+            fjs?.parentNode?.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+    }, []);
+
+    const launchWhatsAppSignup = () => {
+        setIsConnectingWhatsApp(true);
+        (window as any).FB.login((response: any) => {
+            if (response.authResponse) {
+                vincularWhatsApp(response.authResponse.accessToken); 
+            } else {
+                console.log('Cancelado por el usuario.');
+                setIsConnectingWhatsApp(false);
+            }
+        }, {
+            config_id: 'TU_CONFIG_ID_DE_META', // <-- REEMPLAZAR CON TU CONFIG ID
+            response_type: 'code',
+            override_default_response_type: true,
+            extras: { setup: {} }
+        });
+    };
+
+    const vincularWhatsApp = async (token: string) => {
+        try {
+            const { error } = await supabase
+                .from('negocios')
+                .update({ whatsapp_access_token: token })
+                .eq('id', negocio.id);
+
+            if (error) throw error;
+            alert("¡WhatsApp vinculado con éxito!");
+            window.location.reload(); 
+        } catch (error) {
+            alert("Error al vincular WhatsApp.");
+            setIsConnectingWhatsApp(false);
+        }
+    };
+
+    const handleDisconnectWhatsApp = async () => {
+        if (!window.confirm("¿Seguro que quieres desconectar WhatsApp? Dejarás de enviar recordatorios automáticos.")) return;
+        try {
+            await supabase.from('negocios').update({ whatsapp_access_token: null }).eq('id', negocio.id);
+            window.location.reload();
+        } catch (error) {
+            alert("Error al desconectar.");
+        }
+    };
 
     
 
@@ -1537,6 +1601,35 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                         </button>
                         {negocio.google_calendar_connected && (
                             <button onClick={handleDisconnect} className="text-xs text-red-500 hover:underline">Desconectar</button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-4 bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex justify-between gap-6">
+                    <div className="flex gap-4">
+                        <div className="w-12 h-12 bg-[#25D366]/10 text-[#25D366] rounded-xl flex items-center justify-center shrink-0">
+                            <MessageCircle size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-zinc-900">WhatsApp Oficial</h3>
+                            <p className="text-sm text-zinc-500 mt-1">Envía confirmaciones automáticas.</p>
+                            {isWhatsAppConnected ? (
+                                <div className="mt-2 text-emerald-600 text-sm font-bold flex gap-1 items-center"><Check size={14}/> Conectado</div>
+                            ) : (
+                                <div className="mt-2 text-zinc-400 text-sm">Desconectado</div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <button 
+                            onClick={launchWhatsAppSignup} 
+                            disabled={isWhatsAppConnected || isConnectingWhatsApp} 
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${isWhatsAppConnected ? "bg-zinc-100 text-zinc-400" : "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md"}`}
+                        >
+                            {isConnectingWhatsApp ? "Conectando..." : isWhatsAppConnected ? "Listo" : "Conectar"}
+                        </button>
+                        {isWhatsAppConnected && (
+                            <button onClick={handleDisconnectWhatsApp} className="text-xs text-red-500 hover:underline">Desconectar</button>
                         )}
                     </div>
                 </div>
