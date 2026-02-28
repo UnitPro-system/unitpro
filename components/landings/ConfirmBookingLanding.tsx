@@ -1264,13 +1264,20 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         value={bookingData.clientName}
                         onChange={e => setBookingData({...bookingData, clientName: e.target.value})}
                     />
-                    <input 
-                        required 
-                        placeholder="Teléfono" 
-                        className="w-full p-3 border rounded-xl" 
-                        value={bookingData.clientPhone}
-                        onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}
-                    />
+                    <div>
+                        <input 
+                            required 
+                            type="tel"
+                            autoComplete="tel"
+                            placeholder="Teléfono (Ej: +54 9 11 2345 6789)" 
+                            className="w-full p-3 border rounded-xl" 
+                            value={bookingData.clientPhone}
+                            onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}
+                        />
+                        <p className="text-[11px] text-zinc-500 mt-1.5 ml-1 leading-tight">
+                            Incluye el <b>+54</b> y tu código de área (ej: <b>9 11</b> para Bs. As. o <b>9 343</b> para Paraná). Sin esto no podremos enviarte el WhatsApp de confirmación.
+                        </p>
+                    </div>
                     <input 
                         required 
                         type="email"
