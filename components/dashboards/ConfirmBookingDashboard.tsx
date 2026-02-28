@@ -1472,64 +1472,60 @@ function SubscriptionTab({ negocio, CONST_LINK_MP }: any) {
 function ConfigTab({ negocio, handleConnectGoogle }: any) {
     const supabase = createClient();
     const workers = negocio.config_web?.equipo?.members || negocio.config_web?.equipo?.items || [];
-    const [isConnectingWhatsApp, setIsConnectingWhatsApp] = useState(false);
     const isWhatsAppConnected = !!negocio?.whatsapp_access_token;
+    
+    // Estados para manejar el flujo del QR
+    const [waStatus, setWaStatus] = useState<'disconnected' | 'loading_qr' | 'waiting_scan' | 'connected'>(
+        isWhatsAppConnected ? 'connected' : 'disconnected'
+    );
+    const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        (window as any).fbAsyncInit = function() {
-            (window as any).FB.init({
-                appId            : 'TU_META_APP_ID', // <-- REEMPLAZAR CON TU APP ID
-                autoLogAppEvents : true,
-                xfbml            : true,
-                version          : 'v19.0'
-            });
-        };
+    const handleGenerateQR = async () => {
+        setWaStatus('loading_qr');
+        
+        try {
+            // AQUÍ IREMOS AL BACKEND A PEDIR EL QR A LA API NO OFICIAL
+            // Por ahora, simulamos que la API nos devuelve un QR después de 2 segundos
+            setTimeout(() => {
+                // Generamos un QR falso usando una API pública solo para visualización
+                setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SimulacionSesion_${negocio.id}`);
+                setWaStatus('waiting_scan');
 
-        (function(d, s, id) {
-            var js: any, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) return;
-            js = d.createElement(s); js.id = id;
-            js.src = "https://connect.facebook.net/es_LA/sdk.js";
-            fjs?.parentNode?.insertBefore(js, fjs);
-        }(document, 'script', 'facebook-jssdk'));
-    }, []);
+                // Simulamos que el cliente escaneó el QR con su celular a los 5 segundos
+                setTimeout(async () => {
+                    await vincularWhatsApp("token_simulado_de_la_api_no_oficial");
+                }, 5000);
 
-    const launchWhatsAppSignup = () => {
-        setIsConnectingWhatsApp(true);
-        (window as any).FB.login((response: any) => {
-            if (response.authResponse) {
-                vincularWhatsApp(response.authResponse.accessToken); 
-            } else {
-                console.log('Cancelado por el usuario.');
-                setIsConnectingWhatsApp(false);
-            }
-        }, {
-            config_id: 'TU_CONFIG_ID_DE_META', // <-- REEMPLAZAR CON TU CONFIG ID
-            response_type: 'code',
-            override_default_response_type: true,
-            extras: { setup: {} }
-        });
+            }, 2000);
+            
+        } catch (error) {
+            alert("Error al conectar con el servidor de WhatsApp.");
+            setWaStatus('disconnected');
+        }
     };
 
-    const vincularWhatsApp = async (token: string) => {
+    const vincularWhatsApp = async (instanceToken: string) => {
         try {
             const { error } = await supabase
                 .from('negocios')
-                .update({ whatsapp_access_token: token })
+                .update({ whatsapp_access_token: instanceToken })
                 .eq('id', negocio.id);
 
             if (error) throw error;
+            setWaStatus('connected');
+            setQrCodeUrl(null);
             alert("¡WhatsApp vinculado con éxito!");
             window.location.reload(); 
         } catch (error) {
-            alert("Error al vincular WhatsApp.");
-            setIsConnectingWhatsApp(false);
+            alert("Error al guardar la vinculación.");
+            setWaStatus('disconnected');
         }
     };
 
     const handleDisconnectWhatsApp = async () => {
-        if (!window.confirm("¿Seguro que quieres desconectar WhatsApp? Dejarás de enviar recordatorios automáticos.")) return;
+        if (!window.confirm("¿Seguro que quieres desconectar tu WhatsApp? Dejarás de enviar recordatorios automáticos.")) return;
         try {
+            // Aquí en el futuro le diremos a la API que cierre la sesión
             await supabase.from('negocios').update({ whatsapp_access_token: null }).eq('id', negocio.id);
             window.location.reload();
         } catch (error) {
@@ -1605,33 +1601,57 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                     </div>
                 </div>
 
-                <div className="mt-4 bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex justify-between gap-6">
-                    <div className="flex gap-4">
-                        <div className="w-12 h-12 bg-[#25D366]/10 text-[#25D366] rounded-xl flex items-center justify-center shrink-0">
-                            <MessageCircle size={24} />
+                <div className="mt-4 bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 flex flex-col gap-6">
+                    <div className="flex justify-between gap-6">
+                        <div className="flex gap-4">
+                            <div className="w-12 h-12 bg-[#25D366]/10 text-[#25D366] rounded-xl flex items-center justify-center shrink-0">
+                                <MessageCircle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-zinc-900">Conexión de WhatsApp</h3>
+                                <p className="text-sm text-zinc-500 mt-1 max-w-md">
+                                    Conecta el WhatsApp del local escaneando un código QR. Los recordatorios saldrán desde ese número.
+                                </p>
+                                {waStatus === 'connected' ? (
+                                    <div className="mt-2 text-emerald-600 text-sm font-bold flex gap-1 items-center"><Check size={14}/> Conectado y Activo</div>
+                                ) : (
+                                    <div className="mt-2 text-zinc-400 text-sm">Desconectado</div>
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-bold text-zinc-900">WhatsApp Oficial</h3>
-                            <p className="text-sm text-zinc-500 mt-1">Envía confirmaciones automáticas.</p>
-                            {isWhatsAppConnected ? (
-                                <div className="mt-2 text-emerald-600 text-sm font-bold flex gap-1 items-center"><Check size={14}/> Conectado</div>
-                            ) : (
-                                <div className="mt-2 text-zinc-400 text-sm">Desconectado</div>
+                        
+                        <div className="flex flex-col gap-2 shrink-0">
+                            <button 
+                                onClick={handleGenerateQR} 
+                                disabled={waStatus !== 'disconnected'} 
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors min-w-[140px] ${waStatus === 'connected' ? "bg-zinc-100 text-zinc-400" : "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md"}`}
+                            >
+                                {waStatus === 'loading_qr' ? "Generando..." : waStatus === 'waiting_scan' ? "Esperando..." : waStatus === 'connected' ? "Listo" : "Generar QR"}
+                            </button>
+                            {waStatus === 'connected' && (
+                                <button onClick={handleDisconnectWhatsApp} className="text-xs text-red-500 hover:underline font-medium text-center">Desconectar</button>
                             )}
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <button 
-                            onClick={launchWhatsAppSignup} 
-                            disabled={isWhatsAppConnected || isConnectingWhatsApp} 
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${isWhatsAppConnected ? "bg-zinc-100 text-zinc-400" : "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md"}`}
-                        >
-                            {isConnectingWhatsApp ? "Conectando..." : isWhatsAppConnected ? "Listo" : "Conectar"}
-                        </button>
-                        {isWhatsAppConnected && (
-                            <button onClick={handleDisconnectWhatsApp} className="text-xs text-red-500 hover:underline">Desconectar</button>
-                        )}
-                    </div>
+
+                    {/* ZONA DONDE APARECE EL QR */}
+                    {waStatus === 'waiting_scan' && qrCodeUrl && (
+                        <div className="mt-2 p-6 bg-zinc-50 border border-zinc-200 rounded-xl flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300">
+                            <h4 className="font-bold text-zinc-800 mb-2">Escanea este código</h4>
+                            <p className="text-sm text-zinc-500 mb-6 text-center max-w-sm">
+                                1. Abre WhatsApp en tu celular.<br/>
+                                2. Toca Menú o Configuración y selecciona <b>Dispositivos vinculados</b>.<br/>
+                                3. Toca <b>Vincular un dispositivo</b> y apunta tu pantalla a este código.
+                            </p>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-zinc-100">
+                                <img src={qrCodeUrl} alt="WhatsApp QR Code" className="w-48 h-48" />
+                            </div>
+                            <div className="mt-6 flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 px-4 py-2 rounded-lg border border-amber-100">
+                                <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+                                Esperando escaneo...
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
