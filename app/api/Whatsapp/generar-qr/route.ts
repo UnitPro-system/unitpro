@@ -5,21 +5,24 @@ export async function POST(request: Request) {
         const { negocioId } = await request.json();
         const instanceName = `negocio_${negocioId}`;
         
-        const apiUrl = process.env.EVOLUTION_API_URL;
+        let apiUrl = process.env.EVOLUTION_API_URL;
         const apiKey = process.env.EVOLUTION_API_KEY as string;
 
         if (!apiUrl || !apiKey) {
             throw new Error("Faltan configurar EVOLUTION_API_URL o EVOLUTION_API_KEY en Vercel.");
         }
 
-        // 1. LIMPIEZA: Intentamos borrar la sesión si quedó trabada de un intento anterior
+        // 👇 LA MAGIA: Le quitamos la barra "/" final si es que la tiene
+        apiUrl = apiUrl.replace(/\/$/, '');
+
+        // 1. LIMPIEZA
         try {
             await fetch(`${apiUrl}/instance/delete/${instanceName}`, {
                 method: 'DELETE',
                 headers: { 'apikey': apiKey }
             });
         } catch (e) {
-            // Si falla al borrar no importa, seguimos adelante.
+            // Ignoramos si falla al borrar
         }
 
         // 2. CREAR LA SESIÓN FRESCA
@@ -36,7 +39,6 @@ export async function POST(request: Request) {
             })
         });
 
-        // Leemos la respuesta como texto para atrapar cualquier error
         const rawText = await response.text();
         let data;
         
@@ -47,7 +49,6 @@ export async function POST(request: Request) {
         }
 
         if (!response.ok) {
-            // ¡MAGIA! Devolvemos el error EXACTO de Railway al frontend
             throw new Error(data.message ? JSON.stringify(data.message) : JSON.stringify(data));
         }
 

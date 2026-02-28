@@ -87,12 +87,6 @@ export default function Home() {
             className="absolute inset-[45%] rounded-full bg-[#c9efa3] shadow-md flex items-center justify-center"
             variants={{ hidden: { scale: 0, opacity: 0 }, visible: { scale: 1, opacity: 1, transition: { duration: 0.8, ease: "backOut" } } }}
           >
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="w-8 h-8 bg-white rounded-full opacity-50 blur-sm absolute top-4 left-4" // Brillo sutil
-            />
           </motion.div>
         </motion.div>
 
