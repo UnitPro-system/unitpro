@@ -1484,21 +1484,29 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
         setWaStatus('loading_qr');
         
         try {
-            // AQUÍ IREMOS AL BACKEND A PEDIR EL QR A LA API NO OFICIAL
-            // Por ahora, simulamos que la API nos devuelve un QR después de 2 segundos
-            setTimeout(() => {
-                // Generamos un QR falso usando una API pública solo para visualización
-                setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SimulacionSesion_${negocio.id}`);
-                setWaStatus('waiting_scan');
+            // Llamamos a nuestro backend seguro que acabás de crear
+            const response = await fetch('/api/whatsapp/generar-qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ negocioId: negocio.id })
+            });
 
-                // Simulamos que el cliente escaneó el QR con su celular a los 5 segundos
-                setTimeout(async () => {
-                    await vincularWhatsApp("token_simulado_de_la_api_no_oficial");
-                }, 5000);
+            const data = await response.json();
 
-            }, 2000);
-            
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+
+            // Mostramos el QR REAL que vino de tu servidor en Railway
+            // Evolution ya devuelve el base64 listo para usar en la etiqueta <img>
+            setQrCodeUrl(data.qrCodeBase64);
+            setWaStatus('waiting_scan');
+
+            // Guardamos el nombre de la instancia en la base de datos (Supabase)
+            await vincularWhatsApp(data.instanceName);
+
         } catch (error) {
+            console.error(error);
             alert("Error al conectar con el servidor de WhatsApp.");
             setWaStatus('disconnected');
         }
