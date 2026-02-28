@@ -16,12 +16,15 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify({
                 instanceName: instanceName,
-                qrcode: true, // Pedimos que devuelva el QR para escanear
-                integration: "WHATSAPP-BAILEYS" // El motor interno que usa Evolution
+                qrcode: true, 
+                integration: "WHATSAPP-BAILEYS" 
             })
         });
 
         const data = await response.json();
+        
+        // 👇 AGREGÁ ESTA LÍNEA PARA VER QUÉ DICE RAILWAY:
+        console.log("RESPUESTA DE EVOLUTION:", data); 
 
         if (!response.ok) {
             throw new Error(data.message || "Error al crear la sesión en WhatsApp");
