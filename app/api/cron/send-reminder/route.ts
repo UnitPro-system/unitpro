@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
 import { compileEmailTemplate } from '@/lib/email-helper';
+import { sendWhatsAppNotification } from '@/lib/whatsapp-helper';
 
 // IMPORTANTE: Al ser un cron, no hay cookies de usuario.
 // Usamos la Service Role Key para tener acceso a "todos" los datos sin RLS.
@@ -33,7 +34,8 @@ export async function GET(req: Request) {
         negocios!inner (
           google_refresh_token,
           google_access_token,
-          config_web
+          config_web,
+          whatsapp_access_token
         )
       `)
       .eq('estado', 'confirmado')
@@ -88,6 +90,23 @@ export async function GET(req: Request) {
                 profesional: '' 
             }
         );
+
+        const configWeb = turno.negocios.config_web || {};
+        const notifReminder = configWeb.notifications?.reminder || { enabled: true, sendViaEmail: true, sendViaWhatsapp: false };
+
+        // --- ENVIAR RECORDATORIO POR WHATSAPP ---
+        if (notifReminder.sendViaWhatsapp && turno.cliente_telefono && turno.negocios.whatsapp_access_token) {
+            await sendWhatsAppNotification(
+                turno.cliente_telefono,
+                'reminder',
+                {
+                    cliente: turno.cliente_nombre,
+                    servicio: turno.servicio,
+                    fecha: fechaLegible
+                },
+                turno.negocios.whatsapp_access_token
+            );
+        }
 
         // --- CORRECCIÓN: Validar si el mail está activado ---
         if (!emailData) {

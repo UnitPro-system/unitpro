@@ -263,7 +263,8 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
             await sendWhatsAppNotification(
                 turno.cliente_telefono, 
                 templateType, 
-                variablesNotificacion
+                variablesNotificacion,
+                negocio.whatsapp_access_token // <-- AGREGAMOS ESTA LÍNEA AQUÍ
             );
         }
 
