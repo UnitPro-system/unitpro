@@ -323,7 +323,7 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
             <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20}/></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-50/30">
+        <div className="flex-1 overflow-y-auto p-6 pb-32 space-y-8 bg-zinc-50/30">
             {/*  GESTOR DE SECCIONES --- */}
             <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
                 <h3 className="font-bold text-zinc-800 text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -1480,9 +1480,19 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
             })}
         </div>
 
-        <div className="p-5 border-t bg-white flex gap-3">
-            <button onClick={onClose} className="px-6 py-3 text-zinc-500 font-bold hover:bg-zinc-100 rounded-xl text-sm">Cerrar</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl flex justify-center gap-2">
+        {/* BOTONES DE ACCIÓN FIJOS (BOTTOM RIGHT) */}
+        <div className="fixed bottom-0 right-0 w-[400px] p-5 border-t border-zinc-200 bg-white/95 backdrop-blur-sm flex gap-3 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
+            <button 
+                onClick={onClose} 
+                className="px-6 py-3 text-zinc-600 font-bold hover:bg-zinc-100 rounded-xl text-sm transition-colors"
+            >
+                Cerrar
+            </button>
+            <button 
+                onClick={handleSave} 
+                disabled={saving} 
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all text-white font-bold rounded-xl flex justify-center items-center gap-2 shadow-md"
+            >
                 {saving ? <Loader2 className="animate-spin"/> : <><Save size={18}/> Guardar</>}
             </button>
         </div>
