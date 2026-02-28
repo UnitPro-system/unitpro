@@ -1479,6 +1479,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
         isWhatsAppConnected ? 'connected' : 'disconnected'
     );
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+    const [newInstanceName, setNewInstanceName] = useState<string | null>(null);
 
     const handleGenerateQR = async () => {
         setWaStatus('loading_qr');
@@ -1503,7 +1504,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
             setWaStatus('waiting_scan');
 
             // Guardamos el nombre de la instancia en la base de datos (Supabase)
-            await vincularWhatsApp(data.instanceName);
+            
 
         } catch (error: any) { // <-- Asegurate de que diga error: any
             console.error(error);
@@ -1659,6 +1660,12 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
                                 <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
                                 Esperando escaneo...
                             </div>
+                            <button 
+                                onClick={() => newInstanceName && vincularWhatsApp(newInstanceName)}
+                                className="mt-6 px-6 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl transition-colors shadow-lg flex items-center gap-2"
+                            >
+                                <Check size={18} /> Listo, ya lo escaneé
+                            </button>
                         </div>
                     )}
                 </div>
