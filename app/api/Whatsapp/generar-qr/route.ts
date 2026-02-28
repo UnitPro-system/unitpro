@@ -3,16 +3,31 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
     try {
         const { negocioId } = await request.json();
-        
-        // Cada peluquería tendrá su propia "sesión" llamada negocio_1, negocio_2, etc.
         const instanceName = `negocio_${negocioId}`;
+        
+        const apiUrl = process.env.EVOLUTION_API_URL;
+        const apiKey = process.env.EVOLUTION_API_KEY as string;
 
-        // Llamamos a tu servidor de Railway
-        const response = await fetch(`${process.env.EVOLUTION_API_URL}/instance/create`, {
+        if (!apiUrl || !apiKey) {
+            throw new Error("Faltan configurar EVOLUTION_API_URL o EVOLUTION_API_KEY en Vercel.");
+        }
+
+        // 1. LIMPIEZA: Intentamos borrar la sesión si quedó trabada de un intento anterior
+        try {
+            await fetch(`${apiUrl}/instance/delete/${instanceName}`, {
+                method: 'DELETE',
+                headers: { 'apikey': apiKey }
+            });
+        } catch (e) {
+            // Si falla al borrar no importa, seguimos adelante.
+        }
+
+        // 2. CREAR LA SESIÓN FRESCA
+        const response = await fetch(`${apiUrl}/instance/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': process.env.EVOLUTION_API_KEY as string
+                'apikey': apiKey
             },
             body: JSON.stringify({
                 instanceName: instanceName,
@@ -21,24 +36,29 @@ export async function POST(request: Request) {
             })
         });
 
-        const data = await response.json();
+        // Leemos la respuesta como texto para atrapar cualquier error
+        const rawText = await response.text();
+        let data;
         
-        // 👇 AGREGÁ ESTA LÍNEA PARA VER QUÉ DICE RAILWAY:
-        console.log("RESPUESTA DE EVOLUTION:", data); 
-
-        if (!response.ok) {
-            throw new Error(data.message || "Error al crear la sesión en WhatsApp");
+        try {
+            data = JSON.parse(rawText);
+        } catch(e) {
+            throw new Error(`Railway devolvió algo raro: ${rawText.substring(0, 60)}`);
         }
 
-        // Devolvemos la imagen del QR al frontend
+        if (!response.ok) {
+            // ¡MAGIA! Devolvemos el error EXACTO de Railway al frontend
+            throw new Error(data.message ? JSON.stringify(data.message) : JSON.stringify(data));
+        }
+
         return NextResponse.json({ 
             success: true, 
-            qrCodeBase64: data.qrcode.base64,
-            instanceName: data.instance.instanceName
+            qrCodeBase64: data.qrcode?.base64 || data.qrcode,
+            instanceName: data.instance?.instanceName || instanceName
         });
 
     } catch (error: any) {
-        console.error("Error generando QR:", error);
+        console.error("Error backend:", error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

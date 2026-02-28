@@ -1505,9 +1505,10 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
             // Guardamos el nombre de la instancia en la base de datos (Supabase)
             await vincularWhatsApp(data.instanceName);
 
-        } catch (error) {
+        } catch (error: any) { // <-- Asegurate de que diga error: any
             console.error(error);
-            alert("Error al conectar con el servidor de WhatsApp.");
+            // Ahora la alerta nos mostrará el problema real que viene del backend
+            alert("Error de WhatsApp: " + error.message);
             setWaStatus('disconnected');
         }
     };
