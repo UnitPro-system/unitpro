@@ -37,6 +37,9 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   clientEmail: string;
   message: string;
   images: string[];
+  clientAreaCode: string;
+  clientLocalNumber: string;
+  
 }>({
   service: null, 
   date: "", 
@@ -47,6 +50,8 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
   message: "",
   images: [],
   worker: null,
+  clientAreaCode: "",
+  clientLocalNumber: "",
 });
   const [busySlots, setBusySlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -297,13 +302,15 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
     // CORRECCIÓN 2: Leemos el nombre de ambos formatos (name o titulo)
     const serviceName = bookingData.service?.name || bookingData.service?.titulo || "Servicio Agendado";
 
+    const numeroArmado = `+549${bookingData.clientAreaCode}${bookingData.clientLocalNumber}`;
+
     const payload = {
         service: serviceName, 
         precio: bookingData.service?.price || bookingData.service?.precio || 0, // <--- NUEVO: Enviamos el precio
         date: bookingData.date,
         time: bookingData.time,
         clientName: bookingData.clientName,
-        clientPhone: bookingData.clientPhone,
+        clientPhone: numeroArmado,
         clientEmail: bookingData.clientEmail,
         start: slotStart.toISOString(),
         end: slotEnd.toISOString(),
@@ -322,7 +329,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
         if ((res as any).eventLink) setEventLink((res as any).eventLink); 
         setMostrarGracias(true);
         setBookingStep(1);
-        setBookingData({ service: null, date: "", time: "", clientName: "", clientPhone: "", clientEmail: "", worker: null, message: "", images: [] });
+        setBookingData({ service: null, date: "", time: "", clientName: "", clientPhone: "", clientEmail: "", worker: null, message: "", images: [],clientAreaCode: "", clientLocalNumber: "" });
     } else {
         alert("Error: " + res.error);
     }
@@ -1265,15 +1272,40 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                         onChange={e => setBookingData({...bookingData, clientName: e.target.value})}
                     />
                     <div>
-                        <input 
-                            required 
-                            type="tel"
-                            autoComplete="tel"
-                            placeholder="Teléfono (Ej: 54934312345678)" 
-                            className="w-full p-3 border rounded-xl" 
-                            value={bookingData.clientPhone}
-                            onChange={e => setBookingData({...bookingData, clientPhone: e.target.value})}
-                        />
+                        <label className="text-xs font-bold text-zinc-500 ml-1 mb-1 block">Número de WhatsApp</label>
+                        <div className="flex gap-2 items-center">
+                            
+                            {/* PREFIJO FIJO (No se puede editar) */}
+                            <div className="flex items-center justify-center px-3 py-3.5 bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-600 font-bold shrink-0 select-none">
+                                🇦🇷 +54 9
+                            </div>
+                            
+                            {/* CÓDIGO DE ÁREA */}
+                            <input 
+                                required 
+                                type="tel"
+                                placeholder="Área (Ej: 11)" 
+                                className="w-[100px] p-3 border rounded-xl text-center font-medium" 
+                                value={bookingData.clientAreaCode}
+                                // La regex (/\D/g, '') asegura que SOLO puedan escribir números
+                                onChange={e => setBookingData({...bookingData, clientAreaCode: e.target.value.replace(/\D/g, '')})}
+                                maxLength={4}
+                            />
+                            
+                            {/* RESTO DEL NÚMERO */}
+                            <input 
+                                required 
+                                type="tel"
+                                placeholder="Número (Ej: 2345 6789)" 
+                                className="w-full p-3 border rounded-xl font-medium" 
+                                value={bookingData.clientLocalNumber}
+                                onChange={e => setBookingData({...bookingData, clientLocalNumber: e.target.value.replace(/\D/g, '')})}
+                                maxLength={10}
+                            />
+                        </div>
+                        <p className="text-[11px] text-zinc-500 mt-1.5 ml-1 leading-tight">
+                            Ingresá tu código de área <b>sin el 0</b> y tu número <b>sin el 15</b>.
+                        </p>
                     </div>
                     <input 
                         required 
