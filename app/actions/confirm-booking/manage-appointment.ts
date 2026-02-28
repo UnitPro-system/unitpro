@@ -367,11 +367,11 @@ export async function markDepositPaid(turnoId: string) {
             }
         })
 
-        // 3. Email confirmación final
-        if (turno.cliente_email) {
-            const configWeb = negocio.config_web || {};
-            const bookingConfig = configWeb.booking || { depositPercentage: 50 };
-            
+        const configWeb = negocio.config_web || {};
+        const bookingConfig = configWeb.booking || { depositPercentage: 50 };
+        const notifConfig = configWeb.notifications?.['confirmation'] || { enabled: true, sendViaEmail: true, sendViaWhatsapp: false };
+
+        if (notifConfig.enabled) {
             // A. Recuperamos valores
             const precioTotal = turno.precio_total || 0; 
             const porcentajeSenia = bookingConfig.depositPercentage || 50;
@@ -386,44 +386,59 @@ export async function markDepositPaid(turnoId: string) {
                 day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
             });
 
-            // --- MODIFICACIÓN PARA CONFIRMACIÓN: Buscar al profesional ---
+            // Buscar al profesional
             const serviceString = turno.servicio || "";
             const parts = serviceString.split(" - ");
             const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
             const trabajadorElegido = configWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
 
-            const emailData = compileEmailTemplate(
-                'confirmation', 
-                configWeb,
-                {
-                    cliente: turno.cliente_nombre,
-                    servicio: turno.servicio,
-                    fecha: fechaLegible,
-                    precio_total: `$${precioTotal}`,     // <--- Precio Total Real
-                    monto_senia: `$${montoPagado}`,      // <--- Lo que ya pagó
-                    precio_a_pagar: `$${saldoRestante}`, // <--- Lo que falta pagar
-                    // --- MODIFICACIÓN 2: Pasar las variables nuevas ---
-                    alias: trabajadorElegido?.aliasCvu || '',
-                    telefono_trabajador: trabajadorElegido?.telefono || ''
-                }
-            );
+            const variablesNotificacion = {
+                cliente: turno.cliente_nombre,
+                servicio: turno.servicio,
+                fecha: fechaLegible,
+                precio_total: `$${precioTotal}`,     
+                monto_senia: `$${montoPagado}`,      
+                precio_a_pagar: `$${saldoRestante}`, 
+                alias: trabajadorElegido?.aliasCvu || '',
+                telefono_trabajador: trabajadorElegido?.telefono || '',
+                profesional: workerName || ''
+            };
 
-    if (emailData) {
-        const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
-        const messageParts = [
-            `To: ${turno.cliente_email}`,
-            'Content-Type: text/html; charset=utf-8',
-            'MIME-Version: 1.0',
-            `Subject: ${utf8Subject}`,
-            '',
-            emailData.html,
-        ];
-        const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        try { 
-            await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
-        } catch(e) { console.error("Error confirmación final:", e); }
-    }
-}
+            // --- CANAL: WHATSAPP ---
+            if (notifConfig.sendViaWhatsapp && turno.cliente_telefono && negocio.whatsapp_access_token) {
+                try {
+                    await sendWhatsAppNotification(
+                        turno.cliente_telefono,
+                        'confirmation',
+                        variablesNotificacion,
+                        negocio.whatsapp_access_token
+                    );
+                } catch(e) {
+                    console.error("Error WhatsApp confirmación final:", e);
+                }
+            }
+
+            // --- CANAL: EMAIL ---
+            if (notifConfig.sendViaEmail !== false && turno.cliente_email) {
+                const emailData = compileEmailTemplate('confirmation', configWeb, variablesNotificacion);
+
+                if (emailData) {
+                    const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+                    const messageParts = [
+                        `To: ${turno.cliente_email}`,
+                        'Content-Type: text/html; charset=utf-8',
+                        'MIME-Version: 1.0',
+                        `Subject: ${utf8Subject}`,
+                        '',
+                        emailData.html,
+                    ];
+                    const rawMessage = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                    try { 
+                        await gmail.users.messages.send({ userId: 'me', requestBody: { raw: rawMessage } }); 
+                    } catch(e) { console.error("Error Email confirmación final:", e); }
+                }
+            }
+        }
 
         // 4. Actualizar DB
         const { error } = await supabase
