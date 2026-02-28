@@ -1485,7 +1485,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
         
         try {
             // Llamamos a nuestro backend seguro que acabás de crear
-            const response = await fetch('/api/whatsapp/generar-qr', {
+            const response = await fetch('/api/Whatsapp/generar-qr', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ negocioId: negocio.id })
