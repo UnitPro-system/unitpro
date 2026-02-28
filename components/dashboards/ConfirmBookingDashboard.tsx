@@ -1502,6 +1502,7 @@ function ConfigTab({ negocio, handleConnectGoogle }: any) {
             // Evolution ya devuelve el base64 listo para usar en la etiqueta <img>
             setQrCodeUrl(data.qrCodeBase64);
             setWaStatus('waiting_scan');
+            setNewInstanceName(data.instanceName);
 
             // Guardamos el nombre de la instancia en la base de datos (Supabase)
             
