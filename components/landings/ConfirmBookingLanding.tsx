@@ -966,7 +966,18 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor + '20', color: brandColor }}><Phone size={20}/></div>
                             <div>
                                 <h4 className="font-bold" style={{ color: textColor }}>Contacto Directo</h4>
-                                <p className="opacity-70">{negocio.whatsapp || "No especificado"}</p>
+                                {negocio.whatsapp ? (
+                                    <a 
+                                        href={`https://wa.me/${negocio.whatsapp.replace(/[^0-9]/g, '')}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="opacity-70 hover:underline hover:text-green-600 transition-colors"
+                                    >
+                                        {negocio.whatsapp}
+                                    </a>
+                                ) : (
+                                    <p className="opacity-70">No especificado</p>
+                                )}
                             </div>
                         </div>
                         {/* Redes Sociales */}

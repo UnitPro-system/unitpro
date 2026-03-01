@@ -58,7 +58,7 @@ export function Footer({ data, negocioNombre }: { data: FooterSection, negocioNo
             {/* WHATSAPP (Si se agrega al config) */}
             {social.whatsapp && (
                 <a 
-                    href={social.whatsapp} 
+                    href={social.whatsapp.startsWith('http') ? social.whatsapp : `https://wa.me/${social.whatsapp.replace(/[^0-9]/g, '')}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-sm font-medium hover:text-green-400 transition-colors"
