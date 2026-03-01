@@ -791,7 +791,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                 <h2 className="text-3xl font-bold mb-4 text-zinc-900">
                     Lo que dicen nuestros clientes
                 </h2>
-                <p className="text-zinc-500 max-w-2xl mx-auto">
+                <p className="text-zinc-500 max-w-2xl mx-auto mb-8">
                     La confianza de nuestros clientes es nuestra mejor carta de presentación.
                 </p>
                 <button 
