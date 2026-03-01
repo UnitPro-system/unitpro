@@ -104,7 +104,7 @@ export default function Home() {
             UnitPro
           </h1>
           <p className="text-xl md:text-3xl font-medium text-neutral-600 mb-10 tracking-tight max-w-2xl mx-auto leading-relaxed">
-            La plataforma definitiva para escalar tu negocio. Elegancia, eficiencia y control absoluto en un solo lugar.
+            Makes sh**t easy.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
