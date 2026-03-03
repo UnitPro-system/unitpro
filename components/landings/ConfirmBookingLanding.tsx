@@ -509,7 +509,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
       </nav>
 
       {/* --- HERO SECTION --- */}
-      <header id="inicio" className="relative w-full h-screen min-h-[700px] flex flex-col items-center justify-center overflow-hidden" onClick={(e) => handleEditClick(e, 'hero')}>
+      <header id="inicio" className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden py-28" onClick={(e) => handleEditClick(e, 'hero')}>
          
          {/* Fondo con Overlay */}
          <div className="absolute inset-0 w-full h-full z-0">
@@ -518,19 +518,18 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
          </div>
 
          {/* Contenido Central */}
-         <div className={`relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-24 md:pt-32 ${editableClass}`}>
+         <div className={`relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center justify-center pt-8 ${editableClass}`}>
             
-            {/* Logo en el Hero ajustado (más grande y bajado sutilmente) */}
+            {/* Logo en el Hero ajustado para que no rompa en mobile */}
             {config.logoUrl && (
-                <div className="w-46 h-46 md:w-44 md:h-44 flex items-center justify-center mb-8 md:mb-12 transform hover:scale-105 transition-transform duration-500">
+                <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-44 md:h-44 flex items-center justify-center mb-6 md:mb-10 transform hover:scale-105 transition-transform duration-500">
                      <img src={config.logoUrl} alt="Logo Hero" className="w-full h-full object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]"/>
                 </div>
             )}
 
-            {/* Contenedor Refinado con Glassmorphism fuerte y ajustado para jerarquía */}
-            <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 md:p-8 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-xl mt-16 md:mt-24">
+            {/* Contenedor Refinado con Glassmorphism fuerte (Le sacamos los márgenes top gigantes) */}
+            <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 md:p-8 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-xl">
                 <SafeHTML as="h1" html={config.hero.titulo} className="text-3xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight" />
-                <SafeHTML as="p" html={config.hero.subtitulo} className="text-base md:text-lg text-white/90 max-w-xl mx-auto mb-8 leading-relaxed font-medium drop-shadow-sm" />
                 
                 {/* Botones accesibles con mayor Target Area (min-h-[48px]) */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
