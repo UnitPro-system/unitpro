@@ -469,7 +469,7 @@ export async function cancelAppointment(appointmentId: string) {
     // 1. Obtener datos del turno y refresh token del negocio asociado
     const { data: turno, error: turnoError } = await supabase
       .from('turnos')
-      .select('*, negocios(google_refresh_token)')
+      .select('*, negocios(google_refresh_token, whatsapp_access_token)')
       .eq('id', appointmentId)
       .single()
 
