@@ -348,11 +348,44 @@ export async function markDepositPaid(turnoId: string) {
             timeZone: 'America/Argentina/Buenos_Aires'
         })
 
-        if (conflictCheck.data.items && conflictCheck.data.items.length > 0) {
-            // Filtramos eventos transparentes o cancelados
-            const conflicts = conflictCheck.data.items.filter(e => e.transparency !== 'transparent' && e.status !== 'cancelled');
-            if (conflicts.length > 0) {
-                 throw new Error('⚠️ ¡CUIDADO! El horario se ocupó en Google Calendar mientras esperábamos el pago.');
+        if (conflictCheck.data.items) {
+            const configuracionWeb = negocio.config_web || {};
+            const availabilityMode = configuracionWeb.equipo?.availabilityMode || 'global';
+            
+            // Identificar al profesional
+            const serviceString = turno.servicio || "";
+            const parts = serviceString.split(" - ");
+            const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
+            const targetWorker = configuracionWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
+            const targetWorkerId = targetWorker ? String(targetWorker.id) : null;
+
+            let capacity = 1;
+            if (availabilityMode === 'per_worker' && targetWorker?.allowSimultaneous) {
+                capacity = targetWorker.simultaneousCapacity || 2;
+            }
+
+            let overlappingCount = 0;
+            const events = conflictCheck.data.items || [];
+            
+            for (const existingEvent of events) {
+                if (existingEvent.transparency === 'transparent' || existingEvent.status === 'cancelled') continue;
+
+                const shared = (existingEvent.extendedProperties?.shared as any) || {};
+                const eventWorkerId = shared['saas_worker_id'] ? String(shared['saas_worker_id']).trim() : null;
+
+                if (availabilityMode === 'global') {
+                    overlappingCount += capacity; 
+                } else {
+                    if (!eventWorkerId) {
+                        overlappingCount += capacity; 
+                    } else if (targetWorkerId && eventWorkerId === targetWorkerId) {
+                        overlappingCount += 1; 
+                    }
+                }
+            }
+
+            if (overlappingCount >= capacity) {
+                throw new Error('⚠️ ¡CUIDADO! La capacidad de este horario se llenó mientras esperábamos el pago.');
             }
         }
 
