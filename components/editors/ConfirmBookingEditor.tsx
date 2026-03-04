@@ -1306,6 +1306,43 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                                                                 placeholder="Ej: @usuario"
                                                             />
                                                         </div>
+                                                        <div className="bg-amber-50 p-2 rounded border border-amber-100 mt-2">
+                                                            <div className="flex items-center justify-between">
+                                                                <label className="text-[9px] font-bold text-amber-800 uppercase flex items-center gap-1 cursor-pointer">
+                                                                    ¿Atiende a más de uno a la vez?
+                                                                </label>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={item.allowSimultaneous || false}
+                                                                    onChange={(e) => {
+                                                                        const isChecked = e.target.checked;
+                                                                        updateArrayItem('equipo', i, 'allowSimultaneous', isChecked);
+                                                                        if (isChecked && (!item.simultaneousCapacity || item.simultaneousCapacity < 2)) {
+                                                                            updateArrayItem('equipo', i, 'simultaneousCapacity', 2);
+                                                                        }
+                                                                    }}
+                                                                    className="w-3 h-3 accent-amber-600 rounded cursor-pointer"
+                                                                />
+                                                            </div>
+                                                            
+                                                            {item.allowSimultaneous && (
+                                                                <div className="mt-2 animate-in fade-in slide-in-from-top-1 border-t border-amber-200/50 pt-2">
+                                                                    <label className="text-[9px] font-bold text-amber-800 uppercase block mb-1">
+                                                                        Capacidad máxima
+                                                                    </label>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input 
+                                                                            type="number" 
+                                                                            min="2"
+                                                                            value={item.simultaneousCapacity || 2} 
+                                                                            onChange={(e) => updateArrayItem('equipo', i, 'simultaneousCapacity', parseInt(e.target.value) || 2)} 
+                                                                            className="w-full p-1 bg-white border border-amber-200 rounded text-[10px] focus:ring-1 focus:ring-amber-500 outline-none"
+                                                                        />
+                                                                        <span className="text-[9px] text-amber-700 font-medium">personas</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                         <div className="mt-2">
                                                             <ImageUpload label="Foto" value={item.imagenUrl} onChange={(url) => updateArrayItem('equipo', i, 'imagenUrl', url)} />
                                                         </div>
