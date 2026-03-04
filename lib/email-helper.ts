@@ -2,7 +2,7 @@
 import { WebConfig } from "@/types/web-config";
 
 export function compileEmailTemplate(
-  templateName: 'confirmation' | 'reminder' | 'deposit',
+  templateName: 'confirmation' | 'reminder' | 'deposit'| "cancellation",
   config: WebConfig | null,
   data: {
     cliente: string;
@@ -43,7 +43,25 @@ export function compileEmailTemplate(
         </div>
         {{boton_pago}}
       `
+    },
+    cancellation: {
+      subject: "📢 Tu turno ah sido cancelado",
+      // El HTML por defecto imita tu diseño de tarjeta naranja
+      body: `
+        <p>Hola <strong>{{cliente}}</strong>,</p>
+        <p>Tu solicitud para <strong>{{servicio}}</strong> ha sido cancelada.</p>
+        <p>⚠️ <strong>Por favor comuniquese con el negocio en caso de cualquier duda</p>
+        <p>Lo sentimos mucho</p>
+        <div style="background-color: #fff7ed; padding: 15px; border-radius: 8px; border: 1px solid #fdba74; margin: 20px 0;">
+             <p style="margin: 0;">Total del Servicio: <strong>{{precio_total}}</strong></p>
+             <p style="margin: 5px 0 0 0; color: #c2410c; font-size: 16px;">
+                 <strong>Monto a Señar: {{monto_senia}}</strong>
+             </p>
+        </div>
+        {{boton_pago}}
+      `
     }
+    
   };
 
   // 2. Seleccionar Configuración

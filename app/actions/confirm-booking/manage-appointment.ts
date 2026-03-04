@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { compileEmailTemplate } from '@/lib/email-helper'
 import { sendWhatsAppNotification } from '@/lib/whatsapp-helper'
 
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -499,31 +500,33 @@ export async function markDepositPaid(turnoId: string) {
 // --- CANCEL ---
 export async function cancelAppointment(appointmentId: string) {
   try {
-    // 1. Obtener datos del turno y refresh token del negocio asociado
+    // 1. Obtener datos del turno, tokens y configuración web
     const { data: turno, error: turnoError } = await supabase
       .from('turnos')
-      .select('*, negocios(google_refresh_token, whatsapp_access_token)')
+      .select('*, negocios(google_refresh_token, whatsapp_access_token, config_web)')
       .eq('id', appointmentId)
       .single()
 
     if (turnoError || !turno) throw new Error('Turno no encontrado')
 
-    // @ts-ignore: Supabase join returns array or object depending on query, assuming object here due to FK
-    const refreshToken = turno.negocios?.google_refresh_token
+    // Extraemos los datos del negocio
+    const negocio = turno.negocios as any;
+    const refreshToken = negocio?.google_refresh_token;
     
     if (!refreshToken) throw new Error('No se pudo conectar con Google Calendar del negocio')
 
-    // 2. Auth con Google
+    // 2. Auth con Google (Necesitamos auth tanto para Calendar como para Gmail)
     const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
-        auth.setCredentials({ refresh_token: refreshToken })
-        const calendar = google.calendar({ version: 'v3', auth })
+    auth.setCredentials({ refresh_token: refreshToken })
+    const calendar = google.calendar({ version: 'v3', auth })
+    const gmail = google.gmail({ version: 'v1', auth }) // <-- Instancia de Gmail agregada
 
-    // 3. Eliminar de Google Calendar (si tiene ID de evento)
+    // 3. Eliminar de Google Calendar
     if (turno.google_event_id) {
-          try {
-            await calendar.events.delete({ calendarId: 'primary', eventId: turno.google_event_id })
-          } catch (gError) { console.warn('Evento ya borrado en Google', gError) }
-        }
+      try {
+        await calendar.events.delete({ calendarId: 'primary', eventId: turno.google_event_id })
+      } catch (gError) { console.warn('Evento ya borrado en Google', gError) }
+    }
 
     // 4. Actualizar estado en Supabase
     const { error: deleteError } = await supabase
@@ -533,33 +536,67 @@ export async function cancelAppointment(appointmentId: string) {
 
     if (deleteError) throw deleteError
 
-    // --- NUEVO: 4.5. ENVIAR WHATSAPP DE CANCELACIÓN ---
-    // @ts-ignore
-    const wpToken = turno.negocios?.whatsapp_access_token;
+    // --- 5. NOTIFICACIONES DE CANCELACIÓN ---
+    const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+
+    const variablesNotificacion = {
+        cliente: turno.cliente_nombre,
+        servicio: turno.servicio,
+        fecha: fechaLegible
+    };
+
+    // 5.1 Enviar WhatsApp
+    const wpToken = negocio?.whatsapp_access_token;
     if (wpToken && turno.cliente_telefono) {
       try {
-        const fechaLegible = new Date(turno.fecha_inicio).toLocaleString('es-AR', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-        });
-
         await sendWhatsAppNotification(
             turno.cliente_telefono,
-            'cancellation',
-            {
-                cliente: turno.cliente_nombre,
-                servicio: turno.servicio,
-                fecha: fechaLegible
-            },
+            'cancellation', // Asegúrate de que esta template exista en tu helper de WhatsApp
+            variablesNotificacion,
             wpToken
         );
       } catch (wsError) {
-         // Capturamos el error para que si falla WhatsApp, no falle la cancelación en sí
          console.error('Error enviando WhatsApp de cancelación:', wsError);
       }
     }
 
-    // 5. Revalidar UI
+    // 5.2 Enviar Email
+    if (turno.cliente_email && negocio.config_web) {
+      try {
+        const emailData = compileEmailTemplate(
+            'cancellation', // Asegúrate de que esta template exista en config_web
+            negocio.config_web,
+            variablesNotificacion
+        );
+
+        if (emailData) {
+            const utf8Subject = `=?utf-8?B?${Buffer.from(emailData.subject).toString('base64')}?=`;
+            const messageParts = [
+              `To: ${turno.cliente_email}`,
+              'Content-Type: text/html; charset=utf-8',
+              'MIME-Version: 1.0',
+              `Subject: ${utf8Subject}`,
+              '',
+              emailData.html, 
+            ];
+            
+            const rawMessage = Buffer.from(messageParts.join('\n'))
+              .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+            await gmail.users.messages.send({
+              userId: 'me',
+              requestBody: { raw: rawMessage },
+            });
+        }
+      } catch (emailError) {
+          console.error("No se pudo enviar el mail de cancelación:", emailError);
+      }
+    }
+
+    // 6. Revalidar UI
     revalidatePath('/dashboard') 
     
     return { success: true }

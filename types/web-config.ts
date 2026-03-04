@@ -139,7 +139,8 @@ export interface EmailTemplate {
 export interface NotificationConfig {
   confirmation: EmailTemplate;
   reminder: EmailTemplate;
-  deposit?: EmailTemplate; // Para señas
+  deposit?: EmailTemplate;
+  cancellation?: EmailTemplate // Para señas
 }
 
 export interface SiteMetadata {
