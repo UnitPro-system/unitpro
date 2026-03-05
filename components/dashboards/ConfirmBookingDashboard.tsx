@@ -841,7 +841,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
     const handleDeleteFromMenu = async (id: string) => {
         if(!confirm("¿Estás seguro de cancelar este turno? Se eliminará de Google Calendar.")) return;
         
-        const res = await cancelBooking(id);
+        const res = await cancelAppointment(id);
 
         if (res.success) {
             onCancel(id);
