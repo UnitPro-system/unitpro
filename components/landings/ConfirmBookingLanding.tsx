@@ -265,37 +265,34 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
                 // 5. Verificar colisión con Google Calendar (BusySlots)
                 let overlappingCount = 0;
+                
+                // A. Primero contamos CUÁNTOS turnos reales pisan este horario
                 for (const busy of busySlots) {
-                    let capacity = 1; 
-                    const availabilityMode = negocio.config_web?.equipo?.availabilityMode || 'global';
+                    const busyStart = new Date(busy.start);
+                    const busyEnd = new Date(busy.end);
                     
-                    // Verificamos de forma segura si el modo NO es global (cubriendo cualquier palabra que use tu base de datos)
-                    const isGlobal = availabilityMode === 'global' || availabilityMode === 'sala_unica';
-                    
-                    // Verificamos si el profesional permite simultáneos (cubriendo booleanos y strings)
-                    const permiteSimultaneo = bookingData.worker?.allowSimultaneous === true || String(bookingData.worker?.allowSimultaneous) === 'true';
-                    
-                    // Si no es sala única y el profesional lo permite, le damos su capacidad real
-                    if (!isGlobal && permiteSimultaneo) {
-                        capacity = Number(bookingData.worker?.simultaneousCapacity) || 2;
-                    }
-                    
-                    // Si la cantidad de turnos ocupados es menor a la capacidad permitida, mostramos el horario
-                    if (overlappingCount < capacity) {
-                        slots.push({ time: timeString, available: true });
+                    // Comprobamos matemáticamente si los horarios se cruzan
+                    if (slotStart < busyEnd && slotEnd > busyStart) {
+                        overlappingCount++; // <--- Esto es lo que faltaba, sumar el contador
                     }
                 }
                 
-                // --- LÓGICA ESTRICTA DE CAPACIDAD ---
+                // B. Luego, determinamos la capacidad según la configuración
                 let capacity = 1; // Por defecto siempre es 1
                 const availabilityMode = negocio.config_web?.equipo?.availabilityMode || 'global';
                 
-                // Solo si el negocio trabaja por "boxes/profesionales independientes" evaluamos si este profesional puede atender a más de uno
-                if (availabilityMode === 'per_worker' && bookingData.worker?.allowSimultaneous) {
-                    capacity = bookingData.worker?.simultaneousCapacity || 2;
+                // Verificamos de forma segura si el modo NO es global
+                const isGlobal = availabilityMode === 'global' || availabilityMode === 'sala_unica';
+                
+                // Verificamos si el profesional permite simultáneos
+                const permiteSimultaneo = bookingData.worker?.allowSimultaneous === true || String(bookingData.worker?.allowSimultaneous) === 'true';
+                
+                // Si no es sala única y el profesional lo permite, le damos su capacidad real
+                if (!isGlobal && permiteSimultaneo) {
+                    capacity = Number(bookingData.worker?.simultaneousCapacity) || 2;
                 }
                 
-                // Si la cantidad de turnos ocupados es menor a la capacidad permitida, mostramos el horario
+                // C. Finalmente, si los ocupados son MENOS que la capacidad, mostramos el horario UNA SOLA VEZ
                 if (overlappingCount < capacity) {
                     slots.push({ time: timeString, available: true });
                 }
