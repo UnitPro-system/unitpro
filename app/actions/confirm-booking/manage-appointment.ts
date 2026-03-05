@@ -206,6 +206,13 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
     // Si necesita seña, se crea después cuando pagan.
     if (!necesitaSenia) {
         try {
+            // 1. Identificamos el ID del profesional
+            const serviceString = turno.servicio || "";
+            const parts = serviceString.split(" - ");
+            const workerName = parts.length > 1 ? parts[parts.length - 1] : null;
+            const trabajadorElegido = configWeb.equipo?.items?.find((w: any) => w.nombre === workerName);
+            const targetWorkerId = trabajadorElegido ? String(trabajadorElegido.id) : null;
+
             const event = await calendar.events.insert({
                 calendarId: 'primary',
                 requestBody: {
@@ -214,7 +221,13 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
                     start: { dateTime: turno.fecha_inicio, timeZone: 'America/Argentina/Buenos_Aires' },
                     end: { dateTime: turno.fecha_fin, timeZone: 'America/Argentina/Buenos_Aires' },
                     attendees: turno.cliente_email ? [{ email: turno.cliente_email }] : [],
-                    extendedProperties: { shared: { saas_service_type: 'confirm_booking' } },
+                    // AGREGAMOS LA ETIQUETA DEL PROFESIONAL AQUÍ
+                    extendedProperties: { 
+                        shared: { 
+                            saas_service_type: 'confirm_booking',
+                            ...(targetWorkerId ? { saas_worker_id: targetWorkerId } : {})
+                        } 
+                    },
                     reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 1440 }] }
                 }
             });
@@ -222,7 +235,6 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
             googleEventId = event.data.id;
         } catch (calendarError) {
             console.error("Error al crear evento en Calendar:", calendarError);
-            // Opcional: podrías lanzar un error aquí si quieres que falle todo si Google falla
         }
     }
     // ---------------------------------------------
@@ -396,6 +408,12 @@ export async function markDepositPaid(turnoId: string) {
         }
 
         // 2. Crear Evento en Google
+        const serviceStringGoogle = turno.servicio || "";
+        const partsGoogle = serviceStringGoogle.split(" - ");
+        const workerNameGoogle = partsGoogle.length > 1 ? partsGoogle[partsGoogle.length - 1] : null;
+        const targetWorkerGoogle = negocio.config_web?.equipo?.items?.find((w: any) => w.nombre === workerNameGoogle);
+        const targetWorkerId = targetWorkerGoogle ? String(targetWorkerGoogle.id) : null;
+
         const event = await calendar.events.insert({
             calendarId: 'primary',
             requestBody: {
@@ -404,7 +422,13 @@ export async function markDepositPaid(turnoId: string) {
                 start: { dateTime: turno.fecha_inicio, timeZone: 'America/Argentina/Buenos_Aires' },
                 end: { dateTime: turno.fecha_fin, timeZone: 'America/Argentina/Buenos_Aires' },
                 attendees: turno.cliente_email ? [{ email: turno.cliente_email }] : [],
-                extendedProperties: { shared: { saas_service_type: 'confirm_booking' } },
+                extendedProperties: { 
+                    shared: { 
+                        saas_service_type: 'confirm_booking',
+                        // Ahora sí reconoce targetWorkerId perfectamente
+                        ...(targetWorkerId ? { saas_worker_id: targetWorkerId } : {})
+                    } 
+                },
                 reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 1440 }] }
             }
         })
