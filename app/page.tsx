@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { League_Spartan } from 'next/font/google';
 import Link from 'next/link';
 import { ArrowRight, Layers, Zap, Shield, Globe, ShieldCheck } from 'lucide-react';
+import Image from "next/image";
 
 // Importando League Spartan optimizada para Next.js
 const leagueSpartan = League_Spartan({ 
@@ -32,14 +33,22 @@ export default function Home() {
     <div className={`min-h-screen bg-[#eee9dd] text-neutral-900 overflow-hidden font-sans ${leagueSpartan.className} selection:bg-[#c9efa3]`}>
       
       {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 w-full bg-[#eee9dd]/80 backdrop-blur-md border-b border-neutral-300/50 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
-            <div className="w-10 h-10 bg-[#4c6618] rounded-xl flex items-center justify-center text-[#eee9dd] shadow-lg shadow-[#4c6618]/20">
-              <ShieldCheck size={22} />
+        <nav className="fixed top-0 w-full bg-[#eee9dd]/80 backdrop-blur-md border-b border-neutral-300/50 z-50">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-2 font-bold text-2xl tracking-tighter">
+              {/* Contenedor del Logo Actualizado */}
+              <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/logo.png" 
+                  alt="UnitPro Logo"
+                  width={40} // Se ajusta a w-10 (40px)
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              UnitPro
             </div>
-            UnitPro
-          </div>
+  
           <div className="flex items-center gap-6">
             <Link 
               href="/login" 

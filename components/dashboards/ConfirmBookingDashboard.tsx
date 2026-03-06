@@ -358,11 +358,11 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
     // 1. CONTENEDOR PRINCIPAL: 
     // - En móvil: 'flex-col' (uno debajo del otro)
     // - En escritorio: 'md:flex-row' (uno al lado del otro)
-    <div className="min-h-screen bg-zinc-50 flex flex-col lg:flex-row font-sans text-zinc-900 overflow-hidden">
+    <div className="min-h-screen bg-[#eee9dd] flex flex-col lg:flex-row font-sans text-zinc-900 overflow-hidden">
       
       {/* --- 2. NAVBAR MÓVIL (Solo visible en md:hidden) --- */}
       {/* Usamos h-16 (64px) fijo para poder calcular el top del menú después */}
-      <div className="lg:hidden bg-white border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
+      <div className="lg:hidden bg-[#eee9dd] border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
          <div className="flex items-center gap-2">
             {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
                 <img src={negocio.config_web?.metadata?.faviconURL || negocio.config_web?.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
@@ -415,7 +415,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       )}
 
       {/* --- SIDEBAR DE ESCRITORIO (MODIFICADO PARA USAR menuItems) --- */}
-      <aside className="w-64 bg-white border-r border-zinc-200 hidden lg:flex flex-col sticky top-0 h-screen z-20">
+      <aside className="w-64 bg-[#eee9dd] border-r border-zinc-200 hidden lg:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">
             {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
