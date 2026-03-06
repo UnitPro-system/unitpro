@@ -9,10 +9,10 @@ export async function sendResetPasswordEmail(email: string) {
   const supabase = await createClient();
   const emailNormalizado = email.trim().toLowerCase();
 
-  // Redirigimos directamente a la página de reset. 
-  // Supabase agregará #access_token=... a esta URL
   const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recover-password/reset`,
+    // Redirigimos al servidor (API) para que canjee el código de seguridad
+    // y le decimos (con ?next=...) a qué página visual debe llevarnos al final
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/actions/auth/confirm?next=/recover-password/reset`,
   });
 
   if (error) {
