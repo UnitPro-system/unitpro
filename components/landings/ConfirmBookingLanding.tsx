@@ -490,7 +490,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
 
             {/* Menú Desktop */}
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden lg:flex items-center gap-8">
                 <button onClick={() => scrollToSection('inicio')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Inicio</button>
                 {config.servicios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">Servicios</button>
@@ -510,14 +510,14 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
             </div>
 
             {/* Menú Móvil Toggle */}
-            <button className="md:hidden p-2 text-zinc-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button className="lg:hidden p-2 text-zinc-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X/> : <Menu/>}
             </button>
         </div>
 
         {/* Menú Móvil Dropdown */}
         {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-zinc-100 p-6 flex flex-col gap-4 shadow-xl">
+            <div className="lg:hidden bg-white border-t border-zinc-100 p-6 flex flex-col gap-4 shadow-xl">
                 <button onClick={() => scrollToSection('inicio')} className="text-left font-medium text-zinc-600 py-2">Inicio</button>
                 {config.servicios?.mostrar && (
                 <button onClick={() => scrollToSection('servicios')} className="text-left font-medium text-zinc-600 py-2">Servicios</button>
@@ -552,10 +552,10 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
 
             {/* Contenedor Refinado con Glassmorphism fuerte (Le sacamos los márgenes top gigantes) */}
             <div className="bg-white/15 backdrop-blur-xl border border-white/20 p-6 md:p-8 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-in zoom-in-95 fade-in duration-700 w-full max-w-xl">
-                <SafeHTML as="h1" html={config.hero.titulo} className="text-3xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight" />
+                <SafeHTML as="h1" html={config.hero.titulo} className="text-3xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight" />
                 
                 {/* Botones accesibles con mayor Target Area (min-h-[48px]) */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div className="flex flex-col lg:flex-row items-center justify-center gap-4">
                     <button 
                         onClick={() => setIsBookingModalOpen(true)} 
                         className={`w-full sm:w-auto px-8 py-3.5 min-h-[48px] text-white font-bold text-base shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 ${btnRadius}`} 
@@ -585,7 +585,7 @@ export default function LandingCliente({ initialData }: { initialData: any }) {
                     </div>
                 )}
                 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid lg:grid-cols-3 gap-8">
                     {/* Combinamos servicios normales y promociones */}
                     {[...(config.servicios?.items || []), ...(negocio.config_web?.services || [])].map((service: any, i: number) => {
                         

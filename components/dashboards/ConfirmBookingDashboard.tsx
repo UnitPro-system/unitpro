@@ -347,11 +347,11 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
     // 1. CONTENEDOR PRINCIPAL: 
     // - En móvil: 'flex-col' (uno debajo del otro)
     // - En escritorio: 'md:flex-row' (uno al lado del otro)
-    <div className="min-h-screen bg-zinc-50 flex flex-col md:flex-row font-sans text-zinc-900 overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 flex flex-col lg:flex-row font-sans text-zinc-900 overflow-hidden">
       
       {/* --- 2. NAVBAR MÓVIL (Solo visible en md:hidden) --- */}
       {/* Usamos h-16 (64px) fijo para poder calcular el top del menú después */}
-      <div className="md:hidden bg-white border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
+      <div className="lg:hidden bg-white border-b border-zinc-200 h-16 px-4 flex justify-between items-center sticky top-0 z-40 shadow-sm shrink-0">
          <div className="flex items-center gap-2">
             {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
                 <img src={negocio.config_web?.metadata?.faviconURL || negocio.config_web?.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
@@ -372,10 +372,10 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       {mobileMenuOpen && (
         <>
             {/* Fondo oscuro transparente para cerrar al hacer click fuera */}
-            <div className="md:hidden fixed inset-0 z-30 bg-black/20 backdrop-blur-sm top-16" onClick={() => setMobileMenuOpen(false)} />
+            <div className="lg:hidden fixed inset-0 z-30 bg-black/20 backdrop-blur-sm top-16" onClick={() => setMobileMenuOpen(false)} />
             
             {/* El menú en sí */}
-            <div className="md:hidden fixed top-16 left-0 w-full bg-white z-40 border-b border-zinc-200 shadow-2xl p-2 flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
+            <div className="lg:hidden fixed top-16 left-0 w-full bg-white z-40 border-b border-zinc-200 shadow-2xl p-2 flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
                 {menuItems.map((item) => (
                     <button 
                         key={item.id}
@@ -404,7 +404,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
       )}
 
       {/* --- SIDEBAR DE ESCRITORIO (MODIFICADO PARA USAR menuItems) --- */}
-      <aside className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col sticky top-0 h-screen z-20">
+      <aside className="w-64 bg-white border-r border-zinc-200 hidden lg:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 px-2 mb-8">
             {(negocio.config_web?.metadata?.faviconURL || negocio?.config_web?.logoUrl) ? (
@@ -451,7 +451,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                     </header>
 
                     {/* KPI GRID */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <StatCard 
                             title="Total Clientes" 
                             value={turnos.length} 
@@ -969,7 +969,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
             {/* GRILLA DEL CALENDARIO */}
             <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
-                <div className="hidden md:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+                <div className="hidden lg:grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
                     {days.map((day, i) => (
                         <div key={i} className={`py-4 text-center border-r border-zinc-100 last:border-0 ${isToday(day) ? 'bg-blue-50/50' : ''}`}>
                             <p className="text-xs font-bold text-zinc-400 uppercase mb-1">{day.toLocaleDateString('es-AR', { weekday: 'short' })}</p>
@@ -978,7 +978,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
                     ))}
                 </div>
 
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-7 overflow-y-auto min-h-[500px] pb-32">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-7 overflow-y-auto min-h-[500px] pb-32">
                     {days.map((day, i) => {
                         const dayTurnos = turnos.filter((t: any) => {
                             const tDate = new Date(t.fecha_inicio);
@@ -987,7 +987,7 @@ function CalendarTab({ negocio, turnos, handleConnectGoogle, onCancel, onContact
 
                         return (
                             <div key={i} className={`border-r border-zinc-100 last:border-0 p-2 space-y-2 ${isToday(day) ? 'bg-blue-50/10' : ''}`}>
-                                <div className={`md:hidden flex items-center gap-2 py-2 px-2 mb-2 rounded-lg ${isToday(day) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-50 text-zinc-600'}`}>
+                                <div className={`lg:hidden flex items-center gap-2 py-2 px-2 mb-2 rounded-lg ${isToday(day) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-50 text-zinc-600'}`}>
                                     <span className="font-bold text-sm capitalize">{day.toLocaleDateString('es-AR', { weekday: 'long' })}</span>
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isToday(day) ? 'bg-blue-200' : 'bg-zinc-200'}`}>{day.getDate()}</span>
                                 </div>
@@ -1226,7 +1226,7 @@ function ClientesTable({ turnos, setContactModal }: any) {
     return (
             <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
                 {/* --- VISTA ESCRITORIO (TABLE) --- */}
-                <div className="hidden md:block">
+                <div className="hidden lg:block">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-zinc-50/50 border-b border-zinc-100 text-zinc-500 font-medium">
                             <tr>
@@ -1286,7 +1286,7 @@ function ClientesTable({ turnos, setContactModal }: any) {
                 </div>
     
                 {/* --- VISTA MÓVIL (CARDS EXPANDIBLES) --- */}
-                <div className="md:hidden divide-y divide-zinc-100">
+                <div className="lg:hidden divide-y divide-zinc-100">
                     {turnos.map((t: any) => (
                         <div key={t.id} className="flex flex-col">
                             {/* Fila Colapsada: Siempre visible */}
