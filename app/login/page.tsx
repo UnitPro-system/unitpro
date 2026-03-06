@@ -4,6 +4,15 @@ import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import Link from 'next/link'
+import Image from 'next/image';
+import { League_Spartan } from 'next/font/google'; // Importando la fuente
+
+// Configuración de la fuente igual que en la home
+const leagueSpartan = League_Spartan({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'] 
+});
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,52 +75,73 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Acceso</h1>
-          <p className="text-slate-500 text-sm mt-2">Sistema de Gestión</p>
-        </div>
+   <div className={`min-h-screen flex items-center justify-center bg-[#eee9dd] p-4 ${leagueSpartan.className} selection:bg-[#c9efa3]`}>
+         <div className="bg-white/60 backdrop-blur-md p-10 rounded-[2.5rem] shadow-xl w-full max-w-md border border-neutral-300/50">
+           <div className="text-center mb-10">
+             <div className="flex items-center justify-center gap-2 font-bold text-3xl tracking-tighter mb-4 text-neutral-900">
+              <div className="w-12 h-12 bg-[#4c6618] rounded-2xl flex items-center justify-center shadow-lg shadow-[#4c6618]/20 overflow-hidden">
+                <Image 
+                  src="/logo.png" // Ruta de tu imagen en la carpeta public
+                  alt="UnitPro Logo"
+                  width={28} 
+                  height={28}
+                  className="object-contain"
+                />
+              </div>
+              UnitPro
+            </div>
+             <h1 className="text-2xl font-black text-neutral-900 tracking-tight">Bienvenido</h1>
+             <p className="text-neutral-600 font-medium mt-1">Accede a tu panel de gestión</p>
+           </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1 uppercase tracking-wider">Email</label>
             <input 
               type="email" 
               required 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
+              className="w-full px-5 py-3 bg-[#eee9dd]/30 border border-neutral-300 rounded-2xl outline-none focus:border-[#4c6618] text-neutral-900 transition-all font-medium"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+            <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1 uppercase tracking-wider">Contraseña</label>
             <input 
               type="password" 
               required 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
+              className="w-full px-5 py-3 bg-[#eee9dd]/30 border border-neutral-300 rounded-2xl outline-none focus:border-[#4c6618] text-neutral-900 transition-all font-medium"
             />
           </div>
           
           {error && (
-            <div className="p-4 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100 flex items-start gap-3">
+            <div className="p-4 bg-red-50 text-red-700 text-sm rounded-2xl border border-red-100 flex items-start gap-3">
                 <AlertCircle size={18} className="shrink-0 mt-0.5"/>
-                <span>{error}</span>
+                <span className="font-medium">{error}</span>
             </div>
           )}
-          <Link href="/recover-password" className="text-sm text-blue-600 hover:underline float-right mb-2">
-          ¿Olvidaste tu contraseña?
-          </Link>
+          <div className="flex justify-end">
+            <Link href="/recover-password" className="text-sm font-bold text-[#4c6618] hover:text-[#3a4e12] transition-colors">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
 
           <button 
             type="submit" 
             disabled={loading} 
-            className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-all hover:shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-[#4c6618] text-[#eee9dd] font-bold py-4 rounded-full hover:bg-[#3a4e12] transition-all hover:scale-[1.02] shadow-lg shadow-[#4c6618]/20 flex items-center justify-center gap-2 text-lg tracking-tight"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Ingresar"}
           </button>
+
+          <p className="text-center text-neutral-500 text-sm font-medium mt-6">
+              ¿No tienes cuenta?{' '}
+            <Link href="/register" className="text-[#4c6618] font-bold hover:underline">
+              Empieza gratis
+            </Link>
+          </p>
         </form>
       </div>
     </div>
