@@ -30,7 +30,7 @@ export default function DashboardAgencia() {
   });
 
   // SELECTOR CATEGORIA
-  const [newClientCategory, setNewClientCategory] = useState<BusinessCategory>('service_booking');
+  const [newClientCategory, setNewClientCategory] = useState<BusinessCategory| null>(null);
 
 
   // ESTADO HORARIOS
@@ -112,6 +112,10 @@ export default function DashboardAgencia() {
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newClientCategory) {
+        alert("Por favor, selecciona un tipo de negocio antes de continuar.");
+        return;
+    }
     setCreating(true);
 
     // 1. Auth (Esto queda igual)
@@ -207,7 +211,7 @@ export default function DashboardAgencia() {
             setShowModal(false);
             // Reseteamos el formulario
             setNewClientData({ email: "", password: "", nombre: "", whatsapp: "", direccion: "", google_maps_link: "" });
-            setNewClientCategory('service_booking'); // Volver al default
+            setNewClientCategory(null); // Volver al default
             cargarClientes(agency.id);
         } else {
             alert("Error BD: " + dbError.message);
@@ -447,7 +451,13 @@ export default function DashboardAgencia() {
                     
                     <div className="flex gap-3 pt-4">
                         <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                        <button type="submit" disabled={creating} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-indigo-200 transition-all">
+                        <button 
+                            type="submit" 
+                            disabled={creating || !newClientCategory} // Deshabilitar si está creando o si no hay categoría
+                            className={`flex-1 py-3 font-bold rounded-xl flex justify-center items-center gap-2 transition-all ${
+                                !newClientCategory ? 'bg-slate-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200'
+                            } text-white`}
+                        >
                             {creating ? <Loader2 className="animate-spin"/> : "Crear Cuenta"}
                         </button>
                     </div>
