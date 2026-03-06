@@ -21,6 +21,8 @@ import { PasswordManager } from "@/components/dashboards/PasswordManager";
 import ManualBookingManager from "./ManualBookingManager";
 import { rescheduleBooking, cancelBooking } from "@/app/actions/service-booking/calendar-actions";
 import DomainManager from "@/components/dashboards/DomainManager";
+import { Palette } from "lucide-react";
+import WebEditor from "@/app/[slug]/dashboard/WebEditor";
 
 // --- CONFIGURACIÓN ---
 const CONST_LINK_MP = "https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=TU_ID_DE_PLAN"; 
@@ -39,7 +41,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing"| "promociones" | "gestion_turnos">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "calendario" | "clientes"| "solicitudes" | "resenas" | "suscripcion" | "configuracion" | "marketing"| "promociones" | "gestion_turnos" | "editar_web">("resumen");
   const [contactModal, setContactModal] = useState({ show: false, clientEmail: '', clientName: '' });
   const [mailContent, setMailContent] = useState({ subject: '', message: '' });
   const [isSending, setIsSending] = useState(false);
@@ -52,6 +54,7 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
 
   const [rescheduleModal, setRescheduleModal] = useState({ show: false, turnoId: '', currentStart: '' });
   const [newDate, setNewDate] = useState('');
+  const [showEditor, setShowEditor] = useState(false);
 
   // NUEVO: Función para guardar la reprogramación
   const handleRescheduleSave = async () => {
@@ -305,6 +308,11 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
     { id: "promociones", label: "Promociones", icon: <Tag size={18} /> },
     { id: "gestion_turnos", label: "Gestión de Turnos", icon: <Calendar size={18} /> },
     { id: "marketing", label: "Marketing", icon: <LinkIcon size={18} /> },
+    ...(negocio.editor_enabled ? [{ 
+        id: "editar_web", 
+        label: "Personalizar Web", 
+        icon: <Palette size={18} className="text-indigo-600" /> 
+    }] : []),
     { id: "configuracion", label: "Configuración", icon: <Settings size={18} /> },
   ];
 
@@ -723,8 +731,22 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                     </div>
                 </div>
             )}
-            {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
+            {activeTab === "editar_web" && (
+                <div className="flex flex-col items-center justify-center h-[400px] bg-white rounded-2xl border border-dashed border-zinc-200">
+                    <Palette size={48} className="text-zinc-300 mb-4" />
+                    <h2 className="text-xl font-bold">Editor de Sitio Web</h2>
+                    <p className="text-zinc-500 mb-6">Haz clic abajo para comenzar a editar tu página.</p>
+                    <button 
+                        onClick={() => setShowEditor(true)}
+                        className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all"
+                    >
+                        Abrir Editor Pro
+                    </button>
+                </div>
+            )}
             {activeTab === "marketing" && <MarketingCampaign negocio={negocio} />}
+            {activeTab === "configuracion" && <ConfigTab negocio={negocio} handleConnectGoogle={handleConnectGoogle} />}
+
 
             
         </div>
@@ -843,6 +865,22 @@ export default function ConfirmBookingDashboard({ initialData }: { initialData: 
                     </div>
                 </div>
             </div>
+        )}
+
+        {/* 4. Renderizado del Modal del Editor */}
+        {showEditor && (
+            <WebEditor 
+                initialData={negocio}
+                model="negocio"
+                onClose={() => {
+                    setShowEditor(false);
+                    setActiveTab("resumen");
+                }}
+                onSave={async () => {
+                    await fetchDashboardData();
+                    setShowEditor(false);
+                }}
+            />
         )}
       </main>
     </div>

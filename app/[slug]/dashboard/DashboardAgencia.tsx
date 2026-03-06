@@ -46,6 +46,8 @@ export default function DashboardAgencia() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
 
+  
+
   useEffect(() => {
     checkAgencySession();
   }, []);
@@ -109,6 +111,22 @@ export default function DashboardAgencia() {
     
     setDeletingId(null);
   };
+
+  const toggleEditorAccess = async (clienteId: number, currentStatus: boolean) => {
+    const { error } = await supabase
+        .from("negocios")
+        .update({ editor_enabled: !currentStatus })
+        .eq("id", clienteId);
+
+    if (error) {
+        alert("Error al actualizar permiso: " + error.message);
+    } else {
+        // Actualizamos el estado local para que el toggle cambie visualmente
+        setClientes(prev => prev.map(c => 
+            c.id === clienteId ? { ...c, editor_enabled: !currentStatus } : c
+        ));
+    }
+};
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,6 +312,15 @@ export default function DashboardAgencia() {
                         <p className="text-sm text-slate-400 mb-2 truncate font-mono bg-slate-50 inline-block px-2 py-0.5 rounded">
                             {cliente.email}
                         </p>
+                        <div className="flex items-center justify-between mt-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">Acceso al Editor</span>
+                            <button 
+                                onClick={() => toggleEditorAccess(cliente.id, cliente.editor_enabled)}
+                                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${cliente.editor_enabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                            >
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${cliente.editor_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
                         
                         <div className="text-xs text-slate-500 space-y-1 mb-4 border-t border-slate-100 pt-2">
                            {cliente.horarios && <p className="flex items-center gap-1"><Clock size={12}/> {cliente.horarios}</p>}

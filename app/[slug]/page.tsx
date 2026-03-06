@@ -98,8 +98,8 @@ export async function generateMetadata(
   const meta = config.metadata || {};
   
   // Aquí está la lógica: Si meta.title existe, lo usa. Si no, usa negocio.nombre.
-  const siteName = meta.title || negocio.nombre || "Mi Negocio";
-  const favicon = meta.faviconUrl || "/favicon.ico"; 
+  const siteName = meta.title || negocio.nombre || "Create With UnitPro";
+  const favicon = meta.faviconUrl || "/favicon.png"; 
 
   console.log(`[SEO DEBUG] Título final usado: ${siteName}`); 
 
