@@ -4,15 +4,15 @@ import { createClient } from '@/lib/supabase-server'
 
 /**
  * Envía un correo de recuperación al usuario usando el flujo nativo de Supabase.
- * El link en el correo redirigirá al usuario a una ruta que definiremos luego.
  */
 export async function sendResetPasswordEmail(email: string) {
   const supabase = await createClient();
   const emailNormalizado = email.trim().toLowerCase();
 
+  // Redirigimos directamente a la página de reset. 
+  // Supabase agregará #access_token=... a esta URL
   const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
-    // Esta es la URL a la que el usuario será enviado al hacer click en el mail
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?next=/recover-password/reset`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/recover-password/reset`,
   });
 
   if (error) {
@@ -25,11 +25,11 @@ export async function sendResetPasswordEmail(email: string) {
 
 /**
  * Esta función se usará en la página de destino para establecer la nueva clave.
- * Supabase detecta automáticamente el token en la sesión al llegar desde el email.
  */
 export async function setNewPassword(password: string) {
   const supabase = await createClient();
 
+  // Actualizamos la contraseña del usuario autenticado (la sesión se establece en el frontend)
   const { error } = await supabase.auth.updateUser({
     password: password
   });
