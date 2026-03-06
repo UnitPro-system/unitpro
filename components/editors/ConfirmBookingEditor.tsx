@@ -556,20 +556,27 @@ export default function ConfirmBookingEditor({ negocio, onClose, onSave }: any) 
                     )}
 
                     {/* 3. Renderizado Dinámico de Horarios */}
-                    <div className="space-y-2">
+                    <div className="space-y-2" key={selectedWorkerId || 'global'}>
                         {config.equipo?.scheduleType === 'per_worker' ? (
                             selectedWorkerId ? (
                                 // Si hay trabajador elegido, editamos su schedule particular
                                 renderScheduleInputs(
+                                    // Buscamos el horario del trabajador, si no tiene, usamos el global como base
                                     config.equipo.items.find((w: any) => w.id === selectedWorkerId)?.schedule || config.schedule,
                                     (newSched) => {
                                         const idx = config.equipo.items.findIndex((w: any) => w.id === selectedWorkerId);
-                                        updateArrayItem('equipo', idx, 'schedule', newSched);
+                                        if (idx !== -1) {
+                                            updateArrayItem('equipo', idx, 'schedule', newSched);
+                                        }
                                     }
                                 )
                             ) : (
-                                <div className="text-center py-8 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-400 text-xs">
-                                    Selecciona un profesional arriba para ver y editar su horario
+                                <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50/50">
+                                    <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-zinc-100">
+                                        <Users size={20} className="text-zinc-400"/>
+                                    </div>
+                                    <p className="text-zinc-500 text-xs font-medium">Selecciona un profesional arriba</p>
+                                    <p className="text-[10px] text-zinc-400 mt-1">Para configurar su disponibilidad específica</p>
                                 </div>
                             )
                         ) : (
