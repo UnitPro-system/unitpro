@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
             <input 
               type="password"
               required
-              className="w-full pl-10 p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-indigo-100 outline-none"
+              className="w-full pl-10 p-2.5 bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-xl focus:ring-2 focus:ring-indigo-100 outline-none"
               placeholder="••••••••"
               onChange={(e) => setPassword(e.target.value)}
             />
