@@ -2,14 +2,22 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import LandingCliente from "./LandingCliente";
 import LandingAgencia from "./LandingAgencia";
-import LandingModular from "@/components/LandingModular"; // 🆕 Fase 1
+import LandingModular from "@/components/LandingModular";
 import { Metadata, ResolvingMetadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const supabase = await createClient();
   const { slug } = await params;
+  const sp = await searchParams;
+  const isPreview = sp?.preview === "1";
 
   const domainOrSlug = decodeURIComponent(slug).toLowerCase();
 
@@ -24,7 +32,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     if (negocioDominio) {
       // 🆕 Fase 1: bifurcación por system
       if (negocioDominio.system === 'modular') {
-        return <LandingModular negocio={negocioDominio} />;
+        return <LandingModular negocio={negocioDominio} isPreview={isPreview} />;
       }
       return <LandingCliente initialData={negocioDominio} />;
     }
@@ -42,7 +50,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (negocioSlug) {
     // 🆕 Fase 1: bifurcación por system
     if (negocioSlug.system === 'modular') {
-      return <LandingModular negocio={negocioSlug} />;
+      return <LandingModular negocio={negocioSlug} isPreview={isPreview} />;
     }
     return <LandingCliente initialData={negocioSlug} />;
   }

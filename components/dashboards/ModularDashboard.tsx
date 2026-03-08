@@ -202,6 +202,10 @@ export default function ModularDashboard({ initialData }: { initialData: any }) 
   const logoSrc = negocio.config_web?.metadata?.faviconURL || negocio.config_web?.logoUrl;
   const nombre  = negocio.config_web?.hero?.titulo || negocio.nombre;
 
+  // Negocio directo → siempre puede editar.
+  // Negocio via agencia → solo si la agencia habilitó editor_enabled.
+  const canEditPage = !negocio.agency_id || negocio.editor_enabled === true;
+
   // ── SidebarItem ────────────────────────────────────────────────────────────
   const SidebarItem = ({ def }: { def: typeof tabs[0] }) => {
     const badge    = def.sidebarBadge?.(sharedData, negocio);
@@ -252,12 +256,14 @@ export default function ModularDashboard({ initialData }: { initialData: any }) 
           <div className="lg:hidden fixed top-16 left-0 w-full bg-white z-40 border-b border-zinc-200 shadow-2xl p-2 flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
             {tabs.map(def => <SidebarItem key={def.id} def={def} />)}
             <div className="h-px bg-zinc-100 my-1" />
-            <button
-              onClick={() => { setEditorOpen(true); setMobileOpen(false); }}
-              className="flex items-center gap-3 p-3 rounded-lg text-sm font-bold text-white"
-              style={{ backgroundColor: PRIMARY }}>
-              <Pencil size={18} /> Editar Página
-            </button>
+            {canEditPage && (
+              <button
+                onClick={() => { setEditorOpen(true); setMobileOpen(false); }}
+                className="flex items-center gap-3 p-3 rounded-lg text-sm font-bold text-white"
+                style={{ backgroundColor: PRIMARY }}>
+                <Pencil size={18} /> Editar Página
+              </button>
+            )}
             <button onClick={handleLogout}
               className="flex items-center gap-3 p-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50">
               <LogOut size={18} /> Cerrar sesión
@@ -294,13 +300,14 @@ export default function ModularDashboard({ initialData }: { initialData: any }) 
         </div>
 
         <div className="mt-auto p-6 space-y-2 border-t border-zinc-100">
-          {/* Botón Editar Página */}
-          <button
-            onClick={() => setEditorOpen(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:opacity-90"
-            style={{ backgroundColor: PRIMARY }}>
-            <Pencil size={16} /> Editar Página
-          </button>
+          {canEditPage && (
+            <button
+              onClick={() => setEditorOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:opacity-90"
+              style={{ backgroundColor: PRIMARY }}>
+              <Pencil size={16} /> Editar Página
+            </button>
+          )}
           <button onClick={handleLogout}
             className="flex items-center gap-2 text-zinc-400 hover:text-red-600 text-sm font-medium transition-colors w-full px-2 py-1.5">
             <LogOut size={16} /> Cerrar Sesión
