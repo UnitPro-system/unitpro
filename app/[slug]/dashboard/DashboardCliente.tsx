@@ -1,9 +1,7 @@
 "use client";
 
 // app/[slug]/dashboard/DashboardCliente.tsx
-// Factory simplificado: solo ConfirmBooking es el tipo activo.
-// Los otros tipos (service_booking, project_portfolio) quedan
-// como legacy pero no se crean negocios nuevos con ellos.
+// Factory: detecta system primero, luego category para legacy.
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -11,12 +9,19 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
+// ── Sistema modular (negocios nuevos) ──────────────────────────────────────
+const ModularDashboard = dynamic(
+  () => import("@/components/dashboards/ModularDashboard"),
+  { loading: () => <LoadingScreen /> }
+);
+
+// ── Legacy activo ──────────────────────────────────────────────────────────
 const ConfirmBookingDashboard = dynamic(
   () => import("@/components/dashboards/ConfirmBookingDashboard"),
   { loading: () => <LoadingScreen /> }
 );
 
-// Legacy — solo para negocios existentes, no se crean nuevos
+// ── Legacy histórico (negocios existentes, no se crean nuevos) ────────────
 const ServiceBookingDashboard = dynamic(
   () => import("@/components/dashboards/ServiceBookingDashboard"),
   { loading: () => <LoadingScreen /> }
@@ -49,7 +54,6 @@ export default function DashboardCliente() {
         .eq("slug", params.slug)
         .single();
 
-      // Verificar propiedad
       if (!data || data.email !== user.email) {
         router.push("/login");
         return;
@@ -65,14 +69,17 @@ export default function DashboardCliente() {
   if (loading) return <LoadingScreen />;
   if (!negocio) return null;
 
+  // ── Sistema modular: tiene prioridad sobre todo lo demás ──────────────────
+  if (negocio.system === "modular") {
+    return <ModularDashboard initialData={negocio} />;
+  }
+
+  // ── Legacy: bifurca por category ──────────────────────────────────────────
   const category = negocio.category || "confirm_booking";
 
-  // ── Tipo activo ────────────────────────────────────────────────────────────
   if (category === "confirm_booking") {
     return <ConfirmBookingDashboard initialData={negocio} />;
   }
-
-  // ── Legacy (negocios existentes que no migraron) ───────────────────────────
   if (category === "service_booking") {
     return <ServiceBookingDashboard initialData={negocio} />;
   }
