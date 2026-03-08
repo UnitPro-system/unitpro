@@ -1,7 +1,5 @@
 "use client";
 // blocks/gallery/public/GallerySection.tsx
-// Galería scrollable con lightbox. Lee imágenes de tenant_blocks.config o de
-// las customSections de config_web (migración automática desde legacy).
 
 import { useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
@@ -11,29 +9,42 @@ export default function GallerySection({ negocio, config: blockConfig }: BlockSe
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // ── Config merge ──────────────────────────────────────────────────────────
-  // Prioridad: tenant_blocks.config > primera customSection tipo 'gallery' de config_web
   const raw = negocio?.config_web || {};
-  const legacyGallery = (raw.customSections || []).find((s: any) => s.type === "gallery");
 
-  const titulo  = (blockConfig?.titulo  as string) ?? legacyGallery?.titulo  ?? "Nuestros Trabajos";
-  const imagenes = (blockConfig?.imagenes as any[]) ?? legacyGallery?.imagenes ?? [];
+  // Fuente 1: tenant_blocks.config.gallery (nuevo)
+  const galleryImages: string[] = (blockConfig?.images as string[]) || [];
+
+  // Fuente 2: legacy customSections
+  const legacySection = (raw.customSections || []).find((s: any) => s.type === "gallery");
+  const legacyImages: string[] = (legacySection?.imagenes || [])
+    .map((img: any) => (typeof img === "string" ? img : img?.url))
+    .filter(Boolean);
+
+  // Unificadas, sin duplicados, nuevas primero
+  const imagenes: string[] = [
+    ...galleryImages,
+    ...legacyImages.filter((url: string) => !galleryImages.includes(url)),
+  ];
+
+  const titulo    = (blockConfig?.titulo    as string) ?? legacySection?.titulo ?? "Nuestros Trabajos";
+  // FIX #13: color del título configurable
+  const textColor = (blockConfig?.textColor as string) ?? "#18181b";
 
   const appearance = raw.appearance || {};
-  const cardRadius = {
-    none: "rounded-none", medium: "rounded-2xl", full: "rounded-[2.5rem]",
-  }[appearance.radius as string] ?? "rounded-2xl";
+  const cardRadius = { none: "rounded-none", medium: "rounded-2xl", full: "rounded-[2.5rem]" }[
+    appearance.radius as string
+  ] ?? "rounded-2xl";
 
   if (imagenes.length === 0) return null;
 
-  const scrollBy = (dir: number) => {
-    scrollRef.current?.scrollBy({ left: dir * 340, behavior: "smooth" });
-  };
+  const scrollBy = (dir: number) => scrollRef.current?.scrollBy({ left: dir * 340, behavior: "smooth" });
 
   return (
     <>
       <section className="py-20 px-6 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold mb-12 text-center text-zinc-900">{titulo}</h2>
+        <h2 className="text-3xl font-bold mb-12 text-center" style={{ color: textColor }}>
+          {titulo}
+        </h2>
 
         <div className="relative">
           {imagenes.length > 3 && (
@@ -46,19 +57,14 @@ export default function GallerySection({ negocio, config: blockConfig }: BlockSe
           <div ref={scrollRef}
             className={`flex gap-4 overflow-x-auto pb-8 px-2 snap-x snap-mandatory ${imagenes.length > 3 ? "cursor-grab active:cursor-grabbing" : "justify-center"}`}
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-            {imagenes.map((img: any, i: number) => (
-              <div key={i}
-                onClick={() => setSelectedImage(img.url)}
+            {imagenes.map((url: string, i: number) => (
+              <div key={url + i}
+                onClick={() => setSelectedImage(url)}
                 className={`snap-center shrink-0 w-[70vw] md:w-[250px] lg:w-[300px] group relative aspect-square overflow-hidden bg-zinc-100 cursor-zoom-in ${cardRadius}`}>
-                <img src={img.url} alt={img.descripcion || ""} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Maximize2 className="text-white drop-shadow-md" size={24} />
                 </div>
-                {img.descripcion && (
-                  <div className="absolute bottom-0 left-0 w-full bg-black/60 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    {img.descripcion}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -72,7 +78,6 @@ export default function GallerySection({ negocio, config: blockConfig }: BlockSe
         </div>
       </section>
 
-      {/* Lightbox */}
       {selectedImage && (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={() => setSelectedImage(null)}>

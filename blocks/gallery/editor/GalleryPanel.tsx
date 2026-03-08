@@ -1,21 +1,46 @@
 "use client";
 // blocks/gallery/editor/GalleryPanel.tsx
-// Panel: Galería de imágenes (subir, ordenar, eliminar)
+// Lee imágenes de AMBAS fuentes (legacy customSections + nuevo gallery.images),
+// las muestra unificadas, permite borrar de cualquiera y subir nuevas.
 
 import { useState } from "react";
-import { Trash2, Upload, Loader2, GripVertical } from "lucide-react";
+import { Trash2, Upload, Loader2, GripVertical, Palette } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import type { BlockEditorProps } from "@/types/blocks";
 
 const PRIMARY = "#577a2c";
 
-export default function GalleryPanel({ config, updateConfigRoot, negocio }: BlockEditorProps) {
-  const supabase = createClient();
-  const gallery: string[] = config.gallery?.images || [];
+function Label({ children }: { children: React.ReactNode }) {
+  return <label className="text-[11px] font-bold text-zinc-400 uppercase block mb-1">{children}</label>;
+}
 
+export default function GalleryPanel({ config, updateConfigRoot, negocio }: BlockEditorProps) {
+  const supabase  = createClient();
   const [uploading, setUploading] = useState(false);
   const [dragIdx,   setDragIdx]   = useState<number | null>(null);
 
+  // ── Leer imágenes de ambas fuentes ────────────────────────────────────────
+  // Fuente nueva: config.gallery.images → array de strings (URLs)
+  // Fuente legacy: config_web.customSections[*].imagenes → array de {url, descripcion}
+  const rawGallery: string[] = config.gallery?.images || [];
+  const legacyImages: string[] = (
+    (negocio?.config_web?.customSections || [])
+      .filter((s: any) => s.type === "gallery")
+      .flatMap((s: any) => (s.imagenes || []).map((img: any) => (typeof img === "string" ? img : img?.url)).filter(Boolean))
+  );
+
+  // Unificadas sin duplicados: las nuevas primero, luego las legacy que no están ya
+  const allImages: string[] = [
+    ...rawGallery,
+    ...legacyImages.filter(url => !rawGallery.includes(url)),
+  ];
+
+  // Guardar la lista unificada en el nuevo formato (strings)
+  const saveImages = (newList: string[]) => {
+    updateConfigRoot("gallery", { ...config.gallery, images: newList });
+  };
+
+  // ── Upload ────────────────────────────────────────────────────────────────
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -30,25 +55,26 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
         newUrls.push(data.publicUrl);
       }
     }
-    updateConfigRoot("gallery", { ...config.gallery, images: [...gallery, ...newUrls] });
+    saveImages([...allImages, ...newUrls]);
     setUploading(false);
     e.target.value = "";
   };
 
-  const remove = (i: number) => {
-    updateConfigRoot("gallery", { ...config.gallery, images: gallery.filter((_, idx) => idx !== i) });
-  };
+  const remove = (i: number) => saveImages(allImages.filter((_, idx) => idx !== i));
 
-  // Simple drag-and-drop reorder
+  // ── Drag & drop reorder ───────────────────────────────────────────────────
   const onDragOver = (e: React.DragEvent, target: number) => {
     e.preventDefault();
     if (dragIdx === null || dragIdx === target) return;
-    const next = [...gallery];
+    const next = [...allImages];
     const [moved] = next.splice(dragIdx, 1);
     next.splice(target, 0, moved);
-    updateConfigRoot("gallery", { ...config.gallery, images: next });
+    saveImages(next);
     setDragIdx(target);
   };
+
+  // ── Color del texto del título ────────────────────────────────────────────
+  const textColor = config.gallery?.textColor || "#18181b";
 
   return (
     <div className="space-y-6">
@@ -56,8 +82,32 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
         <div className="flex items-center gap-2 pb-3 border-b border-zinc-100">
           <span className="w-2 h-2 rounded-full bg-purple-500" />
           <h3 className="font-bold text-zinc-800 text-xs uppercase tracking-wide">
-            Galería de imágenes ({gallery.length})
+            Galería de imágenes ({allImages.length})
           </h3>
+        </div>
+
+        {/* Título */}
+        <div>
+          <Label>Título de la sección</Label>
+          <input type="text"
+            value={config.gallery?.titulo ?? "Nuestros Trabajos"}
+            onChange={e => updateConfigRoot("gallery", { ...config.gallery, titulo: e.target.value })}
+            className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#577a2c]/30 outline-none text-zinc-900"
+            placeholder="Nuestros Trabajos"
+          />
+        </div>
+
+        {/* Color del título (FIX #13) */}
+        <div>
+          <Label>Color del título</Label>
+          <div className="flex items-center gap-2 p-2 border border-zinc-200 rounded-lg bg-zinc-50">
+            <input type="color" value={textColor}
+              onChange={e => updateConfigRoot("gallery", { ...config.gallery, textColor: e.target.value })}
+              className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+            />
+            <span className="text-sm text-zinc-600 font-mono">{textColor}</span>
+            <Palette size={14} className="text-zinc-400 ml-auto" />
+          </div>
         </div>
 
         {/* Upload */}
@@ -74,33 +124,33 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
         </label>
 
         {/* Grid */}
-        {gallery.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">
-            {gallery.map((url, i) => (
-              <div key={url}
-                draggable
-                onDragStart={() => setDragIdx(i)}
-                onDragOver={e => onDragOver(e, i)}
-                onDragEnd={() => setDragIdx(null)}
-                className={`relative aspect-square rounded-lg overflow-hidden border group cursor-grab active:cursor-grabbing transition-all ${dragIdx === i ? "opacity-50 ring-2 ring-[#577a2c]" : "border-zinc-200 hover:shadow-md"}`}>
-                <img src={url} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                  <button onClick={() => remove(i)}
-                    className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                    <Trash2 size={12} />
-                  </button>
+        {allImages.length > 0 ? (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {allImages.map((url, i) => (
+                <div key={url + i}
+                  draggable
+                  onDragStart={() => setDragIdx(i)}
+                  onDragOver={e => onDragOver(e, i)}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`relative aspect-square rounded-lg overflow-hidden border group cursor-grab active:cursor-grabbing transition-all ${dragIdx === i ? "opacity-50 ring-2 ring-[#577a2c]" : "border-zinc-200 hover:shadow-md"}`}>
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                    <button onClick={() => remove(i)}
+                      className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  <div className="absolute top-1 left-1 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical size={14} />
+                  </div>
                 </div>
-                <div className="absolute top-1 left-1 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  <GripVertical size={14} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-zinc-400 text-center">Arrastrá las imágenes para reordenarlas.</p>
+          </>
         ) : (
           <p className="text-center text-zinc-400 text-sm py-4 italic">Sin imágenes aún.</p>
-        )}
-        {gallery.length > 0 && (
-          <p className="text-[11px] text-zinc-400 text-center">Arrastrá las imágenes para reordenarlas.</p>
         )}
       </section>
     </div>

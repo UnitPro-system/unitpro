@@ -1,10 +1,14 @@
 "use client";
 // components/editors/ModularEditor.tsx
+//
+// Preview en vivo via postMessage (sin auto-save a DB).
+// Igual que el legacy ConfirmBookingEditor.
+// Solo toca Supabase cuando el usuario presiona "Guardar".
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Save, Monitor, Smartphone, ExternalLink,
-  ChevronLeft, Loader2, Check, Pencil, RefreshCw,
+  ChevronLeft, Loader2, Check,
 } from "lucide-react";
 import { createClient }    from "@/lib/supabase";
 import { BLOCKS_REGISTRY } from "@/blocks/_registry";
@@ -12,7 +16,6 @@ import type { BlockId, BlockEditorProps } from "@/types/blocks";
 
 const PRIMARY = "#577a2c";
 
-// Columnas reales de la tabla negocios que el editor puede tocar
 const DB_FIELDS = [
   "direccion", "horarios", "google_maps_link",
   "whatsapp", "instagram", "facebook", "linkedin",
@@ -27,7 +30,6 @@ interface ModularEditorProps {
 export default function ModularEditor({ negocio, onClose, onSaved }: ModularEditorProps) {
   const supabase = createClient();
 
-  // ── Estado ────────────────────────────────────────────────────────────────
   const [config, setConfig] = useState<any>(() => {
     const raw = negocio.config_web;
     if (!raw) return {};
@@ -39,21 +41,23 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
     Object.fromEntries(DB_FIELDS.map(f => [f, (negocio as any)[f] || ""]))
   );
 
-  const [activeIds,  setActiveIds]  = useState<BlockId[]>([]);
-  const [activeTab,  setActiveTab]  = useState<BlockId>("landing");
-  const [viewMode,   setViewMode]   = useState<"desktop" | "mobile">("desktop");
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
-  const [dirty,      setDirty]      = useState(false);
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [iframeKey,  setIframeKey]  = useState(0);
+  const [activeIds, setActiveIds] = useState<BlockId[]>([]);
+  const [activeTab, setActiveTab] = useState<BlockId>("landing");
+  const [viewMode,  setViewMode]  = useState<"desktop" | "mobile">("desktop");
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [dirty,     setDirty]     = useState(false);
 
-  // Refs para que el debounce pueda leer el estado más reciente
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iframeRef   = useRef<HTMLIFrameElement>(null);
   const configRef   = useRef(config);
   const dbRef       = useRef(dbFields);
   configRef.current = config;
   dbRef.current     = dbFields;
+
+  // URL del iframe siempre con ?preview=1 para activar LandingModularPreview
+  const previewUrl = `/${negocio.slug}?preview=1`;
+  // Link externo muestra la versión pública real
+  const publicUrl  = `/${negocio.slug}`;
 
   // ── Cargar bloques activos ─────────────────────────────────────────────────
   useEffect(() => {
@@ -64,26 +68,23 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
       });
   }, [negocio.id]);
 
-  // ── Auto-save con debounce → preview en vivo ──────────────────────────────
-  // Después de 1.5s sin cambios guarda silenciosamente y recarga el iframe.
+  // ── PostMessage → preview instantáneo ─────────────────────────────────────
+  // Cada vez que config o dbFields cambian, se lo mandamos al iframe.
+  // NO tocamos Supabase hasta que el usuario guarda manualmente.
   useEffect(() => {
-    if (!dirty) return;
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage({ type: "UPDATE_CONFIG", payload: configRef.current }, "*");
+    win.postMessage({ type: "UPDATE_DB",     payload: dbRef.current },     "*");
+  }, [config, dbFields]);
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(async () => {
-      setAutoSaving(true);
-      const { error } = await supabase.from("negocios").update({
-        config_web: configRef.current,
-        ...Object.fromEntries(DB_FIELDS.map(f => [f, dbRef.current[f] || null])),
-      }).eq("id", negocio.id);
-
-      setAutoSaving(false);
-      if (!error) setIframeKey(k => k + 1);
-    }, 1500);
-
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [config, dbFields, dirty]);
+  // Al cargar el iframe, mandarle el estado inicial
+  const handleIframeLoad = () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage({ type: "UPDATE_CONFIG", payload: configRef.current }, "*");
+    win.postMessage({ type: "UPDATE_DB",     payload: dbRef.current },     "*");
+  };
 
   // ── Tabs del editor ───────────────────────────────────────────────────────
   const editorTabs = [
@@ -140,9 +141,7 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
 
   // ── Guardar manual ────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaving(true);
-
     const { error } = await supabase.from("negocios").update({
       config_web: config,
       ...Object.fromEntries(DB_FIELDS.map(f => [f, dbFields[f] || null])),
@@ -150,10 +149,8 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
 
     setSaving(false);
     if (error) { alert("Error al guardar: " + error.message); return; }
-
     setSaved(true);
     setDirty(false);
-    setIframeKey(k => k + 1);
     setTimeout(() => setSaved(false), 2500);
     onSaved?.();
   };
@@ -165,18 +162,14 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
   };
 
   const ActivePanel = BLOCKS_REGISTRY[activeTab]?.EditorPanel;
-  const previewUrl  = `/${negocio.slug}`;
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-[100] flex font-sans text-zinc-900 overflow-hidden bg-zinc-100">
 
-      {/* ── PREVIEW ────────────────────────────────────────────────────────── */}
+      {/* ── PREVIEW ──────────────────────────────────────────────────────── */}
       <div className="hidden lg:flex flex-1 flex-col h-full border-r border-zinc-300 relative">
         <div className="h-14 bg-white border-b border-zinc-200 flex items-center justify-between px-5 shrink-0 shadow-sm z-10">
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#577a2c]/10 text-[#577a2c] text-xs font-bold rounded-full border border-[#577a2c]/20">
-            <Pencil size={12} /> Editor en vivo
-          </div>
+          <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Vista previa</span>
           <div className="flex bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
             <button onClick={() => setViewMode("desktop")}
               className={`p-2 rounded-md transition-all ${viewMode === "desktop" ? "bg-white shadow text-[#577a2c]" : "text-zinc-400 hover:text-zinc-600"}`}>
@@ -187,7 +180,7 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
               <Smartphone size={16} />
             </button>
           </div>
-          <a href={previewUrl} target="_blank" rel="noopener noreferrer"
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer"
             className="text-xs font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-1 transition-colors">
             Ver página <ExternalLink size={12} />
           </a>
@@ -199,14 +192,10 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
               ? "w-[390px] h-[844px] rounded-[3rem] border-[10px] border-zinc-800 shadow-xl max-h-full"
               : "w-full h-full rounded-xl"
           }`}>
-            {autoSaving && (
-              <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-zinc-500 text-[11px] font-bold px-3 py-1.5 rounded-full border border-zinc-200 shadow-sm">
-                <RefreshCw size={11} className="animate-spin" /> Actualizando vista...
-              </div>
-            )}
             <iframe
-              key={iframeKey}
+              ref={iframeRef}
               src={previewUrl}
+              onLoad={handleIframeLoad}
               className="w-full h-full"
               style={{ border: "none" }}
               title="Preview"
@@ -215,7 +204,7 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
         </div>
       </div>
 
-      {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
+      {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
       <div className="w-full lg:w-[440px] bg-white flex flex-col h-full shadow-2xl shrink-0 border-l border-zinc-200">
 
         {/* Top bar */}
@@ -230,23 +219,10 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
               <p className="text-xs text-zinc-400">Editor de página</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <a href={previewUrl} target="_blank" rel="noopener noreferrer"
-              className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors lg:hidden">
-              <ExternalLink size={16} />
-            </a>
-            <button onClick={handleSave} disabled={saving || !dirty}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                saved  ? "bg-green-50 text-green-700 border border-green-200" :
-                !dirty ? "bg-zinc-100 text-zinc-400 cursor-not-allowed" :
-                saving ? "opacity-60 cursor-wait text-white" : "text-white hover:opacity-90"
-              }`}
-              style={!saved && dirty ? { backgroundColor: PRIMARY } : {}}>
-              {saving ? <Loader2 size={14} className="animate-spin" />
-               : saved ? <><Check size={14} /> Guardado</>
-               : <><Save size={14} /> Guardar</>}
-            </button>
-          </div>
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer"
+            className="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors lg:hidden">
+            <ExternalLink size={16} />
+          </a>
         </div>
 
         {/* Pestañas */}
@@ -276,8 +252,13 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — único botón de guardar */}
         <div className="absolute bottom-0 left-0 right-0 lg:relative p-4 bg-white border-t border-zinc-100 shrink-0">
+          {dirty && !saved && (
+            <p className="text-center text-[11px] text-amber-500 font-medium mb-2">
+              Tenés cambios sin guardar
+            </p>
+          )}
           <button onClick={handleSave} disabled={saving || !dirty}
             className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               saved  ? "bg-green-50 text-green-700 border border-green-200" :
@@ -289,11 +270,6 @@ export default function ModularEditor({ negocio, onClose, onSaved }: ModularEdit
              : saved ? <><Check size={16} /> ¡Guardado!</>
              : <><Save size={16} /> Guardar cambios</>}
           </button>
-          {autoSaving && (
-            <p className="text-center text-xs text-zinc-400 mt-2 flex items-center justify-center gap-1">
-              <RefreshCw size={10} className="animate-spin" /> Actualizando vista previa...
-            </p>
-          )}
         </div>
       </div>
     </div>

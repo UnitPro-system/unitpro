@@ -23,8 +23,8 @@ function Input({ value, onChange, placeholder, type = "text" }: any) {
 }
 function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) {
   return (
-    <div className="flex items-center justify-between">
-      {label && <span className="text-sm font-medium text-zinc-600">{label}</span>}
+    <div className="flex items-center justify-between gap-4">
+      {label && <span className="text-sm font-medium text-zinc-600 flex-1">{label}</span>}
       <button onClick={() => onChange(!value)}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${value ? "bg-[#577a2c]" : "bg-zinc-300"}`}>
         <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${value ? "translate-x-5" : "translate-x-1"}`} />

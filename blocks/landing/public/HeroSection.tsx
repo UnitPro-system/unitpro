@@ -1,8 +1,5 @@
 "use client";
 // blocks/landing/public/HeroSection.tsx
-// Navbar fija + sección hero. Autocontenida — no depende de otros bloques.
-// CTA "Reservar Turno" despacha CustomEvent que CalendarSection escucha
-// para abrir el modal directamente (no scroll a servicios).
 
 import { useState } from "react";
 import { Menu, X, CalendarIcon } from "lucide-react";
@@ -29,13 +26,13 @@ export default function HeroSection({ negocio, config: blockConfig }: BlockSecti
   const btnRadius  = { none: "rounded-none", medium: "rounded-xl", full: "rounded-full" }[
     (cfg.appearance as any).radius as string
   ] ?? "rounded-xl";
+  const subtitulo  = (cfg.hero as any).subtitulo as string | undefined;
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
   };
 
-  // Abre el modal de reserva directamente (sin hacer scroll a servicios)
   const openBookingModal = () => {
     window.dispatchEvent(new CustomEvent("unitpro:open-booking"));
     setMobileMenuOpen(false);
@@ -43,7 +40,7 @@ export default function HeroSection({ negocio, config: blockConfig }: BlockSecti
 
   return (
     <>
-      {/* ── Navbar ──────────────────────────────────────────────────────────── */}
+      {/* ── Navbar ──────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
           <div>
@@ -98,7 +95,7 @@ export default function HeroSection({ negocio, config: blockConfig }: BlockSecti
         )}
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
       <header id="inicio" className="relative w-full min-h-[100svh] flex flex-col items-center justify-center overflow-hidden py-28">
         <div className="absolute inset-0 w-full h-full z-0">
           <img src={heroImage} className="w-full h-full object-cover" alt="Fondo" />
@@ -118,6 +115,14 @@ export default function HeroSection({ negocio, config: blockConfig }: BlockSecti
               html={(cfg.hero as any).titulo || negocio.nombre}
               className="text-3xl lg:text-[3.5rem] font-extrabold tracking-tight text-white mb-4 drop-shadow-md leading-tight"
             />
+
+            {/* Subtítulo / descripción — solo si tiene contenido */}
+            {subtitulo && subtitulo.trim() !== "" && (
+              <p className="text-white/80 text-base md:text-lg mb-5 leading-relaxed drop-shadow">
+                {subtitulo}
+              </p>
+            )}
+
             <div className="flex flex-col lg:flex-row items-center justify-center gap-4">
               <button
                 onClick={openBookingModal}

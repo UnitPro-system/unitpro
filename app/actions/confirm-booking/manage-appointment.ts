@@ -296,7 +296,7 @@ export async function approveAppointment(appointmentId: string, finalPrice?: num
 
     // 4. Enviar Email
     const templateType = necesitaSenia ? 'deposit' : 'confirmation';
-    const notifConfig = configWeb.notifications?.[templateType] || { enabled: true, sendViaEmail: true, sendViaWhatsapp: false };
+    const notifConfig = configWeb.notifications?.[templateType] || { enabled: true, sendViaEmail: true, sendViaWhatsapp: true };
 
     if (notifConfig.enabled) {
         const precioNumerico = finalPrice || 0;
