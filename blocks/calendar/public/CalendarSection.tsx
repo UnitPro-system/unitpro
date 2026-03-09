@@ -623,7 +623,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
                         </select>
                         
                         <input 
-                          placeholder="Área (ej: 11)"
+                          placeholder="ej: 343"
                           value={bookingData.clientAreaCode}
                           onChange={e => setBookingData(p => ({ ...p, clientAreaCode: e.target.value.replace(/\D/g, '') }))}
                           // Hacemos este input más pequeño
