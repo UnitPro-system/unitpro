@@ -42,7 +42,7 @@ export default function LandingModularPreview({ negocio: initialNegocio, activeB
   const bgColor  = raw.colors?.secondary || "#ffffff";
   const txtColor = raw.colors?.text       || "#1f2937";
 
-  const selectedFont = config?.appearance?.font || "Inter";
+  const selectedFont = raw.appearance?.font || "Inter";
 
   return (
     <div className="custom-font-wrapper" style={{ backgroundColor: bgColor, color: txtColor, minHeight: "100vh" }}>
