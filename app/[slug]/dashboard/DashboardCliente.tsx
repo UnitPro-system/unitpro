@@ -44,54 +44,48 @@ export default function DashboardCliente() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user?.email) {
+        console.error("Expulsado: No hay usuario de Supabase autenticado.");
         router.push("/login");
         return;
       }
 
-      // 1. Decodificamos el slug igual que en page.tsx
+      // 1. Normalizamos el slug exactamente igual que en el servidor (page.tsx)
       const rawSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
       const decodedSlug = decodeURIComponent(rawSlug || "").toLowerCase();
 
-      // 2. Determinamos la columna correcta (custom_domain vs slug)
+      // 2. Buscamos por custom_domain o por slug según corresponda
       const searchColumn = decodedSlug.includes(".") ? "custom_domain" : "slug";
+
       const { data, error } = await supabase
         .from("negocios")
         .select("*, agencies(name, nombre_agencia)")
         .eq(searchColumn, decodedSlug)
         .single();
 
-      // Si data es null, puede ser RLS bloqueando (user_id null) o negocio inexistente.
-      // Intentamos fallback por email directo (más permisivo con la política nueva).
-      if (!data) {
-        const { data: dataByEmail } = await supabase
-          .from("negocios")
-          .select("*, agencies(name, nombre_agencia)")
-          .ilike("email", user.email)
-          .single();
-
-        if (!dataByEmail) {
-          router.push("/login");
-          return;
-        }
-
-        setNegocio(dataByEmail);
-        setLoading(false);
-        return;
-      }
-
-      // Verificación de seguridad: el negocio encontrado debe pertenecer al usuario autenticado
-      const dbEmail = data.email?.toLowerCase() || "";
-      const authEmail = user.email.toLowerCase();
-      if (dbEmail !== authEmail) {
+      // 3. Verificamos si la consulta a la BD falló o devolvió vacío
+      if (error || !data) {
+        console.error("Expulsado: No se encontró el negocio en la BD.", error);
         router.push("/login");
         return;
       }
+
+      // 4. Comparamos emails ignorando mayúsculas y espacios
+      const dbEmail = data.email?.toLowerCase().trim() || "";
+      const authEmail = user.email.toLowerCase().trim();
+
+      if (dbEmail !== authEmail) {
+        console.error("Expulsado: El email de la BD no coincide con el logueado.", { dbEmail, authEmail });
+        router.push("/login");
+        return;
+      }
+
+      // Todo correcto, guardamos el estado
       setNegocio(data);
       setLoading(false);
     }
 
     initDashboard();
-  }, [params.slug, router]);
+  }, [params.slug, router, supabase]);
 
   if (loading) return <LoadingScreen />;
   if (!negocio) return null;
