@@ -5,6 +5,7 @@
 
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import type { BlockEditorProps } from "@/types/blocks";
+import { GOOGLE_FONTS } from "@/lib/fonts";
 
 const PRIMARY = "#577a2c";
 
@@ -92,11 +93,25 @@ export default function LandingPanel({ config, updateConfig, updateConfigRoot }:
 
         <div>
           <Label>Tipografía</Label>
-          <select value={appearance.font || "sans"} onChange={e => updateConfig("appearance", "font", e.target.value)}
-            className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white outline-none">
-            <option value="sans">Moderna (Sans)</option>
-            <option value="serif">Elegante (Serif)</option>
-            <option value="mono">Técnica (Mono)</option>
+          <select 
+            value={appearance.font || "Inter"} 
+            onChange={e => updateConfig("appearance", "font", e.target.value)}
+            className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white outline-none"
+          >
+            {GOOGLE_FONTS.map((group) => (
+              <optgroup key={group.category} label={group.category} className="font-bold text-zinc-400 italic bg-zinc-50">
+                {group.fonts.map((fontName) => (
+                  <option 
+                    key={fontName} 
+                    value={fontName} 
+                    style={{ fontFamily: `"${fontName}", sans-serif` }}
+                    className="text-zinc-800 font-normal not-italic bg-white"
+                  >
+                    {fontName}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
 

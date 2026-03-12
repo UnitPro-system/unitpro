@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase-server";
 import { BLOCKS_REGISTRY } from "@/blocks/_registry";
 import LandingModularPreview from "@/components/LandingModularPreview";
 import type { BlockId } from "@/types/blocks";
+import DynamicFont from "@/components/ui/DynamicFont";
 
 interface LandingModularProps {
   negocio:   any;
@@ -58,8 +59,14 @@ export default async function LandingModular({ negocio, isPreview = false }: Lan
   const bgColor  = raw.colors?.secondary || "#ffffff";
   const txtColor = raw.colors?.text       || "#1f2937";
 
+  const selectedFont = raw.appearance?.font || "Inter";
+
   return (
-    <div style={{ backgroundColor: bgColor, color: txtColor, minHeight: "100vh" }}>
+    <div className="custom-font-wrapper" style={{ backgroundColor: bgColor, color: txtColor, minHeight: "100vh" }}>
+      
+      {/* 👇 Inyectamos la fuente 👇 */}
+      <DynamicFont font={selectedFont} />
+
       {ordered.map(blockId => {
         const definition = BLOCKS_REGISTRY[blockId];
         if (!definition?.SectionComponent) return null;

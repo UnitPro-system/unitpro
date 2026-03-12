@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // 1. Validamos contraseña con Supabase (Necesario para seguridad)
+    // 1. Validamos contraseña con Supabase
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -38,37 +38,37 @@ export default function LoginPage() {
       return;
     }
 
-    // ELIMINAMOS USER_ID DE LA ECUACIÓN.
-    // Usamos puramente el texto del email.
     const userEmail = data.user.email;
 
-    // 2. Buscamos en NEGOCIOS usando el campo de texto 'email'
-    const { data: negocio } = await supabase
+    // 2. Buscamos en NEGOCIOS usando ilike (sin importar mayúsculas) y limit(1)
+    const { data: negocios } = await supabase
       .from("negocios")
       .select("slug")
-      .eq("email", userEmail) // <--- BUSCA TEXTO CONTRA TEXTO
-      .single();
+      .ilike("email", userEmail) 
+      .limit(1);
 
-    if (negocio) {
-      router.refresh();
+    if (negocios && negocios.length > 0) {
+      const negocio = negocios[0];
       router.push(`/${negocio.slug}/dashboard`);
+      router.refresh(); // Mejor ejecutarlo después o removerlo si no es estrictamente necesario
       return;
     }
 
-    // 3. Buscamos en AGENCIAS usando el campo de texto 'email'
-    const { data: agencia } = await supabase
+    // 3. Buscamos en AGENCIAS 
+    const { data: agencias } = await supabase
       .from("agencies")
       .select("slug")
-      .eq("email", userEmail) // <--- BUSCA TEXTO CONTRA TEXTO
-      .single();
+      .ilike("email", userEmail)
+      .limit(1);
 
-    if (agencia) {
-      router.refresh();
+    if (agencias && agencias.length > 0) {
+      const agencia = agencias[0];
       router.push(`/${agencia.slug}/dashboard`);
+      router.refresh(); 
       return;
     }
 
-    // 4. Si el mail no aparece escrito en ninguna tabla
+    // 4. Si el mail no aparece
     await supabase.auth.signOut();
     setError(`El email ${userEmail} no tiene ningún negocio asignado en la base de datos.`);
     setLoading(false);

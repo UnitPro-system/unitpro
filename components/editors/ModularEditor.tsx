@@ -13,6 +13,7 @@ import {
 import { createClient }    from "@/lib/supabase";
 import { BLOCKS_REGISTRY } from "@/blocks/_registry";
 import type { BlockId, BlockEditorProps } from "@/types/blocks";
+import { GOOGLE_FONTS } from "@/lib/fonts";
 
 const PRIMARY = "#577a2c";
 

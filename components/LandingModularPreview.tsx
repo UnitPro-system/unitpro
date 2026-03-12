@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { BLOCKS_REGISTRY } from "@/blocks/_registry";
 import type { BlockId } from "@/types/blocks";
+import DynamicFont from "@/components/ui/DynamicFont";
 
 interface Props {
   negocio:      any;
@@ -41,8 +42,13 @@ export default function LandingModularPreview({ negocio: initialNegocio, activeB
   const bgColor  = raw.colors?.secondary || "#ffffff";
   const txtColor = raw.colors?.text       || "#1f2937";
 
+  const selectedFont = config?.appearance?.font || "Inter";
+
   return (
-    <div style={{ backgroundColor: bgColor, color: txtColor, minHeight: "100vh" }}>
+    <div className="custom-font-wrapper" style={{ backgroundColor: bgColor, color: txtColor, minHeight: "100vh" }}>
+
+      <DynamicFont font={selectedFont} />
+
       {ordered.map(blockId => {
         const definition = BLOCKS_REGISTRY[blockId];
         if (!definition?.SectionComponent) return null;
