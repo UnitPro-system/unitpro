@@ -48,13 +48,25 @@ export default function DashboardCliente() {
         return;
       }
 
+      // 1. Decodificamos el slug igual que en page.tsx
+      const rawSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+      const decodedSlug = decodeURIComponent(rawSlug || "").toLowerCase();
+
+      // 2. Determinamos la columna correcta (custom_domain vs slug)
+      const searchColumn = decodedSlug.includes(".") ? "custom_domain" : "slug";
+
       const { data } = await supabase
         .from("negocios")
         .select("*, agencies(name, nombre_agencia)")
-        .eq("slug", params.slug)
+        .eq(searchColumn, decodedSlug) // ¡Usamos la columna correcta!
         .single();
 
-      if (!data || data.email !== user.email) {
+      // 3. Verificamos que exista y que el email coincida (insensible a mayúsculas)
+      const dbEmail = data?.email?.toLowerCase() || "";
+      const authEmail = user.email.toLowerCase();
+
+      if (!data || dbEmail !== authEmail) {
+        console.warn("Fallo de validación cliente. DB Email:", dbEmail, "Auth:", authEmail);
         router.push("/login");
         return;
       }
