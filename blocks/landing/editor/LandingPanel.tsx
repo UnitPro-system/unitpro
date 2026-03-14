@@ -6,6 +6,8 @@
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import type { BlockEditorProps } from "@/types/blocks";
 import { GOOGLE_FONTS } from "@/lib/fonts";
+import { useState } from "react";
+import { PlusCircle, FileText, Image, Trash2, X } from "lucide-react";
 
 const PRIMARY = "#577a2c";
 
@@ -63,6 +65,38 @@ export default function LandingPanel({ config, updateConfig, updateConfigRoot }:
   const hero       = config.hero       || {};
   const colors     = config.colors     || {};
   const appearance = config.appearance || {};
+
+  const customSections = config.customSections || [];
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+
+  const addSection = (type: 'about' | 'gallery') => {
+    const newId = Math.random().toString(36).substring(2, 11);
+    let newSection: any = { id: newId, type };
+
+    if (type === 'about') {
+      newSection = { ...newSection, titulo: "Sobre Nosotros", texto: "Escribe aquí tu historia...", imagenUrl: "" };
+    } else if (type === 'gallery') {
+      newSection = { ...newSection, titulo: "Nuestros Trabajos", imagenes: [] };
+    }
+
+    const currentOrder = config.sectionOrder || [];
+    updateConfigRoot("customSections", [...customSections, newSection]);
+    updateConfigRoot("sectionOrder", [...currentOrder, newId]);
+    setIsAddMenuOpen(false);
+  };
+
+  const removeSection = (id: string) => {
+    if (!window.confirm("¿Borrar esta sección?")) return;
+    const newSections = customSections.filter((s: any) => s.id !== id);
+    const newOrder = (config.sectionOrder || []).filter((item: string) => item !== id);
+    updateConfigRoot("customSections", newSections);
+    updateConfigRoot("sectionOrder", newOrder);
+  };
+
+  const updateCustomSection = (id: string, field: string, value: any) => {
+    const newSections = customSections.map((s: any) => s.id === id ? { ...s, [field]: value } : s);
+    updateConfigRoot("customSections", newSections);
+  };
 
   return (
     <div className="space-y-8">
@@ -190,6 +224,124 @@ export default function LandingPanel({ config, updateConfig, updateConfigRoot }:
             />
           </div>
         )}
+      </section>
+      <section className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm space-y-4">
+        <SectionHeader title="Secciones Extra" color="emerald" />
+        
+        {customSections.map((section: any) => (
+          <div key={section.id} className="p-4 border border-zinc-200 rounded-lg bg-zinc-50 relative group mb-4">
+            <button 
+              onClick={() => removeSection(section.id)} 
+              className="absolute top-2 right-2 p-1 text-zinc-400 hover:text-red-500 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+
+            {/* Render: Quiénes Somos */}
+            {section.type === 'about' && (
+              <div className="space-y-3 pr-6">
+                <div className="flex items-center gap-2 mb-2 text-blue-600">
+                  <FileText size={16} /> <span className="text-xs font-bold uppercase">Quiénes Somos</span>
+                </div>
+                <div>
+                  <Label>Título</Label>
+                  <Input 
+                    value={section.titulo} 
+                    onChange={(v: string) => updateCustomSection(section.id, 'titulo', v)} 
+                  />
+                </div>
+                <div>
+                  <Label>Descripción</Label>
+                  <Textarea 
+                    rows={4}
+                    value={section.texto} 
+                    onChange={(v: string) => updateCustomSection(section.id, 'texto', v)} 
+                  />
+                </div>
+                <ImageUpload 
+                  label="Imagen (Opcional)" 
+                  value={section.imagenUrl} 
+                  onChange={(url) => updateCustomSection(section.id, 'imagenUrl', url)} 
+                />
+              </div>
+            )}
+
+            {/* Render: Galería */}
+            {section.type === 'gallery' && (
+              <div className="space-y-3 pr-6">
+                <div className="flex items-center gap-2 mb-2 text-purple-600">
+                  <Image size={16} /> <span className="text-xs font-bold uppercase">Galería</span>
+                </div>
+                <Input 
+                  value={section.titulo} 
+                  onChange={(v: string) => updateCustomSection(section.id, 'titulo', v)} 
+                  placeholder="Título de la galería"
+                />
+                
+                <div className="space-y-2 mt-2">
+                  {section.imagenes?.map((img: any, i: number) => (
+                    <div key={i} className="flex gap-2 items-center bg-white p-2 rounded-lg border border-zinc-200">
+                      <img src={img.url} className="w-10 h-10 rounded object-cover bg-zinc-200" alt="" />
+                      <input 
+                        value={img.descripcion || ''} 
+                        onChange={(e) => {
+                          const newImages = [...section.imagenes];
+                          newImages[i].descripcion = e.target.value;
+                          updateCustomSection(section.id, 'imagenes', newImages);
+                        }}
+                        className="flex-1 p-1 bg-transparent text-xs outline-none border-b border-transparent focus:border-zinc-300"
+                        placeholder="Descripción opcional..."
+                      />
+                      <button 
+                        onClick={() => {
+                          const newImages = section.imagenes.filter((_:any, idx:number) => idx !== i);
+                          updateCustomSection(section.id, 'imagenes', newImages);
+                        }}
+                        className="text-zinc-400 hover:text-red-500"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <ImageUpload 
+                    label="Agregar Imagen a Galería" 
+                    value="" 
+                    onChange={(url) => {
+                      const newImages = [...(section.imagenes || []), { url, descripcion: "" }];
+                      updateCustomSection(section.id, 'imagenes', newImages);
+                    }} 
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Botón Añadir Sección Extra */}
+        <div className="relative pt-2">
+          <button 
+            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+            className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-[#577a2c] hover:text-[#577a2c] hover:bg-[#577a2c]/5 transition-all flex items-center justify-center gap-2"
+          >
+            <PlusCircle size={18}/> Añadir Sección Extra
+          </button>
+
+          {isAddMenuOpen && (
+            <div className="absolute bottom-full left-0 w-full mb-2 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-20 animate-in fade-in slide-in-from-bottom-2">
+              <button onClick={() => addSection('about')} className="w-full text-left px-4 py-3 hover:bg-zinc-50 flex items-center gap-3 text-sm font-medium text-zinc-700">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><FileText size={16}/></div>
+                Quiénes Somos (Texto + Foto)
+              </button>
+              <button onClick={() => addSection('gallery')} className="w-full text-left px-4 py-3 hover:bg-zinc-50 flex items-center gap-3 text-sm font-medium text-zinc-700 border-t border-zinc-100">
+                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Image size={16}/></div>
+                Galería de Imágenes
+              </button>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
