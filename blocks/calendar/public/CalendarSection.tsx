@@ -469,7 +469,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
                             <div>
                               <p className={`font-bold ${selected ? "text-white" : "text-zinc-900"}`}>{titulo}</p>
                               <span className={`text-xs flex items-center gap-1 mt-0.5 ${selected ? "text-white/80" : "text-zinc-400"}`}>
-                                <Clock size={11} /> {duracion} min
+                                <Clock size={11} /> {formatDuration(duracion)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
