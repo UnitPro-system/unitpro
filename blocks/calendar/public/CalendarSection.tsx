@@ -54,7 +54,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
 
   const [bookingData, setBookingData] = useState({
     date: "", time: "", worker: null as any,
-    clientName: "", clientPhone: "", clientEmail: "",
+    clientName: "", clientLastName: "", clientPhone: "", clientEmail: "",
     message: "", clientCountryCode: "+54", clientAreaCode: "", clientLocalNumber: "",
     images: [] as string[],
   });
@@ -253,7 +253,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
       service:     selectedServices.map(s => s.titulo || s.name).join(" + "),
       workerName:  bookingData.worker?.nombre || null,
       workerId:    bookingData.worker?.id     || null,
-      clientName:  bookingData.clientName,
+      clientName:  `${bookingData.clientName} ${bookingData.clientLastName}`.trim(),
       clientEmail: bookingData.clientEmail,
       clientPhone: phone,
       start:       start.toISOString(),
@@ -270,7 +270,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
       setMostrarGracias(false);
       setBookingStep(1);
       setSelectedServices([]);
-      setBookingData({ date:"", time:"", worker:null, clientName:"", clientPhone:"",
+      setBookingData({ date:"", time:"", worker:null, clientName:"",clientLastName:"", clientPhone:"",
         clientEmail:"", message:"", clientAreaCode:"", clientLocalNumber:"",
         clientCountryCode: "+54", images:[] });
     }, 3500);
@@ -599,10 +599,16 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
                     </button>
                     <h4 className="font-bold text-lg text-zinc-900">Tus datos</h4>
 
-                    <input placeholder="Tu nombre completo" value={bookingData.clientName}
-                      onChange={e => setBookingData(p => ({ ...p, clientName: e.target.value }))}
-                      className={`w-full p-3 border border-zinc-200 outline-none focus:border-zinc-400 text-zinc-900 bg-white ${inputRadius}`}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input placeholder="Nombre" value={bookingData.clientName}
+                        onChange={e => setBookingData(p => ({ ...p, clientName: e.target.value }))}
+                        className={`w-full p-3 border border-zinc-200 outline-none focus:border-zinc-400 text-zinc-900 bg-white ${inputRadius}`}
+                      />
+                      <input placeholder="Apellido" value={bookingData.clientLastName}
+                        onChange={e => setBookingData(p => ({ ...p, clientLastName: e.target.value }))}
+                        className={`w-full p-3 border border-zinc-200 outline-none focus:border-zinc-400 text-zinc-900 bg-white ${inputRadius}`}
+                      />
+                    </div>
                     <input type="email" placeholder="Email" value={bookingData.clientEmail}
                       onChange={e => setBookingData(p => ({ ...p, clientEmail: e.target.value }))}
                       className={`w-full p-3 border border-zinc-200 outline-none focus:border-zinc-400 text-zinc-900 bg-white ${inputRadius}`}
@@ -679,7 +685,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
                     )}
 
                     <button onClick={handleSubmit}
-                      disabled={!bookingData.clientName || !bookingData.clientEmail || enviando || uploadingImages}
+                      disabled={!bookingData.clientName || !bookingData.clientLastName || !bookingData.clientEmail || enviando || uploadingImages}
                       className={`w-full py-3.5 text-white font-bold flex items-center justify-center gap-2 ${btnRadius} disabled:opacity-50`}
                       style={{ backgroundColor: brandColor }}>
                       {enviando
