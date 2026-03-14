@@ -213,15 +213,41 @@ export default function CalendarPanel({
 
         {equipo.mostrar && (
           <div className="space-y-3 animate-in fade-in">
-            <div>
-              <Label>Modo de horarios</Label>
-              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
-                {[["unified","Horario General"],["per_worker","Por Profesional"]].map(([val, lbl]) => (
-                  <button key={val} onClick={() => updateConfig("equipo", "scheduleType", val)}
-                    className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${(equipo.scheduleType || "unified") === val ? "bg-white shadow text-[#577a2c]" : "text-zinc-500"}`}>
-                    {lbl}
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+              {/* 1. Lógica de Turnos (Disponibilidad) */}
+              <div>
+                <Label>Lógica de Turnos</Label>
+                <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200/60 shadow-inner">
+                  {[["global", "Sala Única"], ["per_worker", "Simultáneo"]].map(([val, lbl]) => (
+                    <button key={val} onClick={() => updateConfig("equipo", "availabilityMode", val)}
+                      className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${(equipo.availabilityMode || "global") === val ? "bg-white shadow-sm text-[#577a2c]" : "text-zinc-500 hover:text-zinc-700"}`}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-1.5 leading-tight">
+                  {(equipo.availabilityMode || "global") === "global" 
+                    ? "Un turno bloquea todo (ej: consultorio único)." 
+                    : "Varios clientes a la vez (por profesional)."}
+                </p>
+              </div>
+
+              {/* 2. Modo de Horarios */}
+              <div>
+                <Label>Modo de Horarios</Label>
+                <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200/60 shadow-inner">
+                  {[["unified","General"], ["per_worker","Por Persona"]].map(([val, lbl]) => (
+                    <button key={val} onClick={() => updateConfig("equipo", "scheduleType", val)}
+                      className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${(equipo.scheduleType || "unified") === val ? "bg-white shadow-sm text-[#577a2c]" : "text-zinc-500 hover:text-zinc-700"}`}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-1.5 leading-tight">
+                  {(equipo.scheduleType || "unified") === "unified" 
+                    ? "Todos usan el mismo horario comercial." 
+                    : "Cada persona tiene su propio horario."}
+                </p>
               </div>
             </div>
 
