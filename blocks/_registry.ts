@@ -16,6 +16,7 @@ import CalendarSection from '@/blocks/calendar/public/CalendarSection';
 import GallerySection  from '@/blocks/gallery/public/GallerySection';
 import ReviewsSection  from '@/blocks/reviews/public/ReviewsSection';
 import ContactSection  from '@/blocks/crm/public/ContactSection';
+import AboutSection from '@/blocks/about/public/AboutSection';
 
 // ── AdminComponents (tabs del dashboard) ──────────────────────────────────────
 import ResumenAdmin       from '@/blocks/platform/admin/ResumenAdmin';
@@ -33,6 +34,7 @@ import LandingPanel  from '@/blocks/landing/editor/LandingPanel';
 import CalendarPanel from '@/blocks/calendar/editor/CalendarPanel';
 import CrmPanel      from '@/blocks/crm/editor/CrmPanel';
 import GalleryPanel  from '@/blocks/gallery/editor/GalleryPanel';
+import AboutPanel from '@/blocks/about/editor/AboutPanel';
 
 // ─── Lógica de visibilidad para "solicitudes" ─────────────────────────────────
 function solicitudesVisible(shared: BlockSharedData, negocio: any): boolean {
@@ -138,8 +140,16 @@ export const BLOCKS_REGISTRY: Record<BlockId, BlockDefinition> = {
     category: 'services', priceARS: 800, agencyPriceARS: 560, priceUC: 8, agencyPriceUC: 6, dependencies: [],
     icon: 'Images', available: true, adminOrder: 6,
     SectionComponent: GallerySection,
-    editorLabel: 'Galería de Imágenes y Otros',
+    editorLabel: 'Galería de Imágenes',
     EditorPanel: GalleryPanel,
+  },
+  about: {
+    id: 'about', name: 'Quiénes Somos', description: 'Historia, visión y detalles de tu negocio.',
+    category: 'core', priceARS: 0, agencyPriceARS: 0, priceUC: 0, agencyPriceUC: 0, dependencies: [],
+    icon: 'FileText', available: true, adminOrder: 2,
+    SectionComponent: AboutSection,
+    editorLabel: 'Quiénes Somos',
+    EditorPanel: AboutPanel,
   },
   analytics: {
     id: 'analytics', name: 'Analytics', description: 'Métricas de visitas y conversión.',

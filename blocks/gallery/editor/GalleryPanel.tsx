@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Trash2, Upload, Loader2, GripVertical,FileText, X, PlusCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import type { BlockEditorProps } from "@/types/blocks";
-import { ImageUpload } from "@/components/ui/ImageUpload";
+
 
 function Label({ children }: { children: React.ReactNode }) {
   return <label className="text-[11px] font-bold text-zinc-400 uppercase block mb-1">{children}</label>;
@@ -22,30 +22,6 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
   const supabase  = createClient();
   const [uploading, setUploading] = useState(false);
   const [dragIdx,   setDragIdx]   = useState<number | null>(null);
-
-  const customSections = config.customSections || [];
-  const aboutSections = customSections.filter((s: any) => s.type === 'about');
-
-  const addAboutSection = () => {
-    const newId = Math.random().toString(36).substring(2, 11);
-    const newSection = { id: newId, type: 'about', titulo: "Sobre Nosotros", texto: "Escribe aquí tu historia...", imagenUrl: "" };
-    const currentOrder = config.sectionOrder || [];
-    updateConfigRoot("customSections", [...customSections, newSection]);
-    updateConfigRoot("sectionOrder", [...currentOrder, newId]);
-  };
-
-  const updateAboutSection = (id: string, field: string, value: any) => {
-    const newSections = customSections.map((s: any) => s.id === id ? { ...s, [field]: value } : s);
-    updateConfigRoot("customSections", newSections);
-  };
-
-  const removeAboutSection = (id: string) => {
-    if (!window.confirm("¿Borrar esta sección?")) return;
-    const newSections = customSections.filter((s: any) => s.id !== id);
-    const newOrder = (config.sectionOrder || []).filter((item: string) => item !== id);
-    updateConfigRoot("customSections", newSections);
-    updateConfigRoot("sectionOrder", newOrder);
-  };
 
   // ── Leer imágenes de ambas fuentes ───────────────────────────────────────
   const rawGallery: string[] = (config.gallery as any)?.images || [];
@@ -103,7 +79,7 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
         <div className="flex items-center gap-2 pb-3 border-b border-zinc-100">
           <span className="w-2 h-2 rounded-full bg-purple-500" />
           <h3 className="font-bold text-zinc-800 text-xs uppercase tracking-wide">
-            Galería de imágenes y Otros ({allImages.length})
+            Galería de imágenes ({allImages.length})
           </h3>
         </div>
 
@@ -171,57 +147,6 @@ export default function GalleryPanel({ config, updateConfigRoot, negocio }: Bloc
         ) : (
           <p className="text-center text-zinc-400 text-sm py-4 italic">Sin imágenes aún. Subí la primera foto arriba.</p>
         )}
-        <div className="pt-6 mt-6 border-t border-zinc-100">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-bold text-zinc-800 text-xs uppercase tracking-wide flex items-center gap-2">
-              <FileText size={16} className="text-blue-500" /> Quiénes Somos
-            </h4>
-          </div>
-
-          {aboutSections.map((section: any) => (
-            <div key={section.id} className="p-4 border border-zinc-200 rounded-lg bg-zinc-50 relative group mb-4">
-              <button 
-                onClick={() => removeAboutSection(section.id)} 
-                className="absolute top-2 right-2 p-1 text-zinc-400 hover:text-red-500 transition-colors"
-              >
-                <X size={16} />
-              </button>
-              
-              <div className="space-y-3 pr-6">
-                <div>
-                  <Label>Título</Label>
-                  <input 
-                    type="text"
-                    value={section.titulo} 
-                    onChange={(e) => updateAboutSection(section.id, 'titulo', e.target.value)} 
-                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500/30 outline-none"
-                  />
-                </div>
-                <div>
-                  <Label>Descripción</Label>
-                  <textarea 
-                    rows={4}
-                    value={section.texto} 
-                    onChange={(e) => updateAboutSection(section.id, 'texto', e.target.value)} 
-                    className="w-full p-2 border border-zinc-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500/30 outline-none resize-none"
-                  />
-                </div>
-                <ImageUpload 
-                  label="Imagen (Opcional)" 
-                  value={section.imagenUrl} 
-                  onChange={(url) => updateAboutSection(section.id, 'imagenUrl', url)} 
-                />
-              </div>
-            </div>
-          ))}
-
-          <button 
-            onClick={addAboutSection}
-            className="w-full py-3 border-2 border-dashed border-zinc-300 rounded-xl text-zinc-500 font-bold text-sm hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-          >
-            <PlusCircle size={18}/> Agregar "Quiénes Somos"
-          </button>
-        </div>
       </section>
     </div>
   );
