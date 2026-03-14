@@ -21,6 +21,7 @@ import {
   changeAgencyPassword,
   toggleClientPlanStatus
 } from "@/app/actions/admin/agency-actions";
+import { deleteNegocio } from "@/app/actions/admin/delete-negocio";
 
 const PRIMARY    = "#577a2c";
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -149,11 +150,8 @@ export default function DashboardAgencia() {
     if (!window.confirm(`⚠️ ¿Eliminar "${nombre}"?\n\nSe borrarán PERMANENTEMENTE sus turnos, reseñas, bloques y configuración.\n\nNo se puede deshacer.`)) return;
     setDeletingId(id);
     try {
-      await supabase.from("tenant_blocks").delete().eq("negocio_id", id);
-      await supabase.from("resenas").delete().eq("negocio_id", id);
-      await supabase.from("turnos").delete().eq("negocio_id", id);
-      const { error } = await supabase.from("negocios").delete().eq("id", id);
-      if (error) throw error;
+      const result = await deleteNegocio(id);
+      if (!result.success) throw new Error(result.error);
       setClientes(prev => prev.filter(c => c.id !== id));
     } catch (err: any) { alert("Error al eliminar: " + (err?.message || String(err))); }
     setDeletingId(null);
