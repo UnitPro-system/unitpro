@@ -46,6 +46,11 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
     });
 
     const events = eventsResponse.data.items || [];
+
+    // ── Resolver availabilityMode ──────────────────────────────────────────
+    // El nuevo editor (ModularEditor) guarda DIRECTAMENTE en config_web.
+    // El legacy puede haber guardado en tenant_blocks.
+    // Leemos de AMBOS sitios y priorizamos config_web (fuente del nuevo editor).
     const { data: blockData } = await supabase
         .from('tenant_blocks')
         .select('config')
@@ -55,13 +60,33 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
 
     const blockConfig = blockData?.config || {};
     const rawEquipo = negocio.config_web?.equipo || {};
-    
-    // Prioridad: Lo que guardó el nuevo editor (blockConfig) sobre el legacy (rawEquipo)
-    const equipoMerged = { ...rawEquipo, ...(blockConfig.equipo || {}) };
-    const availabilityMode = equipoMerged.availabilityMode || 'global';
+
+    // Prioridad: config_web (nuevo editor) > blockConfig (legacy tenant_blocks)
+    const availabilityMode = 
+        rawEquipo.availabilityMode || 
+        (blockConfig.equipo || {}).availabilityMode || 
+        'global';
+    const { data: pendingTurnos } = await supabase
+        .from('turnos')
+        .select('fecha_inicio, fecha_fin, servicio')
+        .eq('negocio_id', negocio.id)
+        .in('estado', ['pendiente', 'esperando_senia'])
+        .gte('fecha_inicio', startWindow.toISOString())
+        .lte('fecha_inicio', endWindow.toISOString());
+
+    const pendingIntervals = (pendingTurnos || []).map(t => {
+        const parts = (t.servicio || '').split(' - ');
+        const workerName = parts.length > 1 ? parts[parts.length - 1].trim() : null;
+        const allWorkers = rawEquipo.items || (blockConfig.equipo || {}).items || [];
+        const worker = workerName ? allWorkers.find((w: any) => w.nombre === workerName) : null;
+        const pendingWorkerId = worker ? String(worker.id).trim() : null;
+        return { start: t.fecha_inicio, end: t.fecha_fin, workerId: pendingWorkerId };
+    });
+
+    const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
 
     // 5. Filtrado
-    const busyIntervals = events
+    const busyFromCalendar = events
         .filter(event => {
             // Ignoramos eventos transparentes (marcados como "disponible" en Calendar) o cancelados
             if (event.transparency === 'transparent') return false;
@@ -81,7 +106,6 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             const shared = (event.extendedProperties?.shared as any) || {};
             const rawId = shared['saas_worker_id'];
             const eventWorkerId = rawId ? String(rawId).trim() : null;
-            const targetWorkerId = workerIdArg ? String(workerIdArg).trim() : null;
 
             if (availabilityMode === 'global') {
                 // Modo Sala Única: Cualquier evento bloquea todo
@@ -106,6 +130,20 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
             start: event.start?.dateTime || event.start?.date,
             end: event.end?.dateTime || event.end?.date
         }));
+
+    const busyFromPending = pendingIntervals
+        .filter(p => {
+            if (availabilityMode === 'global') {
+                return true;
+            } else {
+                if (!p.workerId) return true;
+                if (targetWorkerId && p.workerId === targetWorkerId) return true;
+                return false;
+            }
+        })
+        .map(p => ({ start: p.start, end: p.end }));
+
+    const busyIntervals = [...busyFromCalendar, ...busyFromPending];
 
     return { success: true, busy: busyIntervals, timeZone, mode: availabilityMode }
 
