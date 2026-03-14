@@ -46,7 +46,19 @@ export async function checkAvailability(slug: string, dateStr: string, workerIdA
     });
 
     const events = eventsResponse.data.items || [];
-    const availabilityMode = negocio.config_web?.equipo?.availabilityMode || 'global';
+    const { data: blockData } = await supabase
+        .from('tenant_blocks')
+        .select('config')
+        .eq('negocio_id', negocio.id)
+        .eq('block_id', 'calendar')
+        .maybeSingle();
+
+    const blockConfig = blockData?.config || {};
+    const rawEquipo = negocio.config_web?.equipo || {};
+    
+    // Prioridad: Lo que guardó el nuevo editor (blockConfig) sobre el legacy (rawEquipo)
+    const equipoMerged = { ...rawEquipo, ...(blockConfig.equipo || {}) };
+    const availabilityMode = equipoMerged.availabilityMode || 'global';
 
     // 5. Filtrado
     const busyIntervals = events
