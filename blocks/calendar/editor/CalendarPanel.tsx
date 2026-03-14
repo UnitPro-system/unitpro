@@ -334,6 +334,18 @@ export default function CalendarPanel({
       {/* ── Configuración de Reservas ───────────────────────────────────── */}
       <SectionCard title="Configuración de Reservas" color="amber">
         <div className="space-y-4">
+          
+          <Toggle 
+            label="Permitir selección múltiple (Multiservicio)" 
+            value={!!booking.allowMultipleServices}
+            onChange={v => updateConfig("booking", "allowMultipleServices", v)} 
+          />
+          <p className="text-xs text-zinc-400 -mt-2">
+            Si está activado, el cliente podrá agendar varios servicios en el mismo turno.
+          </p>
+
+          <div className="h-px bg-zinc-100" />
+
           <Toggle label="Confirmación manual de turnos" value={!!booking.requireManualConfirmation}
             onChange={v => updateConfig("booking", "requireManualConfirmation", v)} />
           <p className="text-xs text-zinc-400 -mt-2">

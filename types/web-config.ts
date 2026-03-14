@@ -126,7 +126,8 @@ export interface LocationSection {
 export interface BookingConfig {
   requestDeposit: boolean;     // ¿Pide seña?
   depositPercentage?: number;
-  requireManualConfirmation?: boolean;  // Porcentaje (ej: 50)
+  requireManualConfirmation?: boolean;
+  allowMultipleServices?: boolean;
 }
 export interface EmailTemplate {
   enabled: boolean;

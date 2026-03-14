@@ -29,6 +29,7 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
   const brandColor  = cfg.colors.primary as string;
   const textColor   = (raw.colors?.text as string) || "#1f2937";
   const requireManual = !!(cfg.booking as any).requireManualConfirmation;
+  const allowMultipleServices = !!(cfg.booking as any).allowMultipleServices;
 
   // Radius para distintos usos:
   // cardRadius   → tarjetas grandes (servicios, equipo, reseñas)
@@ -191,7 +192,14 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
   const toggleSvc = (s: any) => {
     setSelectedServices(prev => {
       const exists = prev.some(x => svcKey(x) === svcKey(s));
-      return exists ? prev.filter(x => svcKey(x) !== svcKey(s)) : [...prev, s];
+      if (exists) {
+        // Si ya estaba seleccionado, lo deseleccionamos
+        return prev.filter(x => svcKey(x) !== svcKey(s));
+      } else {
+        // Si NO permite múltiples, reemplazamos el array por el nuevo servicio.
+        // Si SÍ lo permite, lo agregamos a la lista.
+        return allowMultipleServices ? [...prev, s] : [s];
+      }
     });
     setBookingData(p => ({ ...p, time: "" }));
   };
@@ -422,7 +430,9 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
                 {/* ── Paso 1: Servicios ── */}
                 {bookingStep === 1 && (
                   <div className="space-y-3">
-                    <p className="font-bold text-zinc-700 mb-2">Seleccioná uno o más servicios:</p>
+                    <p className="font-bold text-zinc-700 mb-2">
+                      {allowMultipleServices ? "Seleccioná uno o más servicios:" : "Seleccioná un servicio:"}
+                    </p>
 
                     {selectedServices.length > 0 && (
                       <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100 mb-2">
