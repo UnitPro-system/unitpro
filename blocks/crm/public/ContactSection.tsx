@@ -163,14 +163,20 @@ export default function ContactSection({ negocio, config: blockConfig }: BlockSe
 
             {/* Mapa */}
             <div className={`h-[400px] bg-zinc-100 overflow-hidden shadow-2xl relative ${radiusClass}`}>
-              {negocio.google_maps_link ? (
+              {(negocio.direccion || negocio.google_maps_link) ? (
                 <iframe
-                  width="100%" height="100%"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion || "")}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                  title="Mapa" />
+                  width="100%" 
+                  height="100%"
+                  className="border-0"
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(negocio.direccion || negocio.nombre)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  title="Mapa de ubicación" 
+                />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-zinc-400">
-                  <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50" />Mapa no disponible</div>
+                <div className="absolute inset-0 flex items-center justify-center text-zinc-400 bg-zinc-200">
+                  <div className="text-center p-6"><MapPin size={48} className="mx-auto mb-2 opacity-50" />Dirección no configurada</div>
                 </div>
               )}
             </div>
