@@ -138,7 +138,7 @@ export const BLOCKS_REGISTRY: Record<BlockId, BlockDefinition> = {
     category: 'services', priceARS: 800, agencyPriceARS: 560, priceUC: 8, agencyPriceUC: 6, dependencies: [],
     icon: 'Images', available: true, adminOrder: 6,
     SectionComponent: GallerySection,
-    editorLabel: 'Galería de Imágenes',
+    editorLabel: 'Galería de Imágenes y Otros',
     EditorPanel: GalleryPanel,
   },
   analytics: {
