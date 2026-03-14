@@ -361,8 +361,8 @@ export default function CalendarSection({ negocio, config: blockConfig }: BlockS
             {equipo.map((item: any, i: number) => (
               <div key={i} className={`w-full sm:w-[calc(50%-2rem)] md:w-[280px] flex flex-col items-center text-center p-6 bg-white shadow-sm border border-zinc-100 hover:shadow-lg hover:-translate-y-1 transition-all ${cardRadius}`}>
                 <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-zinc-100 border-2 border-white shadow-md">
-                  {item.imagenUrl ? (
-                    <img src={item.imagenUrl} className="w-full h-full object-cover" alt={item.nombre} />
+                  {item.imagenUrl || item.photoUrl ? (
+                    <img src={item.imagenUrl || item.photoUrl} className="w-full h-full object-cover" alt={item.nombre} />
                   ) : (
                     <Users className="w-full h-full p-6 text-zinc-300" />
                   )}
